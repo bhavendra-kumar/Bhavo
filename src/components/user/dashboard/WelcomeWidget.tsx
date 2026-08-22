@@ -1,100 +1,83 @@
 "use client";
 
 import React from "react";
-import { Sparkles, ArrowRight, Clock, TrendingUp } from "lucide-react";
+import { Sparkles, ArrowRight, Clock, MapPin } from "lucide-react";
 import { useUserStore } from "@/hooks/user/useUserStore";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { TypographyH1, TypographyP } from "@/components/ui/typography";
 
 export default function WelcomeWidget() {
   const { user } = useUserStore();
-
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
   return (
-    <div
-      className="relative rounded-3xl overflow-hidden text-white"
-      style={{
-        background: "linear-gradient(135deg, #0f766e 0%, #0d9488 40%, #059669 100%)",
-        boxShadow: "0 20px 60px -12px rgba(13,148,136,0.45), 0 4px 16px rgba(0,0,0,0.1)",
-        minHeight: "200px",
-      }}
-    >
-      {/* Background decoration */}
-      <div
-        className="absolute top-0 right-0 w-80 h-80 rounded-full opacity-10"
+    <div className="relative rounded-3xl overflow-hidden text-white bg-[#0a0f1c] shadow-[0_8px_30px_rgba(10,15,28,0.4)]">
+      {/* Decorative Gradients */}
+      <div className="absolute top-0 right-0 w-125 h-125 bg-teal-500/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3" />
+      <div className="absolute bottom-0 left-0 w-100 h-100 bg-blue-500/10 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/3" />
+      
+      {/* Grid Pattern */}
+      <div className="absolute inset-0 opacity-[0.03]"
         style={{
-          background: "radial-gradient(circle, #ffffff 0%, transparent 70%)",
-          transform: "translate(30%, -30%)",
-        }}
-      />
-      <div
-        className="absolute bottom-0 left-1/3 w-64 h-64 rounded-full opacity-10"
-        style={{
-          background: "radial-gradient(circle, #ffffff 0%, transparent 70%)",
-          transform: "translateY(40%)",
-        }}
-      />
-      {/* Grid overlay */}
-      <div
-        className="absolute inset-0 opacity-5"
-        style={{
-          backgroundImage: "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)",
-          backgroundSize: "40px 40px",
+          backgroundImage: "linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)",
+          backgroundSize: "30px 30px"
         }}
       />
 
-      <div className="relative z-10 p-8">
-        {/* Top row */}
-        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
-          <div className="flex-1">
-            {/* Badge */}
-            <Badge variant="outline" className="bg-white/15 backdrop-blur-sm border-white/20 text-white rounded-full text-xs font-bold uppercase tracking-wider mb-4 shadow-none">
-              <Sparkles size={12} className="text-teal-200 mr-2" />
-              AI Commute Active
-            </Badge>
-
-            {/* Heading */}
-            <TypographyH1 className="text-3xl md:text-4xl font-black tracking-tight mb-2 border-none">
-              {greeting}, {user.name.split(" ")[0]} 👋
-            </TypographyH1>
-            <TypographyP className="text-teal-100 text-sm md:text-base leading-relaxed max-w-lg opacity-90 not-first:mt-0">
-              Your office commute is scheduled for{" "}
-              <span className="font-bold text-white">8:45 AM</span>. Traffic is lighter today —
-              saving you{" "}
-              <span className="font-bold text-white">~12 minutes</span>.
-            </TypographyP>
-
-            {/* Inline stats */}
-            <div className="flex flex-wrap gap-4 mt-5">
-              <div className="flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2">
-                <Clock size={14} className="text-teal-200" />
-                <span className="text-xs font-semibold text-white">Pickup at 8:45 AM</span>
-              </div>
-              <div className="flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2">
-                <TrendingUp size={14} className="text-teal-200" />
-                <span className="text-xs font-semibold text-white">12 min saved today</span>
-              </div>
-            </div>
+      <div className="relative z-10 p-8 md:p-10 flex flex-col md:flex-row gap-8 justify-between items-start">
+        <div className="flex-1 max-w-2xl">
+          {/* Status Badge */}
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 mb-6 backdrop-blur-md">
+            <Sparkles size={14} className="text-teal-400" />
+            <span className="text-[11px] font-semibold text-teal-50 uppercase tracking-widest">AI Commute Active</span>
           </div>
 
-          {/* Actions */}
-          <div className="flex md:flex-col gap-3 shrink-0">
-            <Button
-              variant="secondary"
-              className="bg-white text-teal-700 hover:bg-teal-50 rounded-xl font-bold transition-all hover:-translate-y-0.5 shadow-lg h-10 px-5"
-            >
-              View Route
-              <ArrowRight size={15} className="ml-2" />
-            </Button>
-            <Button
-              variant="outline"
-              className="rounded-xl font-semibold transition-all text-white/80 hover:text-white hover:bg-white/10 border-white/20 bg-transparent h-10 px-5 shadow-none"
-            >
-              Skip Today
-            </Button>
+          <h1 className="text-3xl md:text-5xl font-bold tracking-tight mb-4 text-white">
+            {greeting}, {user?.name?.split(" ")[0] ?? "User"}.
+          </h1>
+          
+          <p className="text-slate-300 text-[15px] md:text-[17px] leading-relaxed max-w-lg">
+            Your office commute is on track for <strong className="text-white font-semibold">8:45 AM</strong>. 
+            Traffic is lighter today, saving you approximately <strong className="text-teal-400 font-semibold">12 minutes</strong> on your route.
+          </p>
+
+          <div className="flex flex-wrap items-center gap-4 mt-8">
+            <button className="h-11 px-6 rounded-xl bg-teal-500 hover:bg-teal-400 text-teal-950 font-semibold text-[14px] transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(20,184,166,0.3)]">
+              View Live Route <ArrowRight size={16} />
+            </button>
+            <button className="h-11 px-6 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold text-[14px] transition-all">
+              Modify Schedule
+            </button>
+          </div>
+        </div>
+
+        {/* Right side live status card */}
+        <div className="w-full md:w-72 shrink-0 bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl p-5 flex flex-col gap-4">
+          <div className="flex items-center justify-between pb-3 border-b border-white/10">
+            <span className="text-[12px] font-semibold text-slate-400 uppercase tracking-widest">Current Status</span>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
+              <span className="text-[12px] font-medium text-teal-400">Monitoring</span>
+            </div>
+          </div>
+          
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+              <Clock size={14} className="text-slate-300" />
+            </div>
+            <div>
+              <p className="text-[13px] font-medium text-white mb-0.5">Estimated Pickup</p>
+              <p className="text-[16px] font-bold text-teal-400">8:45 AM</p>
+            </div>
+          </div>
+          
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+              <MapPin size={14} className="text-slate-300" />
+            </div>
+            <div>
+              <p className="text-[13px] font-medium text-white mb-0.5">Arrival at HQ</p>
+              <p className="text-[16px] font-bold text-teal-400">9:30 AM <span className="text-slate-400 font-medium text-[12px] ml-1">(-12m)</span></p>
+            </div>
           </div>
         </div>
       </div>

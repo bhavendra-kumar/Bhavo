@@ -1,7 +1,5 @@
 import React from "react";
 import { LucideIcon } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 
 interface StatCardProps {
   title: string;
@@ -16,26 +14,11 @@ interface StatCardProps {
 }
 
 const colorConfig = {
-  teal: {
-    gradient: "linear-gradient(135deg, #0d9488 0%, #14b8a6 100%)",
-    glow: "rgba(20,184,166,0.3)",
-  },
-  blue: {
-    gradient: "linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)",
-    glow: "rgba(59,130,246,0.3)",
-  },
-  purple: {
-    gradient: "linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)",
-    glow: "rgba(139,92,246,0.3)",
-  },
-  rose: {
-    gradient: "linear-gradient(135deg, #e11d48 0%, #f43f5e 100%)",
-    glow: "rgba(244,63,94,0.3)",
-  },
-  amber: {
-    gradient: "linear-gradient(135deg, #d97706 0%, #f59e0b 100%)",
-    glow: "rgba(245,158,11,0.3)",
-  },
+  teal: { bg: "bg-teal-50", text: "text-teal-600" },
+  blue: { bg: "bg-blue-50", text: "text-blue-600" },
+  purple: { bg: "bg-purple-50", text: "text-purple-600" },
+  rose: { bg: "bg-rose-50", text: "text-rose-600" },
+  amber: { bg: "bg-amber-50", text: "text-amber-600" },
 };
 
 export default function StatCard({
@@ -49,43 +32,32 @@ export default function StatCard({
   const cfg = colorConfig[color];
 
   return (
-    <Card className="transition-all duration-300 hover:-translate-y-1 group cursor-default border-none shadow-sm rounded-2xl bg-white">
-      <CardContent className="p-5 flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{title}</span>
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110"
-            style={{
-              background: cfg.gradient,
-              boxShadow: `0 4px 14px ${cfg.glow}`,
-            }}
-          >
-            <Icon size={18} className="text-white" />
-          </div>
+    <div className="premium-card rounded-2xl p-5 flex flex-col gap-5 relative overflow-hidden group">
+      <div className="flex items-center justify-between z-10">
+        <span className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">{title}</span>
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 ${cfg.bg}`}>
+          <Icon size={18} className={cfg.text} />
         </div>
+      </div>
 
-        <div>
-          <h3 className="text-3xl font-black text-slate-900 tracking-tight leading-none">
-            {value}
-          </h3>
-
-          {(trend || subtitle) && (
-            <div className="mt-2.5 flex items-center gap-2">
-              {trend && (
-                <Badge
-                  variant={trend.isPositive ? "default" : "destructive"}
-                  className={`text-xs font-bold px-2 py-0.5 shadow-none ${trend.isPositive ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100' : 'bg-red-100 text-red-700 hover:bg-red-100'}`}
-                >
-                  5                  {trend.isPositive ? "↑" : "↓"} {Math.abs(trend.value)}%
-                </Badge>
-              )}
-              {subtitle && (
-                <span className="text-xs text-muted-foreground font-medium">{subtitle}</span>
-              )}
+      <div className="z-10">
+        <h3 className="text-3xl font-bold text-teal-950 tracking-tight mb-2">
+          {value}
+        </h3>
+        
+        <div className="flex items-center gap-2">
+          {trend && (
+            <div className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold ${
+              trend.isPositive ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
+            }`}>
+              {trend.isPositive ? "↑" : "↓"} {Math.abs(trend.value)}%
             </div>
           )}
+          {subtitle && (
+            <span className="text-[12px] font-medium text-slate-500">{subtitle}</span>
+          )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

@@ -1,161 +1,94 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React from "react";
 import { usePathname } from "next/navigation";
-import {
-  Search,
-  Bell,
-  Menu,
-  ChevronRight,
-  Command,
-} from "lucide-react";
+import { Bell, Search } from "lucide-react";
 import { useUserStore } from "@/hooks/user/useUserStore";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+const PAGE_META: Record<string, { title: string; subtitle: string }> = {
+  "/user/dashboard":          { title: "Dashboard",         subtitle: new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" }) },
+  "/user/book-ride":          { title: "Book a Ride",        subtitle: "Get a ride in minutes. Your preferred vehicles are ready." },
+  "/user/my-commute":         { title: "My Commute",         subtitle: "Your daily routes and smart commute insights." },
+  "/user/trips":              { title: "My Trips",           subtitle: "View your past and upcoming trips." },
+  "/user/wallet":             { title: "Bhavo Wallet",       subtitle: "Manage your balance, rewards and payments." },
+  "/user/places":             { title: "Places",             subtitle: "Your saved and frequent locations." },
+  "/user/notifications":      { title: "Notifications",      subtitle: "Stay up to date with your activity." },
+  "/user/mobility-insights":  { title: "Mobility Insights",  subtitle: "Analytics on your travel patterns and savings." },
+  "/user/profile":            { title: "My Profile",         subtitle: "Manage your personal information and preferences." },
+  "/user/settings":           { title: "Settings",           subtitle: "Customize your Bhavo experience." },
+};
 
 export default function Navbar() {
   const pathname = usePathname();
-  const { toggleSidebar, user } = useUserStore();
-  const [searchFocused, setSearchFocused] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const searchRef = useRef<HTMLInputElement>(null);
-
-  const paths = pathname.split("/").filter(Boolean);
-  const formatPath = (path: string) =>
-    path.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-  const pageTitle = paths.length > 0 ? formatPath(paths[paths.length - 1]) : "Dashboard";
-
-  /* Scroll shadow effect */
-  useEffect(() => {
-    const container = document.querySelector("main");
-    if (!container) return;
-    const handler = () => setScrolled(container.scrollTop > 10);
-    container.addEventListener("scroll", handler);
-    return () => container.removeEventListener("scroll", handler);
-  }, []);
-
-  /* Cmd+K shortcut to focus search */
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        searchRef.current?.focus();
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
+  const { user } = useUserStore();
+  const meta = PAGE_META[pathname] ?? { title: "Bhavo", subtitle: "" };
 
   return (
-    <>
-      <style>{`
-        .navbar-blur {
-          background: rgba(255, 255, 255, 0.85);
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
-        }
-      `}</style>
-      
-      <header
-        className={`sticky top-0 z-40 w-full flex items-center justify-between px-6 transition-all duration-300 navbar-blur ${
-          scrolled ? "h-16 border-b border-slate-200 shadow-sm" : "h-19 border-b border-slate-100"
-        }`}
-      >
-        {/* ─── Left: Mobile Menu + Breadcrumbs ─── */}
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleSidebar}
-            className="lg:hidden w-10 h-10 text-slate-500 hover:bg-slate-100"
-          >
-            <Menu size={20} />
-          </Button>
+    <header
+      className="flex items-center justify-between h-16 px-6 lg:px-8 shrink-0"
+      style={{ background: "#042f2e", borderBottom: "1px solid #115e59" }}
+    >
+      {/* Page title block */}
+      <div className="flex flex-col justify-center">
+        <h1 className="text-[17px] font-black tracking-tight leading-none" style={{ color: "#ffffff" }}>
+          {meta.title}
+        </h1>
+        {meta.subtitle && (
+          <p className="text-[11px] font-medium mt-0.5 hidden sm:block" style={{ color: "#99f6e4" }}>
+            {meta.subtitle}
+          </p>
+        )}
+      </div>
 
-          <nav className="hidden sm:flex flex-col justify-center">
-            {/* Breadcrumb row */}
-            {paths.length > 1 && (
-              <div className="flex items-center gap-1.5 mb-0.5">
-                {paths.slice(0, -1).map((path, idx) => (
-                  <React.Fragment key={path}>
-                    <span className="text-[12px] font-medium text-slate-400 tracking-wide hover:text-slate-600 transition-colors cursor-pointer">
-                      {formatPath(path)}
-                    </span>
-                    {idx < paths.length - 2 && (
-                      <ChevronRight size={12} className="text-slate-300" />
-                    )}
-                  </React.Fragment>
-                ))}
-              </div>
-            )}
-            
-            {/* Page Title */}
-            <h1 className="text-[22px] font-bold text-slate-900 tracking-tight leading-none">
-              {pageTitle}
-            </h1>
-          </nav>
+      {/* Right controls */}
+      <div className="flex items-center gap-3">
+        {/* Search */}
+        <div className="relative hidden md:flex items-center">
+          <Search size={14} className="absolute left-3 pointer-events-none" style={{ color: "#5eead4" }} />
+          <input
+            type="text"
+            placeholder="Search..."
+            className="h-9 pl-9 pr-4 text-[13px] rounded-lg transition-all w-48 focus:w-64 focus:outline-none placeholder:text-teal-600"
+            style={{ background: "#115e59", border: "1px solid #134e4a", color: "#ffffff" }}
+            onFocus={(e) => {
+              (e.target as HTMLInputElement).style.borderColor = "#2dd4bf";
+              (e.target as HTMLInputElement).style.boxShadow = "0 0 0 3px rgba(45,212,191,0.12)";
+            }}
+            onBlur={(e) => {
+              (e.target as HTMLInputElement).style.borderColor = "#134e4a";
+              (e.target as HTMLInputElement).style.boxShadow = "none";
+            }}
+          />
         </div>
 
-        {/* ─── Right: Actions & Profile ─── */}
-        <div className="flex items-center gap-4 md:gap-5">
-          {/* Search Bar */}
-          <div className="relative hidden md:flex items-center group">
-            <Search
-              size={16}
-              className={`absolute left-3.5 pointer-events-none transition-colors ${
-                searchFocused ? "text-teal-600" : "text-slate-400 group-hover:text-slate-500"
-              }`}
-            />
-            <Input
-              ref={searchRef}
-              type="text"
-              placeholder="Search..."
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
-              className={`h-10 pl-10 pr-12 rounded-full text-[14px] font-medium transition-all duration-300 ${
-                searchFocused
-                  ? "w-72 bg-white border-teal-500 ring-4 ring-teal-500/10 shadow-sm text-slate-800"
-                  : "w-60 bg-slate-100 border-transparent hover:bg-slate-200/70 text-slate-700 placeholder:text-slate-400"
-              }`}
-            />
-            {!searchFocused && (
-              <kbd className="absolute right-3.5 hidden lg:flex items-center gap-1 text-[10px] font-semibold text-slate-400 bg-white border border-slate-200 px-1.5 py-0.5 rounded shadow-sm pointer-events-none">
-                <Command size={10} /> K
-              </kbd>
-            )}
+        {/* Bell */}
+        <button
+          className="relative w-9 h-9 rounded-lg flex items-center justify-center transition-colors"
+          style={{ color: "#5eead4", background: "#115e59", border: "1px solid #134e4a" }}
+          onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "#134e4a")}
+          onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "#115e59")}
+        >
+          <Bell size={18} />
+          <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-rose-500 border-2 border-white" />
+        </button>
+
+        <div className="w-px h-6" style={{ background: "#115e59" }} />
+
+        {/* User */}
+        <div className="flex items-center gap-2.5">
+          <Avatar className="w-8 h-8" style={{ border: "1px solid #115e59" }}>
+            <AvatarImage src={user?.avatar ?? undefined} alt={user?.name ?? undefined} />
+            <AvatarFallback className="text-[12px] font-bold" style={{ background: "#115e59", color: "#5eead4" }}>
+              {user?.name?.charAt(0) ?? "U"}
+            </AvatarFallback>
+          </Avatar>
+          <div className="hidden lg:block">
+            <p className="text-[13px] font-semibold leading-none" style={{ color: "#ffffff" }}>{user?.name}</p>
+            <p className="text-[11px] font-medium mt-0.5" style={{ color: "#5eead4" }}>★ {user?.rating}</p>
           </div>
-
-          {/* Notifications */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative w-10 h-10 rounded-full text-slate-500 hover:text-slate-800 hover:bg-slate-100"
-          >
-            <Bell size={20} />
-            {/* Unread dot */}
-            <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-rose-500 border-2 border-white" />
-          </Button>
-
-          {/* Profile Menu */}
-          <button className="flex items-center gap-3 pl-1 pr-3 py-1 rounded-full hover:bg-slate-100 transition-colors group">
-            <Avatar className="w-9 h-9 border border-slate-200 shadow-sm transition-transform group-hover:scale-105">
-              <AvatarImage src={user.avatar} alt={user.name} />
-              <AvatarFallback className="bg-teal-600 text-white font-semibold text-[13px]">
-                {user.name.split(" ").map(n => n[0]).join("")}
-              </AvatarFallback>
-            </Avatar>
-            <div className="hidden lg:flex flex-col items-start justify-center">
-              <span className="text-[14px] font-bold text-slate-800 leading-tight">
-                {user.name}
-              </span>
-              <span className="text-[12px] font-semibold text-teal-600 leading-tight flex items-center gap-0.5 mt-0.5">
-                ★ {user.rating}
-              </span>
-            </div>
-          </button>
         </div>
-      </header>
-    </>
+      </div>
+    </header>
   );
 }
