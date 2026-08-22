@@ -1,78 +1,61 @@
 import React from "react";
-import { Zap, CalendarClock, Power, ArrowRight } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Zap, CalendarClock, Power, ChevronRight } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
 
 export default function AutoBookingWidget() {
   return (
-    <Card className="h-full border-none shadow-sm rounded-2xl">
-      <CardContent className="p-6 flex flex-col h-full">
+    <div className="premium-card rounded-2xl h-full flex flex-col relative overflow-hidden group">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 transition-opacity group-hover:opacity-100 opacity-50" />
+      
+      <div className="p-6 flex-1 flex flex-col z-10">
         {/* Header */}
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <Zap size={16} className="text-amber-500 fill-amber-500" />
-            Auto-Booking
-          </h3>
-          <Switch defaultChecked />
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center">
+              <Zap size={16} className="text-teal-600 fill-teal-600/20" />
+            </div>
+            <h3 className="text-[16px] font-bold text-teal-950 tracking-tight">Auto-Booking</h3>
+          </div>
+          <Switch defaultChecked className="data-[state=checked]:bg-teal-500" />
         </div>
 
-        {/* Commute rows */}
-        <div className="flex-1 flex flex-col gap-3">
+        {/* Schedule Items */}
+        <div className="flex flex-col gap-3 flex-1">
           {/* Morning */}
-          <div
-            className="flex items-center gap-3 p-3.5 rounded-xl border bg-teal-50/50 border-teal-100/50"
-          >
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-indigo-100/50"
-            >
-              <CalendarClock size={16} className="text-indigo-600" />
+          <div className="p-4 rounded-xl border border-slate-100 bg-white flex items-center gap-4 transition-all hover:border-teal-100 hover:bg-teal-50/30">
+            <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center shrink-0">
+              <CalendarClock size={16} className="text-slate-600" />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-slate-900">Morning Commute</p>
-              <p className="text-xs text-slate-500">Mon–Fri · 8:45 AM</p>
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-0.5">
+                <p className="text-[14px] font-bold text-teal-950">Morning Commute</p>
+                <span className="w-2 h-2 rounded-full bg-teal-400" />
+              </div>
+              <p className="text-[12px] font-medium text-slate-500">Mon–Fri · 8:45 AM</p>
             </div>
-            <Badge 
-              variant="outline" 
-              className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full shrink-0 border-emerald-200 text-emerald-600 bg-emerald-50 shadow-none"
-            >
-              Active
-            </Badge>
           </div>
 
           {/* Evening */}
-          <div
-            className="flex items-center gap-3 p-3.5 rounded-xl border bg-slate-50 border-slate-100"
-          >
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-rose-100/50"
-            >
-              <Power size={16} className="text-rose-500" />
+          <div className="p-4 rounded-xl border border-slate-100 bg-white flex items-center gap-4 transition-all hover:border-teal-100 hover:bg-teal-50/30">
+            <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center shrink-0">
+              <Power size={16} className="text-slate-600" />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-slate-900">Evening Return</p>
-              <p className="text-xs text-slate-500">Mon–Fri · 6:30 PM</p>
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-0.5">
+                <p className="text-[14px] font-bold text-teal-950">Evening Return</p>
+                <span className="w-2 h-2 rounded-full bg-teal-400" />
+              </div>
+              <p className="text-[12px] font-medium text-slate-500">Mon–Fri · 6:30 PM</p>
             </div>
-            <Badge 
-              variant="outline" 
-              className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full shrink-0 border-emerald-200 text-emerald-600 bg-emerald-50 shadow-none"
-            >
-              Active
-            </Badge>
           </div>
         </div>
 
-        {/* Footer action */}
-        <div
-          className="mt-5 pt-4 border-t border-slate-100"
-        >
-          <Button variant="ghost" className="w-full justify-between text-teal-600 hover:text-teal-700 hover:bg-teal-50 group font-bold px-2 h-9">
-            Manage Smart Rules
-            <ArrowRight size={16} className="text-slate-300 group-hover:text-teal-500 transition-colors" />
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+        {/* Footer Action */}
+        <button className="mt-6 flex items-center justify-between w-full py-3 px-4 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 transition-colors group/btn border border-slate-100">
+          <span className="text-[13px] font-bold">Manage Smart Rules</span>
+          <ChevronRight size={16} className="text-slate-400 group-hover/btn:text-teal-950 transition-colors" />
+        </button>
+      </div>
+    </div>
   );
 }

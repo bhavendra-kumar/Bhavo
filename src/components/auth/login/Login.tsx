@@ -2,8 +2,13 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function Login() {
+  const router = useRouter();
+  const isRegistered = typeof window !== "undefined" && window.location.search.includes("registered=true");
+  const [successMsg, setSuccessMsg] = useState("");
+  const displayMsg = successMsg || (isRegistered ? "Registration successful! Please log in." : "");
   type ViewState = "login" | "forgot_otp" | "forgot_reset";
   const [view, setView] = useState<ViewState>("login");
   const [email, setEmail] = useState("");
@@ -13,7 +18,7 @@ export default function Login() {
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
 
   const [focused, setFocused] = useState<string | null>(null);
-  const [errors, setErrors] = useState<{ email?: string; password?: string; otp?: string; newPassword?: string; confirmNewPassword?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string; otp?: string; newPassword?: string; confirmNewPassword?: string; form?: string }>({});
   const [shake, setShake] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -54,7 +59,7 @@ export default function Login() {
     return e;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length > 0) {
@@ -66,21 +71,75 @@ export default function Login() {
     setErrors({});
     setLoading(true);
 
-    // TODO: replace with real auth calls
-    setTimeout(() => {
-      setLoading(false);
-      if (view === "login") {
-        console.log("Login", { email, password });
-      } else if (view === "forgot_otp") {
-        setView("forgot_reset");
-      } else if (view === "forgot_reset") {
-        setView("login");
-        setPassword("");
-        setNewPassword("");
-        setConfirmNewPassword("");
-        setOtp(["", "", "", "", "", ""]);
+    if (view === "login") {
+      try {
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          setErrors({ form: data.message || "Invalid email or password." });
+          setShake(true);
+          setTimeout(() => setShake(false), 500);
+        } else {
+          router.push("/user/dashboard");
+        }
+      } catch {
+        setErrors({ form: "An unexpected error occurred." });
+        setShake(true);
+        setTimeout(() => setShake(false), 500);
+      } finally {
+        setLoading(false);
       }
-    }, 1200);
+    } else if (view === "forgot_otp") {
+      try {
+        const otpString = otp.join("");
+        const res = await fetch("/api/auth/verify-otp", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, otp: otpString })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setView("forgot_reset");
+        } else {
+          setErrors({ form: data.message || "Invalid OTP." });
+          setShake(true);
+          setTimeout(() => setShake(false), 500);
+        }
+      } catch {
+        setErrors({ form: "An unexpected error occurred." });
+      } finally {
+        setLoading(false);
+      }
+    } else if (view === "forgot_reset") {
+      try {
+        const otpString = otp.join("");
+        const res = await fetch("/api/auth/reset-password", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, otp: otpString, newPassword })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setView("login");
+          setPassword("");
+          setNewPassword("");
+          setConfirmNewPassword("");
+          setOtp(["", "", "", "", "", ""]);
+          setSuccessMsg("Password reset successfully! Please log in.");
+        } else {
+          setErrors({ form: data.message || "Failed to reset password." });
+          setShake(true);
+          setTimeout(() => setShake(false), 500);
+        }
+      } catch {
+        setErrors({ form: "An unexpected error occurred." });
+      } finally {
+        setLoading(false);
+      }
+    }
   };
 
   return (
@@ -405,6 +464,18 @@ export default function Login() {
             </div>
 
             {/* ── Dynamic Form ── */}
+            {displayMsg && (
+              <div style={{ marginBottom: 16, padding: "10px 12px", background: "#f0fdf4", border: "1px solid #4ade80", borderRadius: 8, color: "#166534", fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                {displayMsg}
+              </div>
+            )}
+            {errors.form && (
+              <div style={{ marginBottom: 16, padding: "10px 12px", background: "#fef2f2", border: "1px solid #f87171", borderRadius: 8, color: "#b91c1c", fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                {errors.form}
+              </div>
+            )}
             <form onSubmit={handleSubmit} noValidate style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {view === "login" && (
                 <div>
@@ -449,14 +520,30 @@ export default function Login() {
                 <div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7 }}>
                     <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", letterSpacing: "0.4px", textTransform: "uppercase" }} htmlFor="login-password">Password</label>
-                    <button type="button" onClick={() => {
+                    <button type="button" onClick={async () => {
                       if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
                         setErrors(prev => ({ ...prev, email: "Please enter a valid email first to reset your password." }));
                         setShake(true);
                         setTimeout(() => setShake(false), 500);
-                      } else {
-                        setView("forgot_otp");
-                        setErrors({});
+                        return;
+                      }
+                      setLoading(true);
+                      try {
+                        const res = await fetch("/api/auth/forgot-password", {
+                          method: "POST", headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ email })
+                        });
+                        if (res.ok) {
+                          setView("forgot_otp");
+                          setErrors({});
+                        } else {
+                          const data = await res.json();
+                          setErrors({ form: data.message || "Failed to send OTP." });
+                        }
+                      } catch {
+                        setErrors({ form: "Network error." });
+                      } finally {
+                        setLoading(false);
                       }
                     }} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: 12, color: "#0d9488", fontWeight: 600 }}>Forgot Password?</button>
                   </div>

@@ -2,14 +2,17 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function SignUp() {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [role, setRole] = useState("RIDER");
   const [focused, setFocused] = useState<string | null>(null);
-  const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string; confirmPassword?: string }>({});
+  const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string; confirmPassword?: string; form?: string }>({});
   const [shake, setShake] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -38,7 +41,7 @@ export default function SignUp() {
     return e;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length > 0) {
@@ -49,11 +52,30 @@ export default function SignUp() {
     }
     setErrors({});
     setLoading(true);
-    // TODO: replace with real auth call
-    setTimeout(() => {
+    
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password, role }),
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setErrors({ form: data.message || "Registration failed" });
+        setShake(true);
+        setTimeout(() => setShake(false), 500);
+      } else {
+        router.push("/login?registered=true");
+      }
+    } catch {
+      setErrors({ form: "Something went wrong. Please try again." });
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+    } finally {
       setLoading(false);
-      console.log("SignUp", { name, email, password, confirmPassword });
-    }, 1200);
+    }
   };
 
   return (
@@ -397,6 +419,32 @@ export default function SignUp() {
                   <p className="field-error"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>{errors.confirmPassword}</p>
                 )}
               </div>
+
+              {/* Role Selection */}
+              <div style={{ marginTop: 4, marginBottom: 4 }}>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 7, letterSpacing: "0.4px", textTransform: "uppercase" }}>I am a...</label>
+                <div style={{ display: "flex", background: "#f1f5f9", borderRadius: 12, padding: 4, position: "relative" }}>
+                  {/* Sliding highlight */}
+                  <div style={{ 
+                    position: "absolute", top: 4, bottom: 4, left: role === "RIDER" ? 4 : "50%", right: role === "RIDER" ? "50%" : 4,
+                    background: "#fff", borderRadius: 10, boxShadow: "0 2px 8px rgba(0,0,0,0.06)", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)" 
+                  }} />
+                  
+                  <button type="button" onClick={() => setRole("RIDER")} style={{ flex: 1, padding: "10px 0", border: "none", background: "transparent", cursor: "pointer", position: "relative", zIndex: 1, fontSize: 14, fontWeight: 700, color: role === "RIDER" ? "#0d9488" : "#64748b", transition: "color 0.2s" }}>
+                    Rider
+                  </button>
+                  <button type="button" onClick={() => setRole("DRIVER")} style={{ flex: 1, padding: "10px 0", border: "none", background: "transparent", cursor: "pointer", position: "relative", zIndex: 1, fontSize: 14, fontWeight: 700, color: role === "DRIVER" ? "#0d9488" : "#64748b", transition: "color 0.2s" }}>
+                    Driver
+                  </button>
+                </div>
+              </div>
+
+              {errors.form && (
+                <div style={{ padding: "10px 12px", background: "#fef2f2", border: "1px solid #f87171", borderRadius: 8, color: "#b91c1c", fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  {errors.form}
+                </div>
+              )}
 
               <p style={{ fontSize: 11, color: "#94a3b8", lineHeight: 1.6 }}>
                 By signing up you agree to our{" "}

@@ -2,30 +2,19 @@
 
 import React from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
-  LayoutDashboard,
-  CarFront,
-  CalendarClock,
-  Map,
-  BarChart3,
-  Wallet,
-  MapPin,
-  Bell,
-  User,
-  Settings,
-  ChevronLeft,
-  LogOut,
-  Bike,
+  LayoutDashboard, CarFront, CalendarClock, Map,
+  BarChart3, Wallet, MapPin, User, Settings, LogOut,
+  PanelLeftClose, PanelLeftOpen, LifeBuoy,
 } from "lucide-react";
 import { useUserStore } from "@/hooks/user/useUserStore";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-/* ── Nav sections for grouped layout ── */
-const NAV_SECTIONS = [
+const NAV_ITEMS = [
   {
-    label: "MAIN",
-    items: [
+    section: "MAIN",
+    links: [
       { name: "Dashboard", href: "/user/dashboard", icon: LayoutDashboard },
       { name: "Book Ride", href: "/user/book-ride", icon: CarFront },
       { name: "My Commute", href: "/user/my-commute", icon: CalendarClock },
@@ -33,384 +22,220 @@ const NAV_SECTIONS = [
     ],
   },
   {
-    label: "FINANCE",
-    items: [
+    section: "FINANCE",
+    links: [
       { name: "Insights", href: "/user/mobility-insights", icon: BarChart3 },
       { name: "Wallet", href: "/user/wallet", icon: Wallet },
     ],
   },
   {
-    label: "ACCOUNT",
-    items: [
+    section: "ACCOUNT",
+    links: [
       { name: "Places", href: "/user/places", icon: MapPin },
-      { name: "Notifications", href: "/user/notifications", icon: Bell },
+      { name: "Raise a Ticket", href: "/user/support", icon: LifeBuoy },
       { name: "Profile", href: "/user/profile", icon: User },
       { name: "Settings", href: "/user/settings", icon: Settings },
     ],
   },
 ];
 
-/* ── Inline SVG car icon for the animation ── */
-function AnimatedCar() {
-  return (
-    <svg width="22" height="12" viewBox="0 0 22 12" fill="none" style={{ display: "block" }}>
-      <rect x="2" y="3" width="18" height="6" rx="2" fill="#14b8a6" />
-      <path d="M6 3 L8 0.5 L14 0.5 L16 3" fill="#0d9488" stroke="#0d9488" strokeWidth="0.5" strokeLinejoin="round" />
-      <rect x="8.5" y="1.2" width="2.2" height="1.5" rx="0.3" fill="rgba(255,255,255,0.35)" />
-      <rect x="11.3" y="1.2" width="2.2" height="1.5" rx="0.3" fill="rgba(255,255,255,0.25)" />
-      <circle cx="20" cy="6" r="1" fill="#fbbf24">
-        <animate attributeName="opacity" values="0.6;1;0.6" dur="1.2s" repeatCount="indefinite" />
-      </circle>
-      <circle cx="2" cy="6" r="0.8" fill="#f87171">
-        <animate attributeName="opacity" values="0.5;1;0.5" dur="0.9s" repeatCount="indefinite" />
-      </circle>
-      <circle cx="6" cy="9.5" r="2" fill="#1e293b" stroke="#334155" strokeWidth="0.6" />
-      <circle cx="6" cy="9.5" r="0.7" fill="#475569" />
-      <circle cx="16" cy="9.5" r="2" fill="#1e293b" stroke="#334155" strokeWidth="0.6" />
-      <circle cx="16" cy="9.5" r="0.7" fill="#475569" />
-    </svg>
-  );
-}
+/* ── Dark Teal Theme (Footer matched) ─────────────────────────────────────── */
+const BG = "#042f2e";
+const BG_HOVER = "#115e59";
+const BG_ACTIVE = "#134e4a";
+const BORDER = "#115e59";
+const ACCENT = "#5eead4";
+const SECTION_LABEL = "#2dd4bf";
+const TEXT_INACTIVE = "#99f6e4";
+const TEXT_ACTIVE = "#ffffff";
+
 export default function Sidebar() {
   const pathname = usePathname();
-  const { isSidebarCollapsed, toggleSidebar } = useUserStore();
+  const router = useRouter();
+  const { user, isSidebarCollapsed: collapsed, toggleSidebar } = useUserStore();
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      router.push("/login");
+    } catch (err) {
+      console.error("Logout failed:", err);
+    }
+  };
 
   return (
-    <div
-      className={`relative h-screen flex flex-col z-20 transition-all duration-300 ease-in-out ${
-        isSidebarCollapsed ? "w-18" : "w-63"
-      }`}
-      style={{
-        background: "linear-gradient(180deg, #0a0d12 0%, #0d1320 50%, #0f172a 100%)",
-        borderRight: "1px solid rgba(255,255,255,0.05)",
-        boxShadow: "4px 0 32px rgba(0,0,0,0.5)",
-      }}
+    <aside
+      className="relative h-screen flex flex-col shrink-0 transition-all duration-300 ease-in-out"
+      style={{ width: collapsed ? "60px" : "250px", background: BG, borderRight: `1px solid ${BORDER}` }}
     >
-      {/* ── Keyframes ── */}
-      <style>{`
-        @keyframes vehicle-drive-1 {
-          0%   { left: -60px; }
-          40%  { left: 120%; }
-          100% { left: 120%; }
-        }
-        @keyframes vehicle-drive-2 {
-          0%, 50% { left: -60px; }
-          50.1%   { left: -60px; }
-          90%     { left: 120%; }
-          100%    { left: 120%; }
-        }
-        @keyframes road-dash {
-          0%   { background-position: 0 0; }
-          100% { background-position: -40px 0; }
-        }
-        @keyframes title-glow {
-          0%, 100% { text-shadow: 0 0 6px rgba(20,184,166,0.3), 0 0 20px rgba(20,184,166,0.08); }
-          50%       { text-shadow: 0 0 12px rgba(20,184,166,0.6), 0 0 36px rgba(20,184,166,0.18); }
-        }
-        @keyframes logo-breathe {
-          0%, 100% { box-shadow: 0 0 12px rgba(20,184,166,0.25); }
-          50%       { box-shadow: 0 0 22px rgba(20,184,166,0.55), 0 0 40px rgba(20,184,166,0.15); }
-        }
-        @keyframes headlight-beam {
-          0%   { opacity: 0; }
-          15%  { opacity: 0.5; }
-          85%  { opacity: 0.5; }
-          100% { opacity: 0; }
-        }
-        .sidebar-link {
-          transition: background 0.2s, border-color 0.2s, transform 0.15s;
-        }
-        .sidebar-link:hover {
-          background: rgba(255,255,255,0.04) !important;
-          transform: translateX(2px);
-        }
-        .sidebar-link:active {
-          transform: translateX(0px) scale(0.98);
-        }
-      `}</style>
-
-      {/* ══════════════════════════════════════
-          BRAND HEADER
-         ══════════════════════════════════════ */}
-      <div
-        className="shrink-0 overflow-hidden"
-        style={{
-          borderBottom: "1px solid rgba(255,255,255,0.05)",
-          padding: isSidebarCollapsed ? "16px 0" : "18px 20px 14px",
-          transition: "padding 0.3s",
-        }}
-      >
-        {/* ─ Expanded ─ */}
-        {!isSidebarCollapsed && (
-          <Link href="/user/dashboard" className="flex flex-col w-full" style={{ textDecoration: "none", gap: "6px" }}>
-            <div className="flex items-center" style={{ gap: "12px" }}>
-              <Image
-                src="/logo.png"
-                alt="Bhavo Logo"
-                width={38}
-                height={38}
-                className="rounded-xl shrink-0"
-                style={{ animation: "logo-breathe 3s ease-in-out infinite" }}
-              />
-              <div className="flex flex-col" style={{ gap: "1px" }}>
-                <span
-                  style={{
-                    fontWeight: 900,
-                    fontSize: "19px",
-                    letterSpacing: "2.5px",
-                    background: "linear-gradient(135deg, #ffffff 0%, #5eead4 50%, #14b8a6 100%)",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                    animation: "title-glow 3s ease-in-out infinite",
-                    lineHeight: 1.1,
-                  }}
-                >
-                  BHAVO
-                </span>
-                <span style={{ fontSize: "8.5px", color: "#475569", letterSpacing: "1.8px", fontWeight: 600 }}>
-                  SMART COMMUTE
-                </span>
-              </div>
-            </div>
-
-            {/* Road + animated car */}
-            <div style={{ position: "relative", width: "100%", height: "14px", overflow: "hidden" }}>
-              <div
-                style={{
-                  position: "absolute", bottom: 0, left: 0, right: 0,
-                  height: "3px", borderRadius: "2px",
-                  background: "rgba(255,255,255,0.05)",
-                }}
-              />
-              <div
-                style={{
-                  position: "absolute", bottom: "1px", left: 0, right: 0, height: "1px",
-                  backgroundImage: "repeating-linear-gradient(90deg, rgba(251,191,36,0.45) 0px, rgba(251,191,36,0.45) 6px, transparent 6px, transparent 14px)",
-                  backgroundSize: "20px 1px",
-                  animation: "road-dash 1.2s linear infinite",
-                }}
-              />
-              {/* Moving bike */}
-              <div style={{ position: "absolute", bottom: "1px", left: "-60px", animation: "vehicle-drive-2 7s linear infinite" }}>
-                <Bike size={14} color="#14b8a6" strokeWidth={2} />
-              </div>
-              {/* Moving car */}
-              <div style={{ position: "absolute", bottom: "1px", left: "-60px", animation: "vehicle-drive-1 7s linear infinite" }}>
-                <div style={{ position: "relative" }}>
-                  <div
-                    style={{
-                      position: "absolute", bottom: "1px", left: "20px",
-                      width: "22px", height: "6px", borderRadius: "50%",
-                      background: "radial-gradient(ellipse at center, rgba(251,191,36,0.35), transparent 70%)",
-                      animation: "headlight-beam 5s linear infinite",
-                      filter: "blur(2px)",
-                    }}
-                  />
-                  <AnimatedCar />
-                </div>
-              </div>
-            </div>
-          </Link>
-        )}
-
-        {/* ─ Collapsed ─ */}
-        {isSidebarCollapsed && (
-          <Link href="/user/dashboard" className="flex items-center justify-center transition-all duration-300">
-            <Image
-              src="/logo.png"
-              alt="Bhavo Logo"
-              width={38}
-              height={38}
-              className="rounded-xl"
-              style={{ animation: "logo-breathe 3s ease-in-out infinite" }}
-            />
-          </Link>
-        )}
-      </div>
-
-      {/* Collapse toggle */}
+      {/* ── Collapse Toggle ─────────────── */}
       <button
         onClick={toggleSidebar}
-        className={`absolute -right-3 top-7 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200 z-30 cursor-pointer ${
-          isSidebarCollapsed ? "rotate-180" : ""
-        }`}
+        aria-label="Toggle sidebar"
+        className="absolute -right-3.5 top-5.5 z-50 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200"
         style={{
-          background: "linear-gradient(135deg, #1e293b, #1a2332)",
-          border: "1px solid rgba(255,255,255,0.08)",
-          boxShadow: "0 2px 10px rgba(0,0,0,0.5)",
-          color: "#94a3b8",
+          background: "#ffffff",
+          border: `1.5px solid ${BORDER}`,
+          color: ACCENT,
+          boxShadow: "0 2px 8px rgba(13,148,136,0.18)",
+        }}
+        onMouseEnter={(e) => {
+          const el = e.currentTarget as HTMLElement;
+          el.style.background = ACCENT;
+          el.style.color = "#ffffff";
+          el.style.boxShadow = "0 4px 14px rgba(13,148,136,0.4)";
+          el.style.borderColor = ACCENT;
+        }}
+        onMouseLeave={(e) => {
+          const el = e.currentTarget as HTMLElement;
+          el.style.background = "#ffffff";
+          el.style.color = ACCENT;
+          el.style.boxShadow = "0 2px 8px rgba(13,148,136,0.18)";
+          el.style.borderColor = BORDER;
         }}
       >
-        <ChevronLeft size={13} />
+        {collapsed ? <PanelLeftOpen size={13} /> : <PanelLeftClose size={13} />}
       </button>
-
-      {/* ══════════════════════════════════════
-          NAVIGATION
-         ══════════════════════════════════════ */}
+      {/* ── Logo ─────────────────────── */}
       <div
-        className="flex-1 overflow-y-auto no-scrollbar"
-        style={{
-          padding: isSidebarCollapsed ? "12px 8px" : "8px 12px",
-          transition: "padding 0.3s",
-        }}
+        className="flex items-center gap-3.5 h-20 px-5 shrink-0 overflow-hidden relative"
+        style={{ borderBottom: `1px solid ${BORDER}` }}
       >
-        {NAV_SECTIONS.map((section, sectionIdx) => (
-          <div key={section.label} style={{ marginBottom: "4px" }}>
-            {/* Section label */}
-            {!isSidebarCollapsed && (
-              <div
-                style={{
-                  fontSize: "10px",
-                  fontWeight: 700,
-                  letterSpacing: "1.6px",
-                  color: "#334155",
-                  padding: sectionIdx === 0 ? "8px 12px 8px" : "16px 12px 8px",
-                  userSelect: "none",
-                }}
+        {/* Icon */}
+        <div
+          className="flex items-center justify-center shrink-0 rounded-xl overflow-hidden bg-white shadow-sm"
+          style={{ width: 44, height: 44 }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/trimmed-logo.png" alt="Bhavo Logo" className="w-full h-full object-contain p-1" />
+        </div>
+
+        {!collapsed && (
+          <div className="flex flex-col leading-none overflow-hidden group cursor-default">
+            <span className="text-[26px] font-black tracking-tight flex items-center gap-1 relative bg-linear-to-r from-[#5eead4] via-[#ffffff] to-[#5eead4] bg-size-[200%_auto] bg-clip-text text-transparent animate-shine drop-shadow-[0_0_10px_rgba(45,212,191,0.6)]">
+              BHAVO
+              {/* Vehicle Animation */}
+              <CarFront size={18} className="text-[#2dd4bf] opacity-0 group-hover:opacity-100 transition-opacity absolute left-28 animate-drive" />
+            </span>
+            <span className="text-[11px] font-bold tracking-widest uppercase mt-1.5" style={{ color: "#5eead4" }}>
+              Smart Commute
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* ── Nav ──────────────────────── */}
+      <nav className="flex-1 overflow-y-auto no-scrollbar py-3">
+        {NAV_ITEMS.map(({ section, links }) => (
+          <div key={section} className="mb-1">
+            {/* Section Label */}
+            {!collapsed && (
+              <p
+                className="text-[10px] font-semibold uppercase tracking-widest px-4 pt-3 pb-1"
+                style={{ color: SECTION_LABEL }}
               >
-                {section.label}
-              </div>
+                {section}
+              </p>
             )}
+            {collapsed && <div className="h-3" />}
 
-            {/* Collapsed: thin divider between groups */}
-            {isSidebarCollapsed && sectionIdx > 0 && (
-              <div
-                style={{
-                  height: "1px",
-                  background: "rgba(255,255,255,0.04)",
-                  margin: "8px 6px",
-                }}
-              />
-            )}
+            {/* Links */}
+            {links.map(({ name, href, icon: Icon }) => {
+              const isActive = pathname.startsWith(href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  title={collapsed ? name : undefined}
+                  className="relative flex items-center gap-3 mx-2 px-3 py-2.5 rounded-lg transition-all duration-150 group"
+                  style={{
+                    background: isActive ? BG_ACTIVE : "transparent",
+                    color: isActive ? TEXT_ACTIVE : TEXT_INACTIVE,
+                    borderLeft: isActive ? `2px solid ${ACCENT}` : "2px solid transparent",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) (e.currentTarget as HTMLElement).style.background = BG_HOVER;
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) (e.currentTarget as HTMLElement).style.background = "transparent";
+                  }}
+                >
+                  <Icon
+                    size={16}
+                    className="shrink-0 transition-colors"
+                    style={{ color: isActive ? ACCENT : "#0d9488" }}
+                  />
 
-            {/* Nav items */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-              {section.items.map((item) => {
-                const isActive = pathname.startsWith(item.href);
+                  {!collapsed && (
+                    <span className="text-[13px] font-medium flex-1">{name}</span>
+                  )}
 
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    title={isSidebarCollapsed ? item.name : undefined}
-                    className="sidebar-link relative flex items-center rounded-lg"
-                    style={{
-                      padding: isSidebarCollapsed ? "10px 0" : "9px 12px",
-                      justifyContent: isSidebarCollapsed ? "center" : "flex-start",
-                      gap: "12px",
-                      background: isActive
-                        ? "linear-gradient(135deg, rgba(20,184,166,0.12) 0%, rgba(16,185,129,0.06) 100%)"
-                        : "transparent",
-                      borderLeft: isActive ? "2px solid #14b8a6" : "2px solid transparent",
-                      textDecoration: "none",
-                    }}
-                  >
-                    {/* Icon */}
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        width: "32px",
-                        height: "32px",
-                        borderRadius: "8px",
-                        background: isActive ? "rgba(20,184,166,0.12)" : "transparent",
-                        transition: "background 0.2s",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <item.icon
-                        size={18}
-                        style={{
-                          color: isActive ? "#2dd4bf" : "#536480",
-                          transition: "color 0.2s",
-                        }}
-                      />
-                    </div>
-
-                    {/* Label */}
-                    {!isSidebarCollapsed && (
-                      <span
-                        style={{
-                          fontSize: "13.5px",
-                          fontWeight: isActive ? 600 : 500,
-                          color: isActive ? "#e2e8f0" : "#7a8ba5",
-                          whiteSpace: "nowrap",
-                          transition: "color 0.2s",
-                          letterSpacing: "0.2px",
-                        }}
-                      >
-                        {item.name}
-                      </span>
-                    )}
-
-                    {/* Active glow dot */}
-                    {isActive && !isSidebarCollapsed && (
-                      <div
-                        style={{
-                          marginLeft: "auto",
-                          width: "6px",
-                          height: "6px",
-                          borderRadius: "50%",
-                          background: "#14b8a6",
-                          boxShadow: "0 0 8px rgba(20,184,166,0.7)",
-                          flexShrink: 0,
-                        }}
-                      />
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
+                  {/* Active dot indicator */}
+                  {isActive && !collapsed && (
+                    <span
+                      className="w-1.5 h-1.5 rounded-full shrink-0"
+                      style={{ background: ACCENT }}
+                    />
+                  )}
+                </Link>
+              );
+            })}
           </div>
         ))}
-      </div>
+      </nav>
 
-      {/* ══════════════════════════════════════
-          LOGOUT FOOTER
-         ══════════════════════════════════════ */}
+      {/* ── User / Log Out Footer ─────── */}
       <div
-        className="shrink-0"
-        style={{
-          padding: isSidebarCollapsed ? "12px 8px" : "12px",
-          borderTop: "1px solid rgba(255,255,255,0.05)",
-        }}
+        className="shrink-0 px-3 py-3"
+        style={{ borderTop: `1px solid ${BORDER}` }}
       >
-        <button
-          className="sidebar-link flex items-center rounded-lg w-full cursor-pointer"
-          style={{
-            padding: isSidebarCollapsed ? "10px 0" : "9px 12px",
-            justifyContent: isSidebarCollapsed ? "center" : "flex-start",
-            gap: "12px",
-            background: "transparent",
-            border: "none",
-            color: "#536480",
-            transition: "color 0.2s",
-          }}
-          title={isSidebarCollapsed ? "Log Out" : undefined}
-          onMouseEnter={(e) => (e.currentTarget.style.color = "#f87171")}
-          onMouseLeave={(e) => (e.currentTarget.style.color = "#536480")}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: "32px",
-              height: "32px",
-              borderRadius: "8px",
-              flexShrink: 0,
-            }}
-          >
-            <LogOut size={18} />
+        {collapsed ? (
+          /* Collapsed: just avatar */
+          <div className="flex justify-center">
+            <Avatar className="w-8 h-8">
+              <AvatarImage src={user?.avatar || undefined} alt={user?.name} />
+              <AvatarFallback className="text-[11px] font-bold" style={{ background: ACCENT, color: "#fff" }}>
+                {user?.name?.charAt(0) ?? "U"}
+              </AvatarFallback>
+            </Avatar>
           </div>
-          {!isSidebarCollapsed && (
-            <span style={{ fontSize: "13.5px", fontWeight: 500, whiteSpace: "nowrap", letterSpacing: "0.2px" }}>
-              Log Out
-            </span>
-          )}
-        </button>
+        ) : (
+          /* Expanded: avatar row + Log Out below */
+          <div className="flex flex-col gap-1">
+            {/* User row */}
+            <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg" style={{ background: BG_HOVER }}>
+              <Avatar className="w-7 h-7 shrink-0">
+                <AvatarImage src={user?.avatar || undefined} alt={user?.name} />
+                <AvatarFallback className="text-[11px] font-bold" style={{ background: ACCENT, color: "#fff" }}>
+                  {user?.name?.charAt(0) ?? "U"}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-semibold truncate" style={{ color: "#042f2e" }}>{user?.name}</p>
+                <p className="text-[10px] font-medium mt-0.5" style={{ color: "#0f766e" }}>Commuter</p>
+              </div>
+            </div>
+
+            {/* Log Out */}
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2.5 px-2 py-2 rounded-lg w-full text-left transition-colors"
+              style={{ color: TEXT_INACTIVE }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.background = BG_HOVER;
+                (e.currentTarget as HTMLElement).style.color = "#f87171";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.background = "transparent";
+                (e.currentTarget as HTMLElement).style.color = TEXT_INACTIVE;
+              }}
+            >
+              <LogOut size={15} />
+              <span className="text-[13px] font-medium">Log Out</span>
+            </button>
+          </div>
+        )}
       </div>
-    </div>
+    </aside>
   );
 }

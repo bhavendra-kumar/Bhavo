@@ -5,14 +5,17 @@ interface UserState {
   toggleSidebar: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
   
-  // Dummy user data
   user: {
+    id: string;
     name: string;
     email: string;
-    avatar: string;
+    avatar: string | null;
     rating: number;
     walletBalance: number;
-  };
+    role: string;
+  } | null;
+  loading: boolean;
+  fetchUser: () => Promise<void>;
 }
 
 export const useUserStore = create<UserState>((set) => ({
@@ -20,11 +23,21 @@ export const useUserStore = create<UserState>((set) => ({
   toggleSidebar: () => set((state) => ({ isSidebarCollapsed: !state.isSidebarCollapsed })),
   setSidebarCollapsed: (collapsed) => set({ isSidebarCollapsed: collapsed }),
   
-  user: {
-    name: "Alex Doe",
-    email: "alex@example.com",
-    avatar: "https://i.pravatar.cc/150?u=a042581f4e29026704d",
-    rating: 4.92,
-    walletBalance: 1250,
-  }
+  user: null,
+  loading: true,
+  
+  fetchUser: async () => {
+    try {
+      const res = await fetch("/api/user/profile");
+      if (res.ok) {
+        const json = await res.json();
+        set({ user: json.data, loading: false });
+      } else {
+        set({ user: null, loading: false });
+      }
+    } catch (e) {
+      console.error("Failed to fetch user:", e);
+      set({ user: null, loading: false });
+    }
+  },
 }));

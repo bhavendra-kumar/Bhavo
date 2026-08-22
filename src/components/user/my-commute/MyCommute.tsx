@@ -1,222 +1,203 @@
 "use client";
 
 import React, { useState } from "react";
-import { CalendarClock, Zap, Settings2, Plus, Clock, MapPin } from "lucide-react";
+import { Zap, Plus, Clock, MapPin, Settings2, Check, Pencil, Trash2, CalendarOff, Home, Banknote, Star } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export default function MyCommutePage() {
   const [autoBooking, setAutoBooking] = useState(true);
+  const [activeDays, setActiveDays] = useState([0, 1, 2, 3, 4]);
+  const toggleDay = (i: number) =>
+    setActiveDays((prev) => prev.includes(i) ? prev.filter((d) => d !== i) : [...prev, i]);
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-6 pb-10">
+    <div className="flex flex-col gap-6 pb-8">
+      <div className="flex justify-end">
+        <button className="inline-flex items-center gap-2 h-9 px-4 rounded-lg text-[13px] font-semibold text-white hover:opacity-90 transition-all" style={{ background: "#0d9488" }}>
+          <Plus size={15} /> New Route
+        </button>
+      </div>
 
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center"
-              style={{ background: "linear-gradient(135deg, #0d9488, #059669)", boxShadow: "0 4px 14px rgba(13,148,136,0.35)" }}
-            >
-              <CalendarClock size={18} className="text-white" />
-            </div>
-            My Commute
-          </h1>
-          <p className="text-slate-500 mt-1.5 text-sm">Manage recurring rides and AI-powered scheduling.</p>
+      {/* Auto-Booking Toggle & Preferred Drivers */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="card p-4 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: "#ccfbf1", border: "1px solid #99f6e4" }}>
+            <Zap size={18} style={{ color: autoBooking ? "#14b8a6" : "#5eead4" }} />
+          </div>
+          <div className="flex-1">
+            <p className="text-[14px] font-semibold" style={{ color: "#042f2e" }}>Auto-Booking</p>
+            <p className="text-[12px] font-medium mt-0.5" style={{ color: "#0f766e" }}>
+              {autoBooking ? "Rides booked automatically." : "Auto-booking is paused."}
+            </p>
+          </div>
+          <Switch checked={autoBooking} onCheckedChange={setAutoBooking} className="data-[state=checked]:bg-teal-500 shrink-0" />
         </div>
 
-        {/* Master Toggle */}
-        <div
-          className="flex items-center gap-4 bg-white px-5 py-3 rounded-2xl shrink-0"
-          style={{ border: "1px solid rgba(15,23,42,0.07)", boxShadow: "0 4px 16px -4px rgba(0,0,0,0.06)" }}
-        >
-          <div>
-            <p className="font-bold text-slate-900 text-sm">Auto-Booking</p>
-            <p className="text-xs text-slate-500">{autoBooking ? "Currently active" : "Currently paused"}</p>
+        <div className="card p-4 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: "#ccfbf1", border: "1px solid #99f6e4" }}>
+            <Star size={18} style={{ color: "#14b8a6" }} />
           </div>
-          <button
-            onClick={() => setAutoBooking(!autoBooking)}
-            className="relative transition-colors duration-200"
-            style={{
-              width: "48px",
-              height: "26px",
-              background: autoBooking ? "linear-gradient(135deg, #0d9488, #059669)" : "#e2e8f0",
-              borderRadius: "999px",
-              boxShadow: autoBooking ? "0 0 12px rgba(13,148,136,0.4)" : "none",
-            }}
-          >
-            <div
-              className="absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-all duration-200"
-              style={{ left: autoBooking ? "calc(100% - 22px)" : "2px" }}
-            />
+          <div className="flex-1">
+            <p className="text-[14px] font-semibold" style={{ color: "#042f2e" }}>Preferred Drivers</p>
+            <p className="text-[12px] font-medium mt-0.5" style={{ color: "#0f766e" }}>Match with your 3 saved drivers first.</p>
+          </div>
+          <button className="text-[12px] font-bold text-teal-700 px-3 py-1.5 rounded bg-teal-50 hover:bg-teal-100 transition-colors">
+            Manage
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className="lg:col-span-2 flex flex-col gap-5">
+          <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#0f766e" }}>Active Schedules</p>
 
-        {/* Schedule card */}
-        <div
-          className="lg:col-span-2 bg-white rounded-2xl p-6 flex flex-col gap-6"
-          style={{ border: "1px solid rgba(15,23,42,0.07)", boxShadow: "0 4px 24px -4px rgba(0,0,0,0.06)" }}
-        >
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-slate-900">Active Schedules</h2>
-            <button
-              className="flex items-center gap-1.5 text-xs font-bold text-teal-600 px-3 py-1.5 rounded-xl transition-colors"
-              style={{ background: "rgba(13,148,136,0.08)" }}
-            >
-              <Plus size={14} /> New Route
-            </button>
-          </div>
-
-          {/* Schedule card */}
-          <div
-            className="p-5 rounded-2xl"
-            style={{ background: "rgba(13,148,136,0.03)", border: "1px solid rgba(13,148,136,0.1)" }}
-          >
-            <div className="flex items-start justify-between mb-5">
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-11 h-11 rounded-xl flex items-center justify-center font-black text-lg"
-                  style={{ background: "rgba(99,102,241,0.1)", color: "#6366f1" }}
-                >
-                  M
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-900">Morning Office Commute</h3>
-                  <p className="text-xs text-slate-500">Home → Bhavo HQ</p>
-                </div>
+          {/* Morning Card */}
+          <div className="card overflow-hidden">
+            <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: "1px solid #ccfbf1" }}>
+              <div>
+                <p className="text-[15px] font-semibold" style={{ color: "#042f2e" }}>Morning Office Commute</p>
+                <p className="text-[12px] font-medium mt-0.5" style={{ color: "#0f766e" }}>Home → Bhavo HQ · Mon–Fri</p>
               </div>
-              <span
-                className="text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider"
-                style={{ background: "rgba(16,185,129,0.1)", color: "#059669" }}
-              >
-                Active
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 mb-5">
-              <div
-                className="p-4 rounded-xl"
-                style={{ background: "white", border: "1px solid rgba(15,23,42,0.07)" }}
-              >
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-400 mb-2">
-                  <Clock size={12} /> Target Arrival
-                </div>
-                <p className="font-black text-2xl text-slate-900">9:30 AM</p>
-                <p className="text-[11px] text-slate-400 mt-1">AI adjusts for traffic</p>
-              </div>
-              <div
-                className="p-4 rounded-xl"
-                style={{ background: "white", border: "1px solid rgba(15,23,42,0.07)" }}
-              >
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-400 mb-2">
-                  <MapPin size={12} /> Vehicle
-                </div>
-                <p className="font-bold text-base text-slate-900">Premium Sedan</p>
-                <p className="text-[11px] text-slate-400 mt-1">Auto-upgrades if needed</p>
+              <div className="flex items-center gap-2">
+                <span className="pill-teal">Active</span>
+                <button className="w-7 h-7 rounded-md flex items-center justify-center transition-colors" style={{ color: "#5eead4" }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "#ccfbf1"; (e.currentTarget as HTMLElement).style.color = "#0d9488"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "#5eead4"; }}>
+                  <Pencil size={13} />
+                </button>
+                <button className="w-7 h-7 rounded-md flex items-center justify-center transition-colors" style={{ color: "#5eead4" }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "#fef2f2"; (e.currentTarget as HTMLElement).style.color = "#dc2626"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "#5eead4"; }}>
+                  <Trash2 size={13} />
+                </button>
               </div>
             </div>
 
-            {/* Day selector */}
-            <div>
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Active Days</p>
+            <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-widest mb-3" style={{ color: "#0f766e" }}>Route</p>
+                <div className="relative pl-5 flex flex-col gap-4">
+                  <div className="absolute left-1.75 top-2 bottom-6 w-px" style={{ background: "#99f6e4" }} />
+                  <div className="relative flex items-start gap-3">
+                    <div className="absolute -left-5 top-1 w-3 h-3 rounded-full border-2 bg-white" style={{ borderColor: "#5eead4" }} />
+                    <div>
+                      <p className="text-[12px] font-medium flex items-center gap-1 mb-0.5" style={{ color: "#0f766e" }}><Clock size={10} /> Pickup · 8:45 AM</p>
+                      <p className="text-[13px] font-semibold" style={{ color: "#042f2e" }}>123 Tech Park Avenue</p>
+                    </div>
+                  </div>
+                  <div className="relative flex items-start gap-3">
+                    <div className="absolute -left-5 top-1 w-3 h-3 rounded-full flex items-center justify-center" style={{ background: "#14b8a6" }}>
+                      <MapPin size={6} className="text-white" />
+                    </div>
+                    <div>
+                      <p className="text-[12px] font-medium mb-0.5" style={{ color: "#0f766e" }}>Arrival · ~9:30 AM</p>
+                      <p className="text-[13px] font-semibold" style={{ color: "#042f2e" }}>Bhavo Headquarters</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-widest mb-3" style={{ color: "#0f766e" }}>Settings</p>
+                <div className="flex flex-col gap-2.5">
+                  {[{ l: "Vehicle", v: "Premium Sedan" }, { l: "Target Arrival", v: "9:30 AM" }].map(({ l, v }) => (
+                    <div key={l} className="flex items-center justify-between py-2" style={{ borderBottom: "1px solid #f0fdfa" }}>
+                      <span className="text-[13px] font-medium" style={{ color: "#0f766e" }}>{l}</span>
+                      <span className="text-[13px] font-semibold" style={{ color: "#042f2e" }}>{v}</span>
+                    </div>
+                  ))}
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-[13px] font-medium" style={{ color: "#0f766e" }}>AI Adjustment</span>
+                    <span className="pill-teal">Enabled</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-5 py-4" style={{ borderTop: "1px solid #ccfbf1", background: "#f0fdfa" }}>
+              <p className="text-[11px] font-semibold uppercase tracking-widest mb-3" style={{ color: "#0f766e" }}>Active Days</p>
               <div className="flex gap-2">
-                {DAYS.map((day, i) => {
-                  const active = i < 5;
+                {DAYS.map((d, i) => {
+                  const on = activeDays.includes(i);
                   return (
-                    <button
-                      key={day}
-                      className="flex-1 py-2 rounded-xl text-xs font-bold transition-all"
+                    <button key={d} onClick={() => toggleDay(i)}
+                      className="flex-1 flex flex-col items-center py-2 rounded-lg text-[12px] font-semibold transition-all"
                       style={{
-                        background: active ? "linear-gradient(135deg, #0d9488, #059669)" : "#f1f5f9",
-                        color: active ? "white" : "#94a3b8",
-                        boxShadow: active ? "0 2px 8px rgba(13,148,136,0.25)" : "none",
-                      }}
-                    >
-                      {day}
+                        background: on ? "#0d9488" : "#ffffff",
+                        color: on ? "#ffffff" : "#5eead4",
+                        border: on ? "1px solid #0d9488" : "1px solid #ccfbf1",
+                      }}>
+                      {d}
+                      {on && <Check size={10} className="mt-0.5" />}
                     </button>
                   );
                 })}
               </div>
             </div>
           </div>
+
+          {/* Evening Card */}
+          <div className="card overflow-hidden">
+            <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: "1px solid #ccfbf1" }}>
+              <div>
+                <p className="text-[15px] font-semibold" style={{ color: "#042f2e" }}>Evening Return</p>
+                <p className="text-[12px] font-medium mt-0.5" style={{ color: "#0f766e" }}>Bhavo HQ → Home · Mon–Fri</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="pill-teal">Active</span>
+                <button className="w-7 h-7 rounded-md flex items-center justify-center" style={{ color: "#5eead4" }}><Pencil size={13} /></button>
+              </div>
+            </div>
+            <div className="p-5">
+              <div className="grid grid-cols-3 gap-4 text-center">
+                {[{ l: "Pickup", v: "6:30 PM" }, { l: "Vehicle", v: "Eco Hatch" }, { l: "Days", v: "Mon–Fri" }].map(({ l, v }) => (
+                  <div key={l} className="p-3 rounded-lg" style={{ background: "#f0fdfa", border: "1px solid #ccfbf1" }}>
+                    <p className="text-[11px] font-semibold uppercase tracking-widest mb-1" style={{ color: "#0f766e" }}>{l}</p>
+                    <p className="text-[14px] font-semibold" style={{ color: "#042f2e" }}>{v}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Smart Rules + AI Insight */}
-        <div className="flex flex-col gap-4">
-
-          {/* Smart Rules */}
-          <div
-            className="bg-white rounded-2xl p-5 flex flex-col gap-4"
-            style={{ border: "1px solid rgba(15,23,42,0.07)", boxShadow: "0 4px 24px -4px rgba(0,0,0,0.06)" }}
-          >
-            <h2 className="text-base font-bold text-slate-900">Smart Rules</h2>
-
+        {/* Smart Rules & AI Recommendations */}
+        <div className="flex flex-col gap-5">
+          <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#0f766e" }}>Smart Rules</p>
+          <div className="card p-5 flex flex-col gap-5">
             {[
-              { icon: Zap, iconBg: "rgba(245,158,11,0.1)", iconColor: "#d97706", title: "Dynamic Pickup", desc: "Auto-adjusts pickup by ±15 mins based on traffic." },
-              { icon: Settings2, iconBg: "rgba(59,130,246,0.1)", iconColor: "#2563eb", title: "Rainy Day Upgrade", desc: "Switches to Premium during heavy rain automatically." },
-            ].map(({ icon: Icon, iconBg, iconColor, title, desc }) => (
-              <div
-                key={title}
-                className="flex items-start gap-3 pb-4 last:pb-0 last:border-0"
-                style={{ borderBottom: "1px solid rgba(15,23,42,0.06)" }}
-              >
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
-                  style={{ background: iconBg }}
-                >
-                  <Icon size={16} style={{ color: iconColor }} />
+              { icon: CalendarOff, bg: "#fce7f3", color: "#db2777", label: "Skip Public Holidays", desc: "Don't auto-book on national holidays.", on: true },
+              { icon: Home, bg: "#ccfbf1", color: "#14b8a6", label: "WFH Mode", desc: "Auto-detect when you are working from home.", on: true },
+              { icon: Zap, bg: "#fef9c3", color: "#ca8a04", label: "Dynamic Pickup", desc: "Adjusts pickup by ±15 min based on traffic.", on: true },
+              { icon: Settings2, bg: "#ede9fe", color: "#7c3aed", label: "Rainy Day Upgrade", desc: "Switches to Premium on heavy rain days.", on: false },
+              { icon: Banknote, bg: "#dcfce7", color: "#16a34a", label: "Surge Limit (₹500)", desc: "Pause auto-booking if surge exceeds limit.", on: true },
+            ].map(({ icon: Icon, bg, color, label, desc, on }, i, arr) => (
+              <div key={label} className="flex gap-3 pb-5" style={{ borderBottom: i < arr.length - 1 ? "1px solid #ccfbf1" : "none" }}>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: bg }}>
+                  <Icon size={14} style={{ color }} />
                 </div>
                 <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm font-bold text-slate-900">{title}</p>
-                    <div
-                      className="w-8 h-4 rounded-full relative cursor-pointer shrink-0"
-                      style={{ background: "linear-gradient(135deg, #0d9488, #059669)", boxShadow: "0 0 8px rgba(13,148,136,0.3)" }}
-                    >
-                      <div className="absolute right-0.5 top-0.5 w-3 h-3 bg-white rounded-full shadow" />
-                    </div>
-                  </div>
-                  <p className="text-xs text-slate-500 leading-relaxed">{desc}</p>
+                  <p className="text-[13px] font-semibold" style={{ color: "#042f2e" }}>{label}</p>
+                  <p className="text-[11px] font-medium mt-0.5 leading-relaxed" style={{ color: "#0f766e" }}>{desc}</p>
                 </div>
+                <Switch defaultChecked={on} className="data-[state=checked]:bg-teal-500 shrink-0 mt-0.5" />
               </div>
             ))}
           </div>
 
-          {/* AI Insight card */}
-          <div
-            className="rounded-2xl p-5 text-white relative overflow-hidden"
-            style={{
-              background: "linear-gradient(135deg, #0c0f14 0%, #1e293b 100%)",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.2)",
-            }}
-          >
-            <div
-              className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-10"
-              style={{ background: "radial-gradient(circle, #14b8a6, transparent)", transform: "translate(30%, -30%)" }}
-            />
-            <h3 className="font-bold text-base mb-2 flex items-center gap-2">
-              <Zap size={16} className="text-amber-400 fill-amber-400" /> AI Insight
-            </h3>
-            <p className="text-sm text-slate-400 leading-relaxed mb-4">
-              You often skip Thursday evenings. Want us to pause auto-booking for Thursdays?
-            </p>
-            <div className="flex gap-2">
-              <button
-                className="flex-1 bg-white text-slate-900 text-xs font-bold py-2 rounded-xl hover:bg-slate-100 transition-colors"
-              >
-                Yes, Pause
-              </button>
-              <button
-                className="flex-1 text-white text-xs font-bold py-2 rounded-xl transition-colors"
-                style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)" }}
-              >
-                Keep Active
-              </button>
+          <div className="card p-5 mt-2" style={{ background: "linear-gradient(135deg, #0f766e 0%, #115e59 100%)", borderColor: "#0f766e" }}>
+            <div className="flex items-center gap-2 mb-3">
+              <Zap size={14} className="text-amber-400 fill-amber-400" />
+              <p className="text-[13px] font-bold text-white uppercase tracking-wider">AI Insight</p>
             </div>
+            <p className="text-[13px] text-teal-50 font-medium leading-relaxed mb-4">
+              You are currently spending 15% more on surges on Tuesdays. Enabling &quot;Flexible Departure&quot; for Tuesdays could save you ₹400/month.
+            </p>
+            <button className="w-full py-2 rounded bg-white text-[12px] font-bold transition-all hover:bg-teal-50" style={{ color: "#0f766e" }}>
+              Enable Flexible Departure
+            </button>
           </div>
         </div>
       </div>
