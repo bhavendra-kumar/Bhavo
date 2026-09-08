@@ -52,22 +52,22 @@ export default function SignUp() {
     }
     setErrors({});
     setLoading(true);
-    
+
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, role }),
+        body: JSON.stringify({ name: name.trim(), email: email.trim().toLowerCase(), password, role }),
       });
-      
+
       const data = await res.json();
-      
+
       if (!res.ok) {
         setErrors({ form: data.message || "Registration failed" });
         setShake(true);
         setTimeout(() => setShake(false), 500);
       } else {
-        router.push("/login?registered=true");
+        router.push(`/login?registered=true&email=${encodeURIComponent(email.trim().toLowerCase())}`);
       }
     } catch {
       setErrors({ form: "Something went wrong. Please try again." });
@@ -135,8 +135,12 @@ export default function SignUp() {
         .field-error { font-size: 12px; color: #ef4444; margin-top: 5px; display: flex; align-items: center; gap: 4px; }
         @media (max-width: 1023px) {
           .auth-scene { display: none !important; }
-          .auth-form-col { background: linear-gradient(135deg, #030f0f 0%, #042f2e 60%, #064e3b 100%) !important; }
+          .auth-form-col { background: linear-gradient(135deg, #030f0f 0%, #042f2e 60%, #064e3b 100%) !important; min-height: 100vh !important; }
           .mobile-bhavo { display: block !important; }
+        }
+        @media (max-width: 640px) {
+          .auth-form-col { padding: 32px 16px !important; }
+          .form-card { padding: 32px 20px 28px !important; border-radius: 24px !important; }
         }
       `}</style>
 
@@ -342,10 +346,10 @@ export default function SignUp() {
                     value={name}
                     onChange={(e) => { setName(e.target.value); if (errors.name) setErrors(prev => ({ ...prev, name: undefined })); }}
                     onFocus={() => setFocused("name")} onBlur={() => setFocused(null)}
-                    placeholder="John Doe"
+                    placeholder="Enter Your Name"
                     style={{ width: "100%", paddingLeft: 38, paddingRight: 14, paddingTop: 12, paddingBottom: 12, borderRadius: 12, fontSize: 14, color: "#0f172a", outline: "none", fontFamily: "inherit", border: errors.name ? "1.5px solid #ef4444" : focused === "name" ? "1.5px solid #0d9488" : "1.5px solid #e2e8f0", background: errors.name ? "#fff5f5" : focused === "name" ? "#fff" : "#f8fafc", boxShadow: errors.name ? "0 0 0 4px rgba(239,68,68,0.1)" : focused === "name" ? "0 0 0 4px rgba(13,148,136,0.1)" : "none", transition: "all 0.2s ease", boxSizing: "border-box" }} />
                 </div>
-                {errors.name && <p className="field-error"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>{errors.name}</p>}
+                {errors.name && <p className="field-error"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" /></svg>{errors.name}</p>}
               </div>
 
               {/* Email */}
@@ -362,7 +366,7 @@ export default function SignUp() {
                     placeholder="Enter your Email"
                     style={{ width: "100%", paddingLeft: 38, paddingRight: 14, paddingTop: 12, paddingBottom: 12, borderRadius: 12, fontSize: 14, color: "#0f172a", outline: "none", fontFamily: "inherit", border: errors.email ? "1.5px solid #ef4444" : focused === "email" ? "1.5px solid #0d9488" : "1.5px solid #e2e8f0", background: errors.email ? "#fff5f5" : focused === "email" ? "#fff" : "#f8fafc", boxShadow: errors.email ? "0 0 0 4px rgba(239,68,68,0.1)" : focused === "email" ? "0 0 0 4px rgba(13,148,136,0.1)" : "none", transition: "all 0.2s ease", boxSizing: "border-box" }} />
                 </div>
-                {errors.email && <p className="field-error"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>{errors.email}</p>}
+                {errors.email && <p className="field-error"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" /></svg>{errors.email}</p>}
               </div>
 
               {/* Password */}
@@ -388,7 +392,7 @@ export default function SignUp() {
                   </button>
                 </div>
                 {errors.password
-                  ? <p className="field-error"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>{errors.password}</p>
+                  ? <p className="field-error"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" /></svg>{errors.password}</p>
                   : <p style={{ marginTop: 6, fontSize: 11, color: "#94a3b8" }}>Must be at least 8 characters long.</p>
                 }
               </div>
@@ -416,7 +420,7 @@ export default function SignUp() {
                   </button>
                 </div>
                 {errors.confirmPassword && (
-                  <p className="field-error"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>{errors.confirmPassword}</p>
+                  <p className="field-error"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" /></svg>{errors.confirmPassword}</p>
                 )}
               </div>
 
@@ -425,11 +429,11 @@ export default function SignUp() {
                 <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 7, letterSpacing: "0.4px", textTransform: "uppercase" }}>I am a...</label>
                 <div style={{ display: "flex", background: "#f1f5f9", borderRadius: 12, padding: 4, position: "relative" }}>
                   {/* Sliding highlight */}
-                  <div style={{ 
+                  <div style={{
                     position: "absolute", top: 4, bottom: 4, left: role === "RIDER" ? 4 : "50%", right: role === "RIDER" ? "50%" : 4,
-                    background: "#fff", borderRadius: 10, boxShadow: "0 2px 8px rgba(0,0,0,0.06)", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)" 
+                    background: "#fff", borderRadius: 10, boxShadow: "0 2px 8px rgba(0,0,0,0.06)", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
                   }} />
-                  
+
                   <button type="button" onClick={() => setRole("RIDER")} style={{ flex: 1, padding: "10px 0", border: "none", background: "transparent", cursor: "pointer", position: "relative", zIndex: 1, fontSize: 14, fontWeight: 700, color: role === "RIDER" ? "#0d9488" : "#64748b", transition: "color 0.2s" }}>
                     Rider
                   </button>
@@ -460,7 +464,7 @@ export default function SignUp() {
               >
                 {loading ? (
                   <>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} style={{ animation: "wheel-spin 0.7s linear infinite" }}><path strokeLinecap="round" d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} style={{ animation: "wheel-spin 0.7s linear infinite" }}><path strokeLinecap="round" d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" /></svg>
                     Creating account…
                   </>
                 ) : (

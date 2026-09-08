@@ -8,9 +8,9 @@
     --bg-card: #ffffff;
     --border: #ccfbf1;            /* teal-100 */
     --border-mid: #99f6e4;        /* teal-200 */
-    --text-primary: #042f2e;      /* teal-950 */
-    --text-secondary: #0f766e;    /* teal-700 */
-    --text-muted: #2dd4bf;        /* teal-400 */
+    --text-primary: #0f172a;      /* slate-900 */
+    --text-secondary: #475569;    /* slate-600 */
+    --text-muted: #94a3b8;        /* slate-400 */
     --accent: #14b8a6;            /* teal-500 */
     --accent-dark: #0d9488;       /* teal-600 */
     --accent-darker: #0f766e;     /* teal-700 */
@@ -22,17 +22,17 @@
 
     /* Shadcn compat */
     --background: 0 0% 100%;
-    --foreground: 180 95% 9%;
+    --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
-    --card-foreground: 180 95% 9%;
+    --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 180 95% 9%;
+    --popover-foreground: 222.2 84% 4.9%;
     --primary: 173 80% 40%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 166 100% 97%;
-    --secondary-foreground: 180 95% 9%;
-    --muted: 166 100% 97%;
-    --muted-foreground: 173 30% 45%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
     --accent: 166 100% 97%;
     --accent-foreground: 180 95% 9%;
     --destructive: 0 84.2% 60.2%;
@@ -43,14 +43,26 @@
     --radius: 0.75rem;
   }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  * { 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 0; 
+    -webkit-tap-highlight-color: transparent;
+  }
 
   html, body {
     font-family: "Outfit", system-ui, sans-serif;
     background-color: #f0fdfa;
-    color: #042f2e;
+    color: #0f172a;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    touch-action: manipulation;
+  }
+
+  /* Prevent Next.js dev toast/indicator from obstructing mobile bottom bar */
+  nextjs-portal, [data-nextjs-toast], #nextjs-dev-overlay {
+    display: none !important;
+    pointer-events: none !important;
   }
 
   ::-webkit-scrollbar { width: 4px; height: 4px; }

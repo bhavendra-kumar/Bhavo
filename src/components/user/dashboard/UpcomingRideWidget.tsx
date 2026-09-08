@@ -8,7 +8,7 @@ export default function UpcomingRideWidget() {
       <div className="p-6 flex-1 flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <h3 className="text-[16px] font-bold text-teal-950 tracking-tight">Upcoming Ride</h3>
+          <h3 className="text-[16px] font-bold text-slate-900 tracking-tight">Upcoming Ride</h3>
           <div className="px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-[11px] font-bold tracking-wider uppercase">
             In 45 Mins
           </div>
@@ -26,7 +26,7 @@ export default function UpcomingRideWidget() {
               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">
                 <Clock size={12} /> 8:45 AM
               </p>
-              <p className="text-[15px] font-bold text-teal-950">123 Tech Park Avenue</p>
+              <p className="text-[15px] font-bold text-slate-900">123 Tech Park Avenue</p>
               <p className="text-[13px] text-slate-500 mt-0.5">Block B, Main Gate</p>
             </div>
           </div>
@@ -38,7 +38,7 @@ export default function UpcomingRideWidget() {
               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1">
                 ~9:30 AM
               </p>
-              <p className="text-[15px] font-bold text-teal-950">Bhavo Headquarters</p>
+              <p className="text-[15px] font-bold text-slate-900">Bhavo Headquarters</p>
               <p className="text-[13px] text-slate-500 mt-0.5">Sector 44, Cyber City</p>
             </div>
           </div>
@@ -53,7 +53,7 @@ export default function UpcomingRideWidget() {
               </AvatarFallback>
             </Avatar>
             <div className="flex flex-col">
-              <span className="text-[14px] font-bold text-teal-950">Premium Sedan</span>
+              <span className="text-[14px] font-bold text-slate-900">Premium Sedan</span>
               <div className="flex items-center gap-1.5 text-[12px] text-slate-500 font-medium">
                 Rajesh K. <span className="w-1 h-1 rounded-full bg-slate-300 mx-0.5" /> <Star size={10} className="text-amber-400 fill-amber-400" /> 4.9
               </div>

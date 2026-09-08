@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useUserStore } from "@/hooks/user/useUserStore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useDialog } from "@/components/ui/DialogProvider";
 
 const NAV_ITEMS = [
   {
@@ -39,22 +40,31 @@ const NAV_ITEMS = [
   },
 ];
 
-/* ── Dark Teal Theme (Footer matched) ─────────────────────────────────────── */
+/* ── Dark Premium Sidebar Colors ─────────────────────────────────────── */
 const BG = "#042f2e";
-const BG_HOVER = "#115e59";
-const BG_ACTIVE = "#134e4a";
-const BORDER = "#115e59";
-const ACCENT = "#5eead4";
-const SECTION_LABEL = "#2dd4bf";
-const TEXT_INACTIVE = "#99f6e4";
-const TEXT_ACTIVE = "#ffffff";
+const BG_HOVER = "rgba(255, 255, 255, 0.08)";
+const BG_ACTIVE = "rgba(20, 184, 166, 0.16)";
+const BORDER = "rgba(255, 255, 255, 0.08)";
+const ACCENT = "#2dd4bf";
+const SECTION_LABEL = "#94a3b8"; // Clean readable neutral slate
+const TEXT_INACTIVE = "#cbd5e1"; // Crisp light slate text (not green)
+const TEXT_ACTIVE = "#ffffff";   // High-contrast pure white
 
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, isSidebarCollapsed: collapsed, toggleSidebar } = useUserStore();
+  const { confirm } = useDialog();
 
   const handleLogout = async () => {
+    const ok = await confirm({
+      title: "Sign out?",
+      message: "You'll need to log back in to access your account.",
+      confirmText: "Sign out",
+      cancelText: "Stay",
+      variant: "warning",
+    });
+    if (!ok) return;
     try {
       await fetch("/api/auth/logout", { method: "POST" });
       router.push("/login");
@@ -117,7 +127,7 @@ export default function Sidebar() {
               {/* Vehicle Animation */}
               <CarFront size={18} className="text-[#2dd4bf] opacity-0 group-hover:opacity-100 transition-opacity absolute left-28 animate-drive" />
             </span>
-            <span className="text-[11px] font-bold tracking-widest uppercase mt-1.5" style={{ color: "#5eead4" }}>
+            <span className="text-[11px] font-bold tracking-widest uppercase mt-1.5 text-slate-300">
               Smart Commute
             </span>
           </div>
@@ -163,7 +173,7 @@ export default function Sidebar() {
                   <Icon
                     size={16}
                     className="shrink-0 transition-colors"
-                    style={{ color: isActive ? ACCENT : "#0d9488" }}
+                    style={{ color: isActive ? ACCENT : "#94a3b8" }}
                   />
 
                   {!collapsed && (
@@ -194,32 +204,32 @@ export default function Sidebar() {
           <div className="flex justify-center">
             <Avatar className="w-8 h-8">
               <AvatarImage src={user?.avatar || undefined} alt={user?.name} />
-              <AvatarFallback className="text-[11px] font-bold" style={{ background: ACCENT, color: "#fff" }}>
+              <AvatarFallback className="text-[11px] font-bold bg-teal-600 text-white">
                 {user?.name?.charAt(0) ?? "U"}
               </AvatarFallback>
             </Avatar>
           </div>
         ) : (
           /* Expanded: avatar row + Log Out below */
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1.5">
             {/* User row */}
-            <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg" style={{ background: BG_HOVER }}>
-              <Avatar className="w-7 h-7 shrink-0">
+            <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl" style={{ background: BG_HOVER, border: `1px solid ${BORDER}` }}>
+              <Avatar className="w-8 h-8 shrink-0">
                 <AvatarImage src={user?.avatar || undefined} alt={user?.name} />
-                <AvatarFallback className="text-[11px] font-bold" style={{ background: ACCENT, color: "#fff" }}>
+                <AvatarFallback className="text-[12px] font-bold bg-teal-600 text-white">
                   {user?.name?.charAt(0) ?? "U"}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-[12px] font-semibold truncate" style={{ color: "#042f2e" }}>{user?.name}</p>
-                <p className="text-[10px] font-medium mt-0.5" style={{ color: "#0f766e" }}>Commuter</p>
+                <p className="text-[13px] font-bold truncate text-white leading-snug">{user?.name || "User"}</p>
+                <p className="text-[11px] font-medium mt-0.5 text-slate-300">Commuter</p>
               </div>
             </div>
 
             {/* Log Out */}
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2.5 px-2 py-2 rounded-lg w-full text-left transition-colors"
+              className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg w-full text-left transition-colors"
               style={{ color: TEXT_INACTIVE }}
               onMouseEnter={(e) => {
                 (e.currentTarget as HTMLElement).style.background = BG_HOVER;

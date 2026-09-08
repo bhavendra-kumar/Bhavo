@@ -21,8 +21,12 @@ export async function POST(req: Request) {
       );
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
+
     await dbConnect();
-    const user = await User.findOne({ email });
+    const user = await User.findOne({
+      email: { $regex: new RegExp(`^${normalizedEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") }
+    });
 
     if (!user) {
       return NextResponse.json(
