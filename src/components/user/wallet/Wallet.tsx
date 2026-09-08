@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Plus, CreditCard, History, ChevronRight, ArrowUpRight, ArrowDownLeft, Smartphone, Gift, Tag, Download } from "lucide-react";
+import { useDialog } from "@/components/ui/DialogProvider";
 
 const QUICK_AMOUNTS = [200, 500, 1000, 2000];
 
@@ -15,49 +16,57 @@ const TRANSACTIONS = [
 export default function WalletPage() {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState("Transactions");
+  const { alert } = useDialog();
 
   return (
-    <div className="flex flex-col gap-6 pb-10">
+    <div className="flex flex-col gap-5 pb-10">
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <button className="h-9 px-4 rounded-lg flex items-center gap-2 text-[13px] font-bold text-teal-700 bg-teal-50 border border-teal-100 hover:bg-teal-100 transition-colors">
-          <Download size={14} /> Download Statement
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">Bhavo Wallet</h2>
+          <p className="text-[12px] sm:text-[13px] text-slate-500 font-medium mt-0.5">Manage zero-wait balances, cashback, and commute payment methods.</p>
+        </div>
+        <button className="self-start sm:self-auto h-9 px-4 rounded-full flex items-center justify-center gap-1.5 text-[12px] sm:text-[13px] font-bold text-teal-800 bg-teal-50 border border-teal-200/80 hover:bg-teal-100 active:scale-95 transition-all shrink-0 cursor-pointer shadow-xs">
+          <Download size={13} /> Download Statement
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
 
         {/* Left: Balance & Quick Add */}
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-4 sm:gap-5">
 
           {/* Balance card */}
-          <div className="card p-6 text-white relative overflow-hidden"
-            style={{ background: "linear-gradient(135deg, #0f766e 0%, #115e59 100%)", borderColor: "#0f766e" }}>
+          <div className="card p-5 sm:p-6 text-white relative overflow-hidden rounded-2xl shadow-sm"
+            style={{ background: "linear-gradient(135deg, #064e3b 0%, #042f2e 100%)", borderColor: "#0f766e" }}>
             <div className="absolute -top-8 -right-8 w-28 h-28 rounded-full opacity-10 bg-white" />
             <div className="absolute bottom-0 left-0 w-24 h-24 rounded-full opacity-5 bg-white" style={{ transform: "translate(-30%, 30%)" }} />
             
-            <p className="text-teal-100 text-[11px] font-bold uppercase tracking-widest mb-1">Available Balance</p>
-            <h2 className="text-4xl font-black tracking-tight mb-6">₹1,250.00</h2>
+            <p className="text-teal-200 text-[10.5px] font-bold uppercase tracking-widest mb-1">Available Balance</p>
+            <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-5 text-white">₹1,250.00</h2>
             
-            <button className="w-full bg-white text-teal-800 font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all hover:bg-teal-50 hover:-translate-y-0.5 text-sm shadow-sm">
-              <Plus size={17} /> Add Money
+            <button
+              onClick={() => setSelectedAmount(500)}
+              className="w-full bg-teal-400 hover:bg-teal-300 text-teal-950 font-black py-2.5 sm:py-3 rounded-xl flex items-center justify-center gap-2 active:scale-98 transition-all text-[13.5px] shadow-sm cursor-pointer"
+            >
+              <Plus size={16} /> Add Money
             </button>
           </div>
 
           {/* Quick add */}
           <div className="card p-5">
-            <p className="text-[11px] font-semibold text-[#0f766e] uppercase tracking-widest mb-3">Quick Add</p>
-            <div className="grid grid-cols-2 gap-2">
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-3">Quick Add</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-2">
               {QUICK_AMOUNTS.map((amt) => (
                 <button
                   key={amt}
                   onClick={() => setSelectedAmount(amt)}
-                  className="py-2.5 rounded-lg text-[13px] font-bold transition-all"
+                  className="py-2.5 rounded-lg text-[13px] font-bold transition-all cursor-pointer"
                   style={{
-                    background: selectedAmount === amt ? "#0d9488" : "#f0fdfa",
-                    color: selectedAmount === amt ? "white" : "#0f766e",
-                    border: selectedAmount === amt ? "1px solid #0d9488" : "1px solid #ccfbf1",
+                    background: selectedAmount === amt ? "#0d9488" : "#f8fafc",
+                    color: selectedAmount === amt ? "white" : "#334155",
+                    border: selectedAmount === amt ? "1px solid #0d9488" : "1px solid #e2e8f0",
                     boxShadow: selectedAmount === amt ? "0 4px 12px rgba(13,148,136,0.25)" : "none",
                   }}
                 >
@@ -66,7 +75,17 @@ export default function WalletPage() {
               ))}
             </div>
             {selectedAmount !== null && (
-              <button className="w-full mt-3 py-2 rounded-lg text-[13px] font-bold bg-[#042f2e] text-white hover:bg-[#021c1b] transition-colors">
+              <button
+                type="button"
+                onClick={() => {
+                  alert({
+                    title: `Add ₹${selectedAmount}`,
+                    message: "Connecting to secure payment gateway...",
+                    variant: "info",
+                  });
+                }}
+                className="w-full mt-3 py-2.5 rounded-xl text-[13px] font-bold bg-teal-700 text-white hover:bg-teal-800 transition-colors shadow-sm cursor-pointer"
+              >
                 Proceed to Pay ₹{selectedAmount}
               </button>
             )}
@@ -75,23 +94,23 @@ export default function WalletPage() {
           {/* Payment methods */}
           <div className="card p-5">
             <div className="flex items-center justify-between mb-4">
-              <p className="text-[11px] font-semibold text-[#0f766e] uppercase tracking-widest">Payment Methods</p>
-              <button className="text-[11px] font-bold text-teal-600 hover:text-teal-700">Add New</button>
+              <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Payment Methods</p>
+              <button className="text-[11px] font-bold text-teal-600 hover:text-teal-700 cursor-pointer">Add New</button>
             </div>
             <div className="flex flex-col gap-2">
               {[
                 { Icon: CreditCard, label: "HDFC Debit ····4523", type: "Primary" },
                 { Icon: Smartphone, label: "Google Pay UPI", type: "" },
               ].map(({ Icon, label, type }, i) => (
-                <div key={i} className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-[#f0fdfa] transition-colors border border-transparent hover:border-[#ccfbf1]">
-                  <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-[#f0fdfa] border border-[#ccfbf1]">
+                <div key={i} className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-200">
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-teal-50 border border-teal-100">
                     <Icon size={16} className="text-teal-700" />
                   </div>
                   <div className="flex-1">
-                    <span className="text-[13px] font-semibold text-[#042f2e]">{label}</span>
-                    {type && <p className="text-[11px] font-medium text-[#0f766e]">{type}</p>}
+                    <span className="text-[13px] font-bold text-slate-900">{label}</span>
+                    {type && <p className="text-[11px] font-medium text-slate-500">{type}</p>}
                   </div>
-                  <ChevronRight size={15} className="text-[#99f6e4]" />
+                  <ChevronRight size={15} className="text-slate-400" />
                 </div>
               ))}
             </div>
@@ -101,15 +120,14 @@ export default function WalletPage() {
         {/* Right: Transactions, Rewards, Coupons */}
         <div className="lg:col-span-2 flex flex-col gap-5">
           
-          <div className="flex gap-1 p-1 rounded-lg w-max" style={{ background: "#ccfbf1" }}>
+          <div className="flex gap-1 p-1 rounded-xl w-full sm:w-max overflow-x-auto no-scrollbar bg-slate-100 border border-slate-200">
             {["Transactions", "Coupons", "Rewards"].map((tab) => (
               <button key={tab} onClick={() => setActiveTab(tab)}
-                className="px-5 py-2 rounded-md text-[13px] font-semibold transition-all"
+                className="px-5 py-2 rounded-lg text-[13px] font-semibold transition-all shrink-0 cursor-pointer whitespace-nowrap"
                 style={{
                   background: activeTab === tab ? "#ffffff" : "transparent",
-                  color: activeTab === tab ? "#042f2e" : "#0f766e",
-                  boxShadow: activeTab === tab ? "0 1px 4px rgba(20,184,166,0.1)" : "none",
-                  border: activeTab === tab ? "1px solid #99f6e4" : "1px solid transparent",
+                  color: activeTab === tab ? "#0f172a" : "#64748b",
+                  boxShadow: activeTab === tab ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
                 }}>
                 {tab}
               </button>
@@ -120,14 +138,14 @@ export default function WalletPage() {
             
             {activeTab === "Transactions" && (
               <div className="flex flex-col">
-                <div className="p-5 flex items-center justify-between border-b border-[#ccfbf1]">
-                  <h3 className="font-semibold text-[#042f2e] text-[15px] flex items-center gap-2">
-                    <History size={16} className="text-[#0d9488]" /> Recent Transactions
+                <div className="p-5 flex items-center justify-between border-b border-slate-100">
+                  <h3 className="font-bold text-slate-900 text-[15px] flex items-center gap-2">
+                    <History size={16} className="text-teal-600" /> Recent Transactions
                   </h3>
                 </div>
-                <div className="flex-1 overflow-y-auto divide-y divide-[#f0fdfa]">
+                <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
                   {TRANSACTIONS.map((tx) => (
-                    <div key={tx.id} className="flex items-center gap-4 px-5 py-4 hover:bg-[#f0fdfa] transition-colors cursor-pointer group">
+                    <div key={tx.id} className="flex items-center gap-4 px-5 py-4 hover:bg-slate-50 transition-colors cursor-pointer group">
                       <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
                         style={{ background: tx.type === "credit" ? "rgba(16,185,129,0.1)" : "rgba(244,63,94,0.1)" }}>
                         {tx.type === "credit"
@@ -136,10 +154,10 @@ export default function WalletPage() {
                         }
                       </div>
                       <div className="flex-1">
-                        <p className="text-[14px] font-semibold text-[#042f2e]">{tx.label}</p>
-                        <p className="text-[12px] font-medium text-[#0f766e] mt-0.5">{tx.sub} · {tx.id}</p>
+                        <p className="text-[14px] font-bold text-slate-900">{tx.label}</p>
+                        <p className="text-[12px] font-medium text-slate-500 mt-0.5">{tx.sub} · {tx.id}</p>
                       </div>
-                      <span className="text-[15px] font-bold" style={{ color: tx.type === "credit" ? "#10b981" : "#042f2e" }}>
+                      <span className="text-[15px] font-black" style={{ color: tx.type === "credit" ? "#10b981" : "#0f172a" }}>
                         {tx.amount}
                       </span>
                     </div>

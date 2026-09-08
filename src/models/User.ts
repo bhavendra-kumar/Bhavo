@@ -10,6 +10,8 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
+      trim: true,
+      lowercase: true,
     },
     password: {
       type: String,
@@ -31,6 +33,35 @@ const UserSchema = new mongoose.Schema(
     avatar: {
       type: String,
       default: null,
+    },
+    phone: {
+      type: String,
+      default: "+91 98765 43210",
+    },
+    emergencyContacts: {
+      type: [
+        {
+          name: { type: String, required: true },
+          phone: { type: String, required: true },
+          relation: { type: String, default: "Contact" },
+        },
+      ],
+      default: [
+        { name: "Family Primary", phone: "+91 91234 56789", relation: "Family" },
+        { name: "Emergency Contact", phone: "+91 99887 77665", relation: "Friend" },
+      ],
+    },
+    pets: {
+      type: [
+        {
+          name: { type: String, required: true },
+          breed: { type: String, default: "Dog" },
+          weight: { type: String, default: "15kg" },
+        },
+      ],
+      default: [
+        { name: "Max", breed: "Golden Retriever", weight: "25kg" },
+      ],
     },
     resetOtp: {
       type: String,

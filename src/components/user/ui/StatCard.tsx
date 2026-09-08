@@ -41,7 +41,7 @@ export default function StatCard({
       </div>
 
       <div className="z-10">
-        <h3 className="text-3xl font-bold text-teal-950 tracking-tight mb-2">
+        <h3 className="text-3xl font-bold text-slate-900 tracking-tight mb-2">
           {value}
         </h3>
         

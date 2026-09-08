@@ -14,13 +14,13 @@ function StatCard({ title, value, icon: Icon, iconBg, iconColor, trend, sub }: {
   return (
     <div className="card p-5 flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#0f766e" }}>{title}</span>
+        <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">{title}</span>
         <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: iconBg }}>
           <Icon size={17} style={{ color: iconColor }} />
         </div>
       </div>
       <div>
-        <p className="text-2xl font-bold tracking-tight" style={{ color: "#042f2e" }}>{value}</p>
+        <p className="text-2xl font-bold tracking-tight text-slate-900">{value}</p>
         {trend && (
           <div className="flex items-center gap-1.5 mt-2">
             <span className={trend.up ? "pill-teal" : "pill-red"}>
@@ -29,7 +29,7 @@ function StatCard({ title, value, icon: Icon, iconBg, iconColor, trend, sub }: {
             </span>
           </div>
         )}
-        {sub && !trend && <p className="text-[12px] font-medium mt-1.5" style={{ color: "#0f766e" }}>{sub}</p>}
+        {sub && !trend && <p className="text-[12px] font-medium mt-1.5 text-slate-500">{sub}</p>}
       </div>
     </div>
   );
@@ -46,7 +46,7 @@ export default function MobilityInsightsPage() {
 
         {/* Period selector & Export */}
         <div className="flex items-center gap-3">
-          <div className="flex p-1 rounded-lg" style={{ background: "#ccfbf1" }}>
+          <div className="flex p-1 rounded-lg bg-slate-100 border border-slate-200">
             {["This Month", "Last Month", "This Year"].map((label) => (
               <button
                 key={label}
@@ -54,8 +54,8 @@ export default function MobilityInsightsPage() {
                 className="px-4 py-2 text-[12px] font-bold rounded-md transition-all whitespace-nowrap"
                 style={{
                   background: period === label ? "#ffffff" : "transparent",
-                  color: period === label ? "#042f2e" : "#0f766e",
-                  boxShadow: period === label ? "0 1px 4px rgba(20,184,166,0.1)" : "none",
+                  color: period === label ? "#0f172a" : "#64748b",
+                  boxShadow: period === label ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
                 }}
               >
                 {label}
@@ -81,7 +81,7 @@ export default function MobilityInsightsPage() {
         {/* Chart */}
         <div className="card lg:col-span-2 p-6 flex flex-col min-h-80">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-[15px] font-bold text-teal-950">Commute Trends</h3>
+            <h3 className="text-[15px] font-bold text-slate-900">Commute Trends</h3>
             <span className="pill-teal">Weekly Volume</span>
           </div>
 
@@ -98,8 +98,7 @@ export default function MobilityInsightsPage() {
                     }}
                   />
                   {/* Tooltip */}
-                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-[11px] font-bold text-white px-2.5 py-1 rounded-lg whitespace-nowrap pointer-events-none"
-                    style={{ background: "#042f2e" }}>
+                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-[11px] font-bold text-white px-2.5 py-1 rounded-lg whitespace-nowrap pointer-events-none bg-slate-900">
                     {pct} trips
                   </div>
                 </div>
@@ -146,7 +145,7 @@ export default function MobilityInsightsPage() {
         
         {/* Favorite Routes */}
         <div className="card p-5">
-          <p className="text-[14px] font-semibold mb-4" style={{ color: "#042f2e" }}>Favorite Routes</p>
+          <p className="text-[14px] font-bold mb-4 text-slate-900">Favorite Routes</p>
           <div className="flex flex-col gap-4">
             {[
               { from: "Home", to: "Bhavo HQ", count: 22 },
@@ -155,14 +154,14 @@ export default function MobilityInsightsPage() {
             ].map((route, i) => (
               <div key={i} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: "#ccfbf1" }}>
-                    <MapPin size={14} style={{ color: "#0d9488" }} />
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-teal-50 border border-teal-100">
+                    <MapPin size={14} className="text-teal-600" />
                   </div>
                   <div>
-                    <p className="text-[13px] font-semibold" style={{ color: "#042f2e" }}>{route.from} → {route.to}</p>
+                    <p className="text-[13px] font-bold text-slate-900">{route.from} → {route.to}</p>
                   </div>
                 </div>
-                <span className="text-[12px] font-bold" style={{ color: "#0f766e" }}>{route.count} trips</span>
+                <span className="text-[12px] font-medium text-slate-500">{route.count} trips</span>
               </div>
             ))}
           </div>
@@ -170,7 +169,7 @@ export default function MobilityInsightsPage() {
 
         {/* Preferred Drivers */}
         <div className="card p-5">
-          <p className="text-[14px] font-semibold mb-4" style={{ color: "#042f2e" }}>Preferred Drivers</p>
+          <p className="text-[14px] font-bold mb-4 text-slate-900">Preferred Drivers</p>
           <div className="flex flex-col gap-4">
             {[
               { name: "Rajesh K.", rating: 4.9, count: 12 },
@@ -179,17 +178,17 @@ export default function MobilityInsightsPage() {
             ].map((driver, i) => (
               <div key={i} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-[12px]" style={{ background: "#ede9fe", color: "#7c3aed" }}>
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-[12px] bg-purple-50 text-purple-700 border border-purple-100">
                     {driver.name[0]}
                   </div>
                   <div>
-                    <p className="text-[13px] font-semibold" style={{ color: "#042f2e" }}>{driver.name}</p>
-                    <p className="text-[11px] font-medium flex items-center gap-1" style={{ color: "#0f766e" }}>
+                    <p className="text-[13px] font-bold text-slate-900">{driver.name}</p>
+                    <p className="text-[11px] font-medium flex items-center gap-1 text-slate-500">
                       <Star size={10} className="text-amber-400 fill-amber-400" /> {driver.rating}
                     </p>
                   </div>
                 </div>
-                <span className="text-[12px] font-bold" style={{ color: "#0f766e" }}>{driver.count} trips</span>
+                <span className="text-[12px] font-medium text-slate-500">{driver.count} trips</span>
               </div>
             ))}
           </div>
@@ -197,13 +196,13 @@ export default function MobilityInsightsPage() {
 
         {/* Most Used Vehicle */}
         <div className="card p-5">
-          <p className="text-[14px] font-semibold mb-4" style={{ color: "#042f2e" }}>Most Used Vehicle</p>
+          <p className="text-[14px] font-bold mb-4 text-slate-900">Most Used Vehicle</p>
           <div className="flex flex-col items-center justify-center py-4">
-            <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4" style={{ background: "#ccfbf1", border: "4px solid #f0fdfa" }}>
-              <CarFront size={32} style={{ color: "#0d9488" }} />
+            <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4 bg-teal-50 border-4 border-teal-100">
+              <CarFront size={32} className="text-teal-600" />
             </div>
-            <p className="text-[16px] font-bold" style={{ color: "#042f2e" }}>Premium Sedan</p>
-            <p className="text-[13px] font-medium mt-1" style={{ color: "#0f766e" }}>65% of your total trips</p>
+            <p className="text-[16px] font-bold text-slate-900">Premium Sedan</p>
+            <p className="text-[13px] font-medium mt-1 text-slate-500">65% of your total trips</p>
             
             <div className="w-full mt-6 bg-slate-100 h-2 rounded-full overflow-hidden flex">
               <div className="h-full bg-teal-500" style={{ width: "65%" }} />

@@ -14,7 +14,7 @@ export default function AutoBookingWidget() {
             <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center">
               <Zap size={16} className="text-teal-600 fill-teal-600/20" />
             </div>
-            <h3 className="text-[16px] font-bold text-teal-950 tracking-tight">Auto-Booking</h3>
+            <h3 className="text-[16px] font-bold text-slate-900 tracking-tight">Auto-Booking</h3>
           </div>
           <Switch defaultChecked className="data-[state=checked]:bg-teal-500" />
         </div>
@@ -28,7 +28,7 @@ export default function AutoBookingWidget() {
             </div>
             <div className="flex-1">
               <div className="flex items-center justify-between mb-0.5">
-                <p className="text-[14px] font-bold text-teal-950">Morning Commute</p>
+                <p className="text-[14px] font-bold text-slate-900">Morning Commute</p>
                 <span className="w-2 h-2 rounded-full bg-teal-400" />
               </div>
               <p className="text-[12px] font-medium text-slate-500">Mon–Fri · 8:45 AM</p>
@@ -42,7 +42,7 @@ export default function AutoBookingWidget() {
             </div>
             <div className="flex-1">
               <div className="flex items-center justify-between mb-0.5">
-                <p className="text-[14px] font-bold text-teal-950">Evening Return</p>
+                <p className="text-[14px] font-bold text-slate-900">Evening Return</p>
                 <span className="w-2 h-2 rounded-full bg-teal-400" />
               </div>
               <p className="text-[12px] font-medium text-slate-500">Mon–Fri · 6:30 PM</p>

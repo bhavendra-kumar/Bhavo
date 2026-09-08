@@ -4,14 +4,18 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-export default function Login() {
+interface LoginProps {
+  isRegistered?: boolean;
+  initialEmail?: string;
+}
+
+export default function Login({ isRegistered = false, initialEmail = "" }: LoginProps) {
   const router = useRouter();
-  const isRegistered = typeof window !== "undefined" && window.location.search.includes("registered=true");
   const [successMsg, setSuccessMsg] = useState("");
   const displayMsg = successMsg || (isRegistered ? "Registration successful! Please log in." : "");
   type ViewState = "login" | "forgot_otp" | "forgot_reset";
   const [view, setView] = useState<ViewState>("login");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [newPassword, setNewPassword] = useState("");
@@ -24,6 +28,48 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
+  const [devOtp, setDevOtp] = useState<string | null>(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  React.useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
+
+  const requestOtp = async (targetEmail: string) => {
+    if (!targetEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(targetEmail)) {
+      setErrors((prev) => ({ ...prev, email: "Please enter a valid email first to reset your password." }));
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+      return;
+    }
+    setLoading(true);
+    setErrors({});
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: targetEmail.trim().toLowerCase() }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setView("forgot_otp");
+        setDevOtp(data.devOtp || null);
+        setResendCooldown(30);
+        setErrors({});
+      } else {
+        setErrors({ form: data.message || "Failed to send OTP." });
+        setShake(true);
+        setTimeout(() => setShake(false), 500);
+      }
+    } catch {
+      setErrors({ form: "Network error. Please try again." });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const validate = () => {
     const e: { email?: string; password?: string; otp?: string; newPassword?: string; confirmNewPassword?: string } = {};
@@ -76,7 +122,7 @@ export default function Login() {
         const res = await fetch("/api/auth/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
         });
 
         if (!res.ok) {
@@ -211,7 +257,12 @@ export default function Login() {
         /* Auth responsive */
         @media (max-width: 1023px) {
           .auth-scene { display: none !important; }
-          .auth-form-col { background: linear-gradient(135deg, #030f0f 0%, #042f2e 60%, #064e3b 100%) !important; }
+          .auth-form-col { background: linear-gradient(135deg, #030f0f 0%, #042f2e 60%, #064e3b 100%) !important; min-height: 100vh !important; }
+          .mobile-bhavo { display: block !important; }
+        }
+        @media (max-width: 640px) {
+          .auth-form-col { padding: 32px 16px !important; }
+          .form-card { padding: 32px 20px 28px !important; border-radius: 24px !important; }
         }
       `}</style>
 
@@ -520,32 +571,7 @@ export default function Login() {
                 <div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7 }}>
                     <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", letterSpacing: "0.4px", textTransform: "uppercase" }} htmlFor="login-password">Password</label>
-                    <button type="button" onClick={async () => {
-                      if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                        setErrors(prev => ({ ...prev, email: "Please enter a valid email first to reset your password." }));
-                        setShake(true);
-                        setTimeout(() => setShake(false), 500);
-                        return;
-                      }
-                      setLoading(true);
-                      try {
-                        const res = await fetch("/api/auth/forgot-password", {
-                          method: "POST", headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ email })
-                        });
-                        if (res.ok) {
-                          setView("forgot_otp");
-                          setErrors({});
-                        } else {
-                          const data = await res.json();
-                          setErrors({ form: data.message || "Failed to send OTP." });
-                        }
-                      } catch {
-                        setErrors({ form: "Network error." });
-                      } finally {
-                        setLoading(false);
-                      }
-                    }} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: 12, color: "#0d9488", fontWeight: 600 }}>Forgot Password?</button>
+                    <button type="button" onClick={() => requestOtp(email)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: 12, color: "#0d9488", fontWeight: 600 }}>Forgot Password?</button>
                   </div>
                   <div style={{ position: "relative" }}>
                     <span style={{
@@ -605,6 +631,20 @@ export default function Login() {
                             document.getElementById(`otp-${idx + 1}`)?.focus();
                           }
                         }}
+                        onPaste={(e) => {
+                          e.preventDefault();
+                          const pasted = e.clipboardData.getData("text").replace(/[^0-9]/g, "").slice(0, 6);
+                          if (pasted) {
+                            const newOtp = [...otp];
+                            for (let i = 0; i < 6; i++) {
+                              newOtp[i] = pasted[i] || "";
+                            }
+                            setOtp(newOtp);
+                            if (errors.otp) setErrors(prev => ({ ...prev, otp: undefined }));
+                            const nextIdx = Math.min(pasted.length, 5);
+                            document.getElementById(`otp-${nextIdx}`)?.focus();
+                          }
+                        }}
                         onKeyDown={(e) => {
                           if (e.key === "Backspace" && !digit && idx > 0) {
                             document.getElementById(`otp-${idx - 1}`)?.focus();
@@ -618,6 +658,54 @@ export default function Login() {
                     ))}
                   </div>
                   {errors.otp && <p className="field-error"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>{errors.otp}</p>}
+
+                  {/* Resend & Email Change Controls */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
+                    <button
+                      type="button"
+                      onClick={() => { setView("login"); setDevOtp(null); }}
+                      style={{ background: "none", border: "none", color: "#0d9488", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: 0 }}
+                    >
+                      Wrong email? Change
+                    </button>
+                    <button
+                      type="button"
+                      disabled={resendCooldown > 0 || loading}
+                      onClick={() => requestOtp(email)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: resendCooldown > 0 ? "#94a3b8" : "#0d9488",
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: resendCooldown > 0 ? "not-allowed" : "pointer",
+                        padding: 0,
+                      }}
+                    >
+                      {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend OTP"}
+                    </button>
+                  </div>
+
+                  {/* Development mode test OTP banner */}
+                  {devOtp && (
+                    <div style={{ marginTop: 14, padding: "10px 14px", background: "#f0fdfa", border: "1.5px dashed #0d9488", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "#0f766e", textTransform: "uppercase", letterSpacing: "0.5px" }}>Dev Mode OTP</div>
+                        <div style={{ fontSize: 18, fontWeight: 900, color: "#115e59", letterSpacing: 4, fontFamily: "monospace" }}>{devOtp}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const digits = devOtp.split("").slice(0, 6);
+                          setOtp(digits);
+                          if (errors.otp) setErrors(prev => ({ ...prev, otp: undefined }));
+                        }}
+                        style={{ padding: "6px 12px", background: "#0d9488", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                      >
+                        Auto-fill
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
