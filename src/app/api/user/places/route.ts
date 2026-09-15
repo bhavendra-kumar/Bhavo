@@ -17,38 +17,7 @@ export async function GET() {
       return NextResponse.json({ status: "error", message: "User not found" }, { status: 404 });
     }
 
-    let places = await Place.find({ rider: user._id }).sort({ createdAt: -1 });
-
-    // Seed default places if none exist
-    if (places.length === 0) {
-      places = await Place.create([
-        {
-          rider: user._id,
-          name: "Home",
-          address: "Apt 4B, Serenity Heights, Sector 12, Delhi",
-          coordinates: [28.6139, 77.2090],
-          tag: "Home",
-          isFavorite: true,
-        },
-        {
-          rider: user._id,
-          name: "Office",
-          address: "Bhavo Headquarters, Sector 44, Cyber City, Gurgaon",
-          coordinates: [28.5355, 77.3910],
-          tag: "Work",
-          isFavorite: true,
-        },
-        {
-          rider: user._id,
-          name: "FitPro Gym",
-          address: "FitPro Fitness Center, Block C, Downtown",
-          coordinates: [28.5700, 77.3200],
-          tag: "Gym",
-          isFavorite: false,
-        },
-      ]);
-    }
-
+    const places = await Place.find({ rider: user._id }).sort({ createdAt: -1 });
     return NextResponse.json({ status: "success", data: places });
   } catch (error) {
     console.error("[Places GET Error]:", error);

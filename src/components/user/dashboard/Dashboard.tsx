@@ -2,20 +2,21 @@
 
 import React, { useEffect } from "react";
 import {
-  Sparkles, Navigation, Clock, MapPin, CarFront, Route,
-  CalendarClock, ArrowRight, Star, Dog, Plus, Phone, MessageSquare,
+  MapPin, Star, Phone, MessageSquare,
   ShieldAlert, XCircle, RefreshCw
 } from "lucide-react";
 import { useDashboardStore } from "@/hooks/user/useDashboardStore";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import DriverChatModal from "@/components/user/rides/DriverChatModal";
 import DriverCallModal from "@/components/user/rides/DriverCallModal";
 import MobileDashboard from "@/components/user/mobile/MobileDashboard";
 import { useDialog } from "@/components/ui/DialogProvider";
+import CommuteCommandHero from "./CommuteCommandHero";
+import WeeklyCommutePlanner from "./WeeklyCommutePlanner";
+import QuickCommuteHub from "./QuickCommuteHub";
+import CommuterPerksMetrics from "./CommuterPerksMetrics";
+import RecentCommutesSnapshot from "./RecentCommutesSnapshot";
 
 export default function DashboardPage() {
-  const router = useRouter();
   const { confirm, alert } = useDialog();
   const [isChatOpen, setIsChatOpen] = React.useState(false);
   const [isCallOpen, setIsCallOpen] = React.useState(false);
@@ -224,183 +225,28 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ── Regular Hero Commute Banner ── */}
-      <div className="card p-6 flex flex-col md:flex-row gap-6">
-        <div className="flex-1 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <span className="pill-teal inline-flex items-center gap-1.5">
-                <Sparkles size={10} /> Auto Booking: {primaryCommute?.isActive ? "Active" : "Paused"}
-              </span>
-            </div>
+      {/* ── 1. Today's Ride Hero ── */}
+      <CommuteCommandHero
+        userName={user?.name}
+        primaryCommute={primaryCommute}
+        returnCommute={commutes[1]}
+        onToggleActive={(id, active) => toggleCommute(id, active)}
+      />
 
-            <h2 className="text-[20px] font-bold leading-snug mt-3 text-slate-900">
-              {greeting}, {user?.name?.split(" ")[0] ?? "there"} —<br />
-              Your commute is on track for{" "}
-              <span className="text-teal-600">{primaryCommute?.time || "8:45 AM"}</span>.
-            </h2>
-            <p className="text-[13px] font-medium mt-2 text-slate-600">
-              <span className="text-amber-600 font-bold">Traffic Alert:</span> Moderate congestion on primary corridor. We&apos;ve calibrated your route timing for smooth arrival.
-            </p>
-          </div>
+      {/* ── 2. "Where to?" Search + Quick Destinations ── */}
+      <QuickCommuteHub savedPlaces={data?.savedPlaces} />
 
-          <div className="flex items-center gap-3 mt-6">
-            <Link
-              href="/user/my-commute"
-              className="inline-flex items-center gap-2 h-9 px-4 rounded-lg text-[13px] font-semibold text-white hover:opacity-90 transition-all"
-              style={{ background: "#0d9488" }}
-            >
-              View Route <ArrowRight size={14} />
-            </Link>
-            <Link
-              href="/user/book-ride"
-              className="inline-flex items-center h-9 px-4 rounded-lg text-[13px] font-semibold transition-colors"
-              style={{ background: "#f0fdfa", color: "#0d9488", border: "1px solid #99f6e4" }}
-              onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "#ccfbf1")}
-              onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "#f0fdfa")}
-            >
-              Book Instant Ride
-            </Link>
-          </div>
-        </div>
+      {/* ── 3. Compact Stats Bar ── */}
+      <CommuterPerksMetrics stats={data?.stats} />
 
-        <div className="hidden md:block w-px" style={{ background: "#ccfbf1" }} />
+      {/* ── 4. Weekly Commute Strip ── */}
+      <WeeklyCommutePlanner
+        commutes={commutes}
+        onToggleCommute={(id, active) => toggleCommute(id, active)}
+      />
 
-        {/* Upcoming Ride / Commute Preview */}
-        <div className="md:w-72 shrink-0 flex flex-col gap-1">
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-[13px] font-bold text-slate-900">
-              {data?.upcomingRides?.length ? "Scheduled Ride" : "Daily Commute"}
-            </p>
-            <span className="pill-slate">
-              {data?.upcomingRides?.length ? "Confirmed" : primaryCommute?.time || "8:45 AM"}
-            </span>
-          </div>
-
-          <div className="relative pl-5 flex flex-col gap-5">
-            <div className="absolute left-1.75 top-2 bottom-6 w-px" style={{ background: "#99f6e4" }} />
-            <div className="relative flex items-start gap-3">
-              <div className="absolute -left-5 top-0.5 w-3.5 h-3.5 rounded-full border-2 bg-white" style={{ borderColor: "#5eead4" }} />
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-widest flex items-center gap-1 mb-0.5 text-slate-500">
-                  <Clock size={10} className="text-teal-600" /> {primaryCommute?.time || "8:45 AM"} · Pickup
-                </p>
-                <p className="text-[14px] font-semibold text-slate-900">
-                  {primaryCommute?.pickup?.address || "123 Tech Park Avenue"}
-                </p>
-              </div>
-            </div>
-
-            <div className="relative flex items-start gap-3">
-              <div className="absolute -left-5 top-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center bg-teal-600">
-                <MapPin size={8} className="text-white" />
-              </div>
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-widest mb-0.5 text-slate-500">
-                  Drop-off
-                </p>
-                <p className="text-[14px] font-semibold text-slate-900">
-                  {primaryCommute?.dropoff?.address || "Bhavo Headquarters, Sector 44"}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between mt-5 pt-4 border-t border-slate-100">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center bg-teal-50">
-                <CarFront size={16} className="text-teal-600" />
-              </div>
-              <div>
-                <p className="text-[13px] font-bold text-slate-900">
-                  {primaryCommute?.vehicleType || "Cab Premium"}
-                </p>
-                <p className="text-[11px] font-medium flex items-center gap-1 text-slate-500">
-                  Mon-Fri Commute
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => router.push("/user/book-ride")}
-              className="w-8 h-8 rounded-full flex items-center justify-center text-white bg-teal-600 hover:bg-teal-700 transition-transform active:scale-95"
-            >
-              <Navigation size={14} />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Quick Actions ── */}
-      <div>
-        <p className="text-[15px] font-bold mb-3 tracking-tight text-slate-900">Book a Ride</p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: "Book Now", icon: CarFront, href: "/user/book-ride" },
-            { label: "Schedule Ride", icon: CalendarClock, href: "/user/book-ride?tab=schedule" },
-            { label: "My Commute", icon: Route, href: "/user/my-commute" },
-            { label: "Pet Ride", icon: Dog, href: "/user/book-ride?tab=pet" },
-          ].map(({ label, icon: Icon, href }) => (
-            <button
-              key={label}
-              onClick={() => router.push(href)}
-              className="card p-4 flex flex-col items-center justify-center gap-3 transition-colors hover:bg-slate-50"
-            >
-              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-teal-50">
-                <Icon size={18} className="text-teal-600" />
-              </div>
-              <span className="text-[13px] font-semibold text-slate-900">{label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Scheduled Commutes ── */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-[15px] font-bold tracking-tight text-slate-900">Your Commute Schedules</p>
-          <button
-            onClick={() => router.push("/user/book-ride?tab=schedule")}
-            className="flex items-center gap-1.5 text-[12px] font-semibold text-teal-600 hover:text-teal-700 transition-colors"
-          >
-            <Plus size={14} /> Add New
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {commutes.map((commute) => (
-            <div key={commute._id} className="card p-5 flex flex-col gap-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-[14px] font-bold text-slate-900">{commute.title}</p>
-                  <p className="text-[12px] font-medium mt-0.5 flex items-center gap-1.5 text-slate-500">
-                    <CalendarClock size={12} className="text-teal-600" /> {commute.days?.join(", ") || "Weekdays"} · {commute.time}
-                  </p>
-                </div>
-                <button
-                  onClick={() => toggleCommute(commute._id, !commute.isActive)}
-                  className={`w-9 h-5 rounded-full p-0.5 transition-colors ${commute.isActive ? "bg-teal-500" : "bg-slate-300"
-                    }`}
-                  title={commute.isActive ? "Pause Auto-Booking" : "Activate Auto-Booking"}
-                >
-                  <div
-                    className={`w-4 h-4 rounded-full bg-white transition-transform ${commute.isActive ? "translate-x-4" : "translate-x-0"
-                      }`}
-                  />
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                <p className="text-[12px] font-medium flex items-center gap-1 truncate max-w-50 text-slate-600">
-                  <MapPin size={11} className="text-teal-600 shrink-0" /> To: <span className="font-semibold text-slate-800">{commute.dropoff?.address}</span>
-                </p>
-                <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded bg-teal-50 text-teal-700">
-                  {commute.vehicleType}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* ── 5. Recent Rides ── */}
+      <RecentCommutesSnapshot recentRides={data?.recentRides} />
       </div>
 
       {/* Driver Chat Modal */}

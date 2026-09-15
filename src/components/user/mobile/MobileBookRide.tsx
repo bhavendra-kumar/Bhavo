@@ -5,12 +5,14 @@ import {
   MapPin, Clock, CarFront, Users, Wallet, Check,
   Star, Navigation, Home, Briefcase, CalendarClock, Heart,
   Phone, MessageSquare, XCircle, RefreshCw,
-  Radio, Target, Compass, Loader2, Edit2, ShieldAlert
+  Radio, Target, Compass, Loader2, Edit2, ShieldAlert,
+  Sparkles, ChevronRight
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import LocationSearch from "../book-ride/LocationSearch";
 import { VehicleIcon } from "../book-ride/VehicleIcons";
 import { useDialog } from "@/components/ui/DialogProvider";
+import type { AreaMarker } from "../book-ride/LeafletMap";
 
 const LeafletMap = dynamic(() => import("../book-ride/LeafletMap"), { ssr: false });
 
@@ -34,6 +36,26 @@ interface SavedPlace {
   address: string;
   coordinates: [number, number];
   tag: string;
+}
+
+export interface RecommendedPlace {
+  id?: string;
+  place_id: number | string;
+  name?: string;
+  short_name?: string;
+  display_name: string;
+  area?: string;
+  city?: string;
+  subtext?: string;
+  category?: string;
+  categoryLabel?: string;
+  glyph?: string;
+  lat: number;
+  lon: number;
+  distanceKm?: number;
+  approxMinutes?: number;
+  fareEstimateBike?: number;
+  fareEstimateCab?: number;
 }
 
 interface ActiveRide {
@@ -107,6 +129,11 @@ interface MobileBookRideProps {
   dynamicVehicles: VehicleItem[];
   selectedVehicle: VehicleItem;
   driverPosition: [number, number] | null;
+  areaMarkers?: AreaMarker[];
+  onSelectAreaPickup?: (coords: [number, number], name: string) => void;
+  onSelectAreaDropoff?: (coords: [number, number], name: string) => void;
+  recommendedPlaces?: RecommendedPlace[];
+  recsLoading?: boolean;
 }
 
 export default function MobileBookRide(props: MobileBookRideProps) {
@@ -130,9 +157,12 @@ export default function MobileBookRide(props: MobileBookRideProps) {
     handleUseCurrentLocation, handleToggleLiveTracking,
     mapSelectionMode, setMapSelectionMode,
     handlePickupDrag, handleDropoffDrag, handleMapClick,
-    dynamicVehicles, selectedVehicle, driverPosition
+    dynamicVehicles, selectedVehicle, driverPosition,
+    areaMarkers = [], onSelectAreaPickup, onSelectAreaDropoff,
+    recommendedPlaces = [], recsLoading = false,
   } = props;
 
+  const [recCategory, setRecCategory] = useState<string>("all");
   const [isEditingLocations, setIsEditingLocations] = useState(false);
   const isLocationsCollapsed = hasTrip && !isEditingLocations;
   const { confirm, alert } = useDialog();
@@ -330,6 +360,9 @@ export default function MobileBookRide(props: MobileBookRideProps) {
           userCoords={userCoords}
           routeCoords={hasTrip ? routeCoords : []}
           vehicleType={selectedVehicle.type}
+          areaMarkers={areaMarkers}
+          onSelectAreaPickup={onSelectAreaPickup}
+          onSelectAreaDropoff={onSelectAreaDropoff}
           isDraggable={true}
           onPickupDrag={handlePickupDrag}
           onDropoffDrag={handleDropoffDrag}
@@ -511,6 +544,7 @@ export default function MobileBookRide(props: MobileBookRideProps) {
                   label=""
                   placeholder="Pickup area or current location..."
                   defaultValue={pickupAddress}
+                  userCoords={pickupCoords || userCoords}
                   iconBg="#16a34a"
                   icon={<div className="w-2.5 h-2.5 bg-white rounded-full shadow-xs" />}
                   onSelect={(lat, lon, name) => {
@@ -539,6 +573,7 @@ export default function MobileBookRide(props: MobileBookRideProps) {
                   label=""
                   placeholder="Where do you want to go?"
                   defaultValue={dropoffAddress}
+                  userCoords={pickupCoords || userCoords}
                   iconBg="#dc2626"
                   icon={<MapPin size={12} className="text-white" />}
                   onSelect={(lat, lon, name) => {
@@ -553,50 +588,176 @@ export default function MobileBookRide(props: MobileBookRideProps) {
               </div>
             </div>
 
-            {/* Saved Places Horizontal Scroll Pills */}
-            <div className="flex items-center gap-2 pt-1 overflow-x-auto no-scrollbar">
-              {savedPlaces.map((place) => (
-                <button
-                  key={place._id}
-                  type="button"
-                  onClick={() => {
-                    setDropoffAddress(place.address);
-                    if (place.coordinates && place.coordinates.length === 2) {
-                      setDropoffCoords(place.coordinates);
-                    }
-                  }}
-                  className="pill-teal shrink-0 py-1 px-2.5 text-[11px] active:scale-95 transition-transform cursor-pointer"
-                >
-                  {place.tag === "Home" ? (
-                    <Home size={10} />
-                  ) : place.tag === "Work" ? (
-                    <Briefcase size={10} />
-                  ) : (
-                    <Heart size={10} />
-                  )}
-                  {place.name}
-                </button>
-              ))}
-            </div>
+            {/* Saved Places Horizontal Scroll Pills (Only if user has actual saved places) */}
+            {savedPlaces.length > 0 && (
+              <div className="flex items-center gap-2 pt-1 overflow-x-auto no-scrollbar">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">Saved:</span>
+                {savedPlaces.map((place) => (
+                  <button
+                    key={place._id}
+                    type="button"
+                    onClick={() => {
+                      setDropoffAddress(place.address);
+                      if (place.coordinates && place.coordinates.length === 2) {
+                        setDropoffCoords(place.coordinates);
+                      }
+                    }}
+                    className="pill-teal shrink-0 py-1 px-2.5 text-[11px] active:scale-95 transition-transform cursor-pointer"
+                  >
+                    {place.tag === "Home" ? (
+                      <Home size={10} />
+                    ) : place.tag === "Work" ? (
+                      <Briefcase size={10} />
+                    ) : (
+                      <Heart size={10} />
+                    )}
+                    {place.name}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
-        {/* ── Vehicle Selection Carousel / Stack (If locations set, show real vehicles) ── */}
+        {/* ── Rapido/Ola Style Real-Time Recommended Destinations Section (When no trip is set) ── */}
         {!hasTrip ? (
-          <div className="card p-5 flex flex-col items-center justify-center text-center gap-2 bg-white border border-dashed border-teal-200">
-            <div className="w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center text-teal-600">
-              <Navigation size={18} />
+          <div className="flex flex-col gap-2.5">
+            <div className="card p-4 bg-white border border-slate-200/90 rounded-2xl shadow-xs flex flex-col gap-3">
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-6 h-6 rounded-lg bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600">
+                    <Sparkles size={13} />
+                  </div>
+                  <div>
+                    <h3 className="text-[13px] font-bold text-slate-900 leading-tight">
+                      Recommended Destinations
+                    </h3>
+                    <p className="text-[10.5px] text-slate-500">
+                      Popular spots & transit hubs near your pickup
+                    </p>
+                  </div>
+                </div>
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Live Local
+                </span>
+              </div>
+
+              {/* Category Filter Chips */}
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+                {[
+                  { id: "all", label: "All Spots" },
+                  { id: "transit", label: "Bus Stand 🚌" },
+                  { id: "railway", label: "Railway 🚆" },
+                  { id: "hospital", label: "Hospitals 🏥" },
+                  { id: "landmark", label: "Landmarks 🛕" },
+                  { id: "market", label: "Markets 🛍️" },
+                  { id: "education", label: "Colleges 🎓" },
+                ].map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setRecCategory(cat.id)}
+                    className={`text-[11px] font-bold px-2.5 py-1 rounded-full shrink-0 transition-all cursor-pointer ${
+                      recCategory === cat.id
+                        ? "bg-teal-600 text-white shadow-xs"
+                        : "bg-slate-100/90 text-slate-600 hover:bg-slate-200/70"
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Places List */}
+              {recsLoading && recommendedPlaces.length === 0 ? (
+                <div className="flex flex-col gap-2 py-1">
+                  {[1, 2, 3].map((n) => (
+                    <div key={n} className="h-14 bg-slate-100 rounded-xl animate-pulse" />
+                  ))}
+                </div>
+              ) : (
+                (() => {
+                  const filtered = recommendedPlaces.filter((place) => {
+                    if (!recCategory || recCategory === "all") return true;
+                    if (recCategory === "transit") return place.category === "transit" || place.category === "metro_station";
+                    if (recCategory === "railway") return place.category === "railway";
+                    if (recCategory === "hospital") return place.category === "hospital";
+                    if (recCategory === "landmark") return place.category === "landmark";
+                    if (recCategory === "market") return place.category === "market" || place.category === "mall";
+                    if (recCategory === "education") return place.category === "education";
+                    return true;
+                  });
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="p-4 text-center text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                        No destinations found for this filter. Try selecting &quot;All Spots&quot; or search above.
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="flex flex-col divide-y divide-slate-100 max-h-72 overflow-y-auto pr-0.5">
+                      {filtered.slice(0, 10).map((place, idx) => {
+                        const displayName = place.short_name || place.name || place.display_name.split(",")[0];
+                        return (
+                          <button
+                            key={place.id || place.place_id || `rec-${idx}`}
+                            type="button"
+                            onClick={() => {
+                              setDropoffAddress(displayName);
+                              setDropoffCoords([place.lat, place.lon]);
+                            }}
+                            className="w-full text-left py-2.5 px-1.5 flex items-center gap-3 transition-colors hover:bg-teal-50/60 rounded-xl cursor-pointer group active:scale-[0.99]"
+                          >
+                            <span className="w-8 h-8 rounded-xl bg-slate-100 group-hover:bg-teal-100 flex items-center justify-center text-base shrink-0 transition-colors">
+                              {place.glyph || "📍"}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <p className="text-[13px] font-bold text-slate-900 group-hover:text-teal-900 truncate">
+                                  {displayName}
+                                </p>
+                                {place.categoryLabel && (
+                                  <span className="text-[9.5px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded shrink-0">
+                                    {place.categoryLabel}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-slate-500 truncate leading-tight mt-0.5">
+                                {place.subtext || place.display_name}
+                              </p>
+                            </div>
+                            <div className="text-right shrink-0 flex flex-col items-end">
+                              {place.distanceKm !== undefined && (
+                                <span className="text-[10.5px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.2 rounded-md">
+                                  {place.distanceKm} km
+                                </span>
+                              )}
+                              {place.fareEstimateBike !== undefined && (
+                                <span className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                                  Bike ~₹{place.fareEstimateBike}
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  );
+                })()
+              )}
+
+              {/* Bottom Quick Help */}
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-medium">
+                <span>Tap any spot to set destination instantly</span>
+                <span className="text-teal-600 font-bold flex items-center gap-0.5">
+                  1-Tap Booking <ChevronRight size={12} />
+                </span>
+              </div>
             </div>
-            <p className="text-[13px] font-bold text-slate-800">
-              {!pickupAddress && !dropoffAddress
-                ? "Enter pickup & destination"
-                : !pickupAddress
-                ? "Set your pickup point"
-                : "Choose your destination"}
-            </p>
-            <p className="text-[11px] text-slate-500 max-w-xs">
-              View live rates for Bike, Auto, Economy & Premium Sedans once locations are set.
-            </p>
           </div>
         ) : (
           <div className="flex flex-col gap-2">

@@ -1,7 +1,7 @@
 import MyCommutePage from "@/components/user/my-commute/MyCommute";
 
 export const metadata = {
-  title: "Bhavo | My Commute",
+  title: "My Commute | Bhavo",
 };
 
 export default function Page() {

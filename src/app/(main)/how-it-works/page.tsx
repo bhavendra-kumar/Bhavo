@@ -3,6 +3,10 @@ import Footer from "@/components/public-website/Footer";
 import HowItWorks from "@/components/public-website/landing-page/sections/HowItWorks";
 import ContactSection from "@/components/public-website/landing-page/sections/ContactSection";
 
+export const metadata = {
+  title: "How It Works | Bhavo"
+}
+
 export default function HowItWorksPage() {
   return (
     <>

@@ -3,6 +3,10 @@ import Footer from "@/components/public-website/Footer";
 import FeaturesGrid from "@/components/public-website/landing-page/sections/FeaturesGrid";
 import ContactSection from "@/components/public-website/landing-page/sections/ContactSection";
 
+export const metadata = {
+  title: "Features | Bhavo"
+}
+
 export default function FeaturesPage() {
   return (
     <>

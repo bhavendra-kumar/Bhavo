@@ -48,6 +48,26 @@ export interface ICommuteData {
   isActive: boolean;
 }
 
+export interface IDashboardStats {
+  ridesThisMonth: number;
+  walletBalance: number;
+  rating: number;
+  timeSavedMinutes: number;
+  onTimeRate?: number;
+  co2SavedKg?: number;
+  corporatePassRemaining?: number;
+  monthExpenseTotal?: number;
+}
+
+export interface ISavedPlace {
+  _id: string;
+  name: string;
+  address: string;
+  tag: "Home" | "Work" | "Gym" | "Favourite" | "Other";
+  coordinates?: [number, number];
+  isFavorite?: boolean;
+}
+
 export interface IDashboardData {
   user: {
     id: string;
@@ -61,12 +81,9 @@ export interface IDashboardData {
   activeRide: IRideData | null;
   upcomingRides: IRideData[];
   commutes: ICommuteData[];
-  stats: {
-    ridesThisMonth: number;
-    walletBalance: number;
-    rating: number;
-    timeSavedMinutes: number;
-  };
+  recentRides?: IRideData[];
+  savedPlaces?: ISavedPlace[];
+  stats: IDashboardStats;
 }
 
 interface DashboardState {

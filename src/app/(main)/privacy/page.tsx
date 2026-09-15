@@ -1,6 +1,10 @@
 import Navbar from "@/components/public-website/Navbar";
 import Footer from "@/components/public-website/Footer";
 
+export const metadata = {
+  title: "Privacy Policy | Bhavo"
+}
+
 export default function PrivacyPage() {
   return (
     <>
