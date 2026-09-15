@@ -2,6 +2,10 @@ import Navbar from "@/components/public-website/Navbar";
 import Footer from "@/components/public-website/Footer";
 import ContactSection from "@/components/public-website/landing-page/sections/ContactSection";
 
+export const metadata = {
+  title: "Contact | Bhavo"
+}
+
 export default function ContactPage() {
   return (
     <>

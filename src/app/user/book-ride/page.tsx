@@ -1,7 +1,7 @@
 import BookRidePage from "@/components/user/book-ride/BookRide";
 
 export const metadata = {
-  title: "Bhavo | Book Ride",
+  title: "Book a Ride | Bhavo",
 };
 
 export default function Page() {

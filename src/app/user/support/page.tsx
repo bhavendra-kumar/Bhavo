@@ -1,7 +1,7 @@
 import RaiseTicket from "@/components/user/support/RaiseTicket";
 
 export const metadata = {
-  title: "Bhavo | Support",
+  title: "Support | Bhavo",
 };
 
 export default function Page() {

@@ -1,7 +1,7 @@
 import DashboardPage from "@/components/user/dashboard/Dashboard";
 
 export const metadata = {
-  title: "Bhavo | Dashboard",
+  title: "Dashboard | Bhavo",
 };
 
 export default function Page() {

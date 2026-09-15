@@ -1,7 +1,7 @@
 import WalletPage from "@/components/user/wallet/Wallet";
 
 export const metadata = {
-  title: "Bhavo | Wallet",
+  title: "Wallet | Bhavo",
 };
 
 export default function Page() {

@@ -1,7 +1,7 @@
 import ProfilePage from "@/components/user/profile/Profile";
 
 export const metadata = {
-  title: "Bhavo | Profile",
+  title: "Profile | Bhavo",
 }
 
 export default function Page() {

@@ -112,6 +112,66 @@ const createLiveUserIcon = () =>
     iconAnchor: [19, 19],
   });
 
+const createAreaMarkerIcon = (name: string, category: string = "locality") => {
+  let badgeColor = "#0f766e";
+  let iconGlyph = "📍";
+
+  switch (category) {
+    case "transit":
+      badgeColor = "#0284c7";
+      iconGlyph = "🚌";
+      break;
+    case "railway":
+    case "metro_station":
+      badgeColor = "#4338ca";
+      iconGlyph = "🚆";
+      break;
+    case "hospital":
+      badgeColor = "#e11d48";
+      iconGlyph = "🏥";
+      break;
+    case "landmark":
+      badgeColor = "#d97706";
+      iconGlyph = "🛕";
+      break;
+    case "market":
+    case "mall":
+      badgeColor = "#ea580c";
+      iconGlyph = "🛍️";
+      break;
+    case "education":
+      badgeColor = "#7c3aed";
+      iconGlyph = "🎓";
+      break;
+    case "tech_park":
+      badgeColor = "#0f766e";
+      iconGlyph = "🏢";
+      break;
+    case "airport":
+      badgeColor = "#0284c7";
+      iconGlyph = "✈️";
+      break;
+    default:
+      badgeColor = "#0d9488";
+      iconGlyph = "📍";
+      break;
+  }
+
+  const label = name.length > 22 ? name.slice(0, 20) + "…" : name;
+
+  return L.divIcon({
+    className: "custom-area-pin-marker",
+    html: `
+      <div style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; background: #ffffff; padding: 3px 8px; border-radius: 16px; border: 1.5px solid ${badgeColor}; box-shadow: 0 3px 10px rgba(0,0,0,0.18); white-space: nowrap; transform: translate(-50%, -50%); transition: transform 0.15s ease;">
+        <span style="font-size: 11px;">${iconGlyph}</span>
+        <span style="font-size: 11px; font-weight: 800; color: #0f172a; letter-spacing: -0.2px;">${label}</span>
+      </div>
+    `,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
+  });
+};
+
 function isValidCoord(coord?: [number, number] | null): coord is [number, number] {
   return (
     Array.isArray(coord) &&
@@ -329,6 +389,16 @@ function LocateMeButton({ userCoords }: { userCoords?: [number, number] | null }
   );
 }
 
+export interface AreaMarker {
+  id?: string;
+  name: string;
+  category?: string;
+  categoryLabel?: string;
+  coordinates: [number, number];
+  city?: string;
+  subtext?: string;
+}
+
 export interface LeafletMapProps {
   pickupCoords?: [number, number] | null;
   dropoffCoords?: [number, number] | null;
@@ -337,6 +407,9 @@ export interface LeafletMapProps {
   routeCoords?: [number, number][];
   vehicleType?: string;
   customMarkers?: Array<{ coordinates: [number, number]; label: string; tag?: string }>;
+  areaMarkers?: AreaMarker[];
+  onSelectAreaPickup?: (coords: [number, number], name: string) => void;
+  onSelectAreaDropoff?: (coords: [number, number], name: string) => void;
   isDraggable?: boolean;
   onPickupDrag?: (coords: [number, number]) => void;
   onDropoffDrag?: (coords: [number, number]) => void;
@@ -352,6 +425,9 @@ export default function LeafletMap({
   routeCoords,
   vehicleType = "car",
   customMarkers = [],
+  areaMarkers = [],
+  onSelectAreaPickup,
+  onSelectAreaDropoff,
   isDraggable = true,
   onPickupDrag,
   onDropoffDrag,
@@ -511,6 +587,53 @@ export default function LeafletMap({
             </Popup>
           </Marker>
         ))}
+
+        {/* Recommended Area / Landmark Hotspots on Map */}
+        {areaMarkers
+          .filter((m) => isValidCoord(m.coordinates))
+          .map((area, idx) => (
+            <Marker
+              key={area.id || `area-${idx}-${area.name}`}
+              position={area.coordinates}
+              icon={createAreaMarkerIcon(area.name, area.category)}
+            >
+              <Popup>
+                <div className="p-1 min-w-50">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="text-xs font-bold text-slate-800">{area.name}</span>
+                    {area.categoryLabel && (
+                      <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-medium ml-auto">
+                        {area.categoryLabel}
+                      </span>
+                    )}
+                  </div>
+                  {area.subtext && (
+                    <p className="text-[11px] text-slate-500 mb-2 leading-tight">{area.subtext}</p>
+                  )}
+                  <div className="flex items-center gap-2 pt-1.5 border-t border-slate-100">
+                    {onSelectAreaPickup && (
+                      <button
+                        type="button"
+                        onClick={() => onSelectAreaPickup(area.coordinates, area.name)}
+                        className="flex-1 py-1 px-2 text-[11px] font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-md border border-emerald-200 transition-colors text-center cursor-pointer"
+                      >
+                        Set Pickup
+                      </button>
+                    )}
+                    {onSelectAreaDropoff && (
+                      <button
+                        type="button"
+                        onClick={() => onSelectAreaDropoff(area.coordinates, area.name)}
+                        className="flex-1 py-1 px-2 text-[11px] font-semibold bg-teal-50 hover:bg-teal-100 text-teal-800 rounded-md border border-teal-200 transition-colors text-center cursor-pointer"
+                      >
+                        Set Drop-off
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
+          ))}
 
         {/* Realistic Route Line */}
         {effectiveRoute && (
