@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Sidebar from "@/components/user/Sidebar";
 import Navbar from "@/components/user/Navbar";
 import Footer from "@/components/user/Footer";
@@ -15,12 +16,19 @@ export default function UserLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { fetchUser, loading } = useUserStore();
+  const router = useRouter();
+  const { user, fetchUser, loading } = useUserStore();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
   useEffect(() => {
     fetchUser();
   }, [fetchUser]);
+
+  useEffect(() => {
+    if (user && user.role === "DRIVER") {
+      router.replace("/driver");
+    }
+  }, [user, router]);
 
   if (loading) {
     return (
