@@ -38,6 +38,10 @@ export interface IRide extends Document {
   paymentMethod: "WALLET" | "CASH" | "UPI";
   paymentStatus: "PENDING" | "PAID";
   messages: IRideMessage[];
+  tip?: number;
+  riderRating?: number;
+  riderCompliments?: string[];
+  cancellationReason?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -127,6 +131,22 @@ const RideSchema = new Schema<IRide>(
       type: String,
       enum: ["PENDING", "PAID"],
       default: "PENDING",
+    },
+    tip: {
+      type: Number,
+      default: 0,
+    },
+    riderRating: {
+      type: Number,
+      default: 5,
+    },
+    riderCompliments: {
+      type: [String],
+      default: [],
+    },
+    cancellationReason: {
+      type: String,
+      default: null,
     },
   },
   {

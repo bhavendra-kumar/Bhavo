@@ -12,6 +12,13 @@ const NAV_COLS = [
     ],
   },
   {
+    heading: "Captains",
+    links: [
+      { label: "Become a Driver", href: "/signup?role=driver" },
+      { label: "Captain Hub Portal", href: "/driver" },
+    ],
+  },
+  {
     heading: "Company",
     links: [
       { label: "About", href: "/about" },
@@ -100,13 +107,13 @@ export default function Footer() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "2fr 1fr 1fr 1fr",
-            gap: 48,
+            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: 40,
             marginBottom: 48,
           }}
         >
           {/* Brand */}
-          <div>
+          <div style={{ gridColumn: "span 2", minWidth: 240 }}>
             <Link
               href="/"
               style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 10, marginBottom: 16 }}
@@ -119,7 +126,7 @@ export default function Footer() {
               </span>
             </Link>
 
-            <p style={{ fontSize: 14, color: "#475569", lineHeight: 1.75, maxWidth: 240, margin: "0 0 24px" }}>
+            <p style={{ fontSize: 14, color: "#475569", lineHeight: 1.75, maxWidth: 300, margin: "0 0 24px" }}>
               Redefining daily mobility through AI-powered automation and premium commute experiences.
             </p>
 
@@ -205,6 +212,28 @@ export default function Footer() {
               </ul>
             </div>
           ))}
+        </div>
+
+        {/* Bottom copyright bar */}
+        <div
+          style={{
+            borderTop: "1px solid rgba(255,255,255,0.06)",
+            paddingTop: 24,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 12,
+            fontSize: 13,
+            color: "#64748b",
+          }}
+        >
+          <div>© {new Date().getFullYear()} Bhavo Technologies Inc. All rights reserved.</div>
+          <div style={{ display: "flex", gap: 20 }}>
+            <Link href="/privacy" style={{ color: "#64748b", textDecoration: "none", transition: "color 0.2s" }} onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#14b8a6")} onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "#64748b")}>Privacy Policy</Link>
+            <Link href="/terms" style={{ color: "#64748b", textDecoration: "none", transition: "color 0.2s" }} onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#14b8a6")} onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "#64748b")}>Terms of Service</Link>
+            <Link href="/contact" style={{ color: "#64748b", textDecoration: "none", transition: "color 0.2s" }} onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#14b8a6")} onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "#64748b")}>Contact Us</Link>
+          </div>
         </div>
 
 

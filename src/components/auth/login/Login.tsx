@@ -16,8 +16,8 @@ export default function Login({ isRegistered = false, initialEmail = "", initial
   const [successMsg, setSuccessMsg] = useState("");
   const displayMsg = successMsg || (isRegistered
     ? (role === "DRIVER"
-        ? "Captain registration successful! Please log in to your driver portal."
-        : "Rider registration successful! Please log in to your account.")
+      ? "Captain registration successful! Please log in to your driver portal."
+      : "Rider registration successful! Please log in to your account.")
     : "");
   type ViewState = "login" | "forgot_otp" | "forgot_reset";
   const [view, setView] = useState<ViewState>("login");
@@ -278,11 +278,9 @@ export default function Login({ isRegistered = false, initialEmail = "", initial
         }
       `}</style>
 
-      <div style={{ display: "flex", minHeight: "100vh", fontFamily: "var(--font-geist-sans), -apple-system, sans-serif", alignItems: "flex-start" }}>
+      <div style={{ display: "flex", minHeight: "100vh", fontFamily: "var(--font-outfit), system-ui, sans-serif", alignItems: "flex-start" }}>
 
-        {/* ════════════════════════════════════════════
-            LEFT — Animated Night City Scene
-        ════════════════════════════════════════════ */}
+
         <div className="auth-scene" style={{
           position: "sticky", top: 0, width: "52%", flexShrink: 0, height: "100vh",
           background: "linear-gradient(180deg, #020b0b 0%, #021a1a 45%, #042f2e 100%)",
@@ -789,7 +787,7 @@ export default function Login({ isRegistered = false, initialEmail = "", initial
                       />
                     ))}
                   </div>
-                  {errors.otp && <p className="field-error"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>{errors.otp}</p>}
+                  {errors.otp && <p className="field-error"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" /></svg>{errors.otp}</p>}
 
                   {/* Resend & Email Change Controls */}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
@@ -864,7 +862,7 @@ export default function Login({ isRegistered = false, initialEmail = "", initial
                         )}
                       </button>
                     </div>
-                    {errors.newPassword && <p className="field-error"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>{errors.newPassword}</p>}
+                    {errors.newPassword && <p className="field-error"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" /></svg>{errors.newPassword}</p>}
                   </div>
 
                   <div>
@@ -888,7 +886,7 @@ export default function Login({ isRegistered = false, initialEmail = "", initial
                         )}
                       </button>
                     </div>
-                    {errors.confirmNewPassword && <p className="field-error"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>{errors.confirmNewPassword}</p>}
+                    {errors.confirmNewPassword && <p className="field-error"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" /></svg>{errors.confirmNewPassword}</p>}
                   </div>
                 </>
               )}
@@ -902,8 +900,8 @@ export default function Login({ isRegistered = false, initialEmail = "", initial
                   background: loading
                     ? (role === "RIDER" ? "#6ee7df" : "#fed7aa")
                     : (role === "RIDER"
-                        ? "linear-gradient(135deg, #0d9488 0%, #059669 100%)"
-                        : "linear-gradient(135deg, #0f766e 0%, #0d9488 40%, #b45309 100%)"),
+                      ? "linear-gradient(135deg, #0d9488 0%, #059669 100%)"
+                      : "linear-gradient(135deg, #0f766e 0%, #0d9488 40%, #b45309 100%)"),
                   color: "#fff", border: "none", borderRadius: 13,
                   fontSize: 14, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer",
                   boxShadow: role === "RIDER" ? "0 4px 20px rgba(13,148,136,0.3), inset 0 1px 0 rgba(255,255,255,0.15)" : "0 4px 20px rgba(180,83,9,0.25), inset 0 1px 0 rgba(255,255,255,0.15)",

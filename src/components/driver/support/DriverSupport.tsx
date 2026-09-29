@@ -1,25 +1,105 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ShieldAlert,
   CheckCircle2,
+  Send,
+  Loader2,
 } from "lucide-react";
 import { useDialog } from "@/components/ui/DialogProvider";
+
+interface ITicket {
+  _id?: string;
+  ticketId?: string;
+  category: string;
+  subject: string;
+  description: string;
+  status: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
+  priority: string;
+  createdAt: string;
+}
 
 export default function DriverSupport() {
   const { alert } = useDialog();
   const [topic, setTopic] = useState("FARE_DISPUTE");
   const [message, setMessage] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [createdTicketId, setCreatedTicketId] = useState("");
+  const [tickets, setTickets] = useState<ITicket[]>([]);
 
-  const handleSubmitTicket = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!message.trim()) return;
-    setSubmitted(true);
+  useEffect(() => {
+    let ignore = false;
+    fetch("/api/driver/support")
+      .then((res) => res.json())
+      .then((json) => {
+        if (!ignore && json.data) {
+          setTickets(json.data);
+        }
+      })
+      .catch((e) => console.error(e));
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  const refreshTickets = async () => {
+    try {
+      const res = await fetch("/api/driver/support");
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data) setTickets(json.data);
+      }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
-  const handleSos = () => {
+  const handleSubmitTicket = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!message.trim()) return;
+
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/driver/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic,
+          description: message.trim(),
+        }),
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        setCreatedTicketId(json.data?.ticketId || "TK-DRV");
+        setSubmitted(true);
+        setMessage("");
+        await refreshTickets();
+      }
+    } catch {
+      alert({
+        title: "Ticket Error",
+        message: "Failed to submit ticket. Please check connection and try again.",
+        confirmText: "OK",
+        variant: "danger",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSos = async () => {
+    try {
+      await fetch("/api/driver/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isSos: true }),
+      });
+    } catch {}
+
     alert({
       title: "Captain Emergency Protocol Alerted",
       message:
@@ -77,7 +157,7 @@ export default function DriverSupport() {
               <div className="p-6 rounded-2xl bg-emerald-50 text-emerald-800 text-center border border-emerald-200 my-6">
                 <CheckCircle2 size={36} className="mx-auto mb-2 text-emerald-600" />
                 <h4 className="font-extrabold text-base">Ticket Submitted!</h4>
-                <p className="text-xs mt-1">Ticket #DRV-8492 created. Check your SMS and dashboard notifications.</p>
+                <p className="text-xs mt-1">Ticket #{createdTicketId} created and logged in database.</p>
                 <button
                   onClick={() => {
                     setSubmitted(false);
@@ -119,17 +199,23 @@ export default function DriverSupport() {
 
                 <button
                   type="submit"
-                  className="w-full py-3 rounded-xl bg-teal-700 hover:bg-teal-800 text-white font-extrabold text-xs transition-colors"
+                  disabled={submitting || !message.trim()}
+                  className="w-full py-3 rounded-xl bg-teal-700 hover:bg-teal-800 disabled:opacity-50 text-white font-extrabold text-xs transition-colors flex items-center justify-center gap-1.5"
                 >
-                  Submit Support Ticket
+                  {submitting ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Send size={15} />
+                  )}
+                  <span>{submitting ? "Submitting..." : "Submit Support Ticket"}</span>
                 </button>
               </form>
             )}
           </div>
         </div>
 
-        {/* Quick Helpline Contacts */}
-        <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm flex flex-col justify-between">
+        {/* Quick Helpline Contacts & Open Tickets */}
+        <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm flex flex-col justify-between gap-6">
           <div>
             <h3 className="text-base font-extrabold text-slate-900 mb-1">Helpline Directory</h3>
             <p className="text-xs text-slate-500 mb-4">Direct numbers for instant telephonic resolution</p>
@@ -155,6 +241,37 @@ export default function DriverSupport() {
               ))}
             </div>
           </div>
+
+          {/* Active Tickets from Database */}
+          {tickets.length > 0 && (
+            <div className="pt-4 border-t border-slate-100">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+                Your Registered Tickets ({tickets.length})
+              </h4>
+              <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
+                {tickets.slice(0, 3).map((t, idx) => (
+                  <div
+                    key={t._id || idx}
+                    className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs flex items-center justify-between"
+                  >
+                    <div>
+                      <span className="font-extrabold text-slate-800 block">{t.ticketId || "TK-100"}</span>
+                      <p className="text-[11px] text-slate-500 truncate max-w-50">{t.subject}</p>
+                    </div>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        t.status === "RESOLVED"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-amber-100 text-amber-800"
+                      }`}
+                    >
+                      {t.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

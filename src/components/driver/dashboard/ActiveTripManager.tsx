@@ -70,7 +70,7 @@ export default function ActiveTripManager() {
   };
 
   const handleFinalRatingSubmit = async () => {
-    await completeTrip(riderRating);
+    await completeTrip(riderRating, selectedCompliments);
     setShowRatingModal(false);
   };
 
@@ -371,7 +371,10 @@ export default function ActiveTripManager() {
 
       {/* ── Rating Passenger Modal upon completion ── */}
       {showRatingModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
+        <div
+          className="fixed inset-0 z-9999 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in"
+          style={{ zIndex: 9999 }}
+        >
           <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 flex flex-col items-center text-center border border-teal-500/30">
             <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mb-4">
               <CheckCircle2 size={32} />

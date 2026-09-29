@@ -1,23 +1,108 @@
 "use client";
 
-import React from "react";
-import { Award, Zap, CheckCircle2, Sparkles } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Award, Zap, CheckCircle2, Sparkles, Gift } from "lucide-react";
 import { useDriverStore } from "@/hooks/driver/useDriverStore";
+import { useDialog } from "@/components/ui/DialogProvider";
+
+interface IQuest {
+  id: string;
+  title: string;
+  bonus: string;
+  target: string;
+  progress: string;
+  percent: number;
+  timeRemaining: string;
+  active: boolean;
+  completed?: boolean;
+  canClaim?: boolean;
+}
+
+interface IIncentivesData {
+  todayBonusEarned: number;
+  weekBonusEarned: number;
+  upcomingPotential: number;
+  quests: IQuest[];
+}
 
 export default function DriverIncentives() {
-  const { stats } = useDriverStore();
+  const { fetchDriverData } = useDriverStore();
+  const { alert } = useDialog();
+  const [data, setData] = useState<IIncentivesData | null>(null);
+  const [claiming, setClaiming] = useState<string | null>(null);
 
-  const quests = [
+  useEffect(() => {
+    let ignore = false;
+    fetch("/api/driver/incentives")
+      .then((res) => res.json())
+      .then((json) => {
+        if (!ignore && json.data) {
+          setData(json.data);
+        }
+      })
+      .catch((e) => console.error(e));
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  const refreshIncentives = async () => {
+    try {
+      const res = await fetch("/api/driver/incentives");
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data) setData(json.data);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleClaim = async (questId: string) => {
+    setClaiming(questId);
+    try {
+      const res = await fetch("/api/driver/incentives", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ questId }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        await refreshIncentives();
+        await fetchDriverData();
+        alert({
+          title: "Bonus Claimed! 🎉",
+          message: json.message || "Bonus has been credited to your driver wallet.",
+          confirmText: "Awesome",
+          variant: "success",
+        });
+      }
+    } catch {
+      alert({
+        title: "Claim Failed",
+        message: "Unable to claim bonus right now. Please try again.",
+        confirmText: "OK",
+        variant: "danger",
+      });
+    } finally {
+      setClaiming(null);
+    }
+  };
+
+  const quests: IQuest[] = data?.quests || [
     {
+      id: "quest-daily",
       title: "Daily Commute Rush Quest",
       bonus: "₹350",
       target: "Complete 10 rides today",
-      progress: `${stats.tripsCompleted}/10 Completed`,
-      percent: Math.min(100, Math.round((stats.tripsCompleted / 10) * 100)),
+      progress: "7/10 Completed",
+      percent: 70,
       timeRemaining: "Ends at 11:00 PM tonight",
       active: true,
     },
     {
+      id: "quest-peak",
       title: "Peak Hour Surge Hunter",
       bonus: "₹200",
       target: "Complete 4 trips during morning rush (8:00 AM - 11:00 AM)",
@@ -28,6 +113,7 @@ export default function DriverIncentives() {
       completed: true,
     },
     {
+      id: "quest-weekend",
       title: "Weekend Warrior Marathon",
       bonus: "₹1,500",
       target: "Complete 35 trips between Friday 6 PM and Sunday midnight",
@@ -56,7 +142,9 @@ export default function DriverIncentives() {
           </div>
           <div>
             <span className="text-xs text-amber-800 font-bold uppercase">Today&apos;s Bonus Earned</span>
-            <h3 className="text-2xl font-black text-amber-950 mt-0.5">₹200</h3>
+            <h3 className="text-2xl font-black text-amber-950 mt-0.5">
+              ₹{data?.todayBonusEarned ?? 200}
+            </h3>
           </div>
         </div>
 
@@ -66,7 +154,9 @@ export default function DriverIncentives() {
           </div>
           <div>
             <span className="text-xs text-teal-800 font-bold uppercase">This Week&apos;s Bonus</span>
-            <h3 className="text-2xl font-black text-teal-950 mt-0.5">₹1,200</h3>
+            <h3 className="text-2xl font-black text-teal-950 mt-0.5">
+              ₹{data?.weekBonusEarned ?? 1200}
+            </h3>
           </div>
         </div>
 
@@ -76,7 +166,9 @@ export default function DriverIncentives() {
           </div>
           <div>
             <span className="text-xs text-emerald-800 font-bold uppercase">Upcoming Potential</span>
-            <h3 className="text-2xl font-black text-emerald-950 mt-0.5">₹1,850</h3>
+            <h3 className="text-2xl font-black text-emerald-950 mt-0.5">
+              ₹{data?.upcomingPotential ?? 1850}
+            </h3>
           </div>
         </div>
       </div>
@@ -86,7 +178,7 @@ export default function DriverIncentives() {
         <div className="space-y-4">
           {quests.map((q, i) => (
             <div
-              key={i}
+              key={q.id || i}
               className={`p-5 rounded-2xl border transition-all ${
                 q.completed
                   ? "bg-emerald-50/60 border-emerald-300"
@@ -105,9 +197,22 @@ export default function DriverIncentives() {
                   </div>
                   <p className="text-xs text-slate-600 mt-0.5">{q.target}</p>
                 </div>
-                <div className="text-right">
-                  <span className="text-xl font-black text-amber-600">{q.bonus}</span>
-                  <span className="text-[11px] text-slate-400 block">Cash Reward</span>
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <span className="text-xl font-black text-amber-600">{q.bonus}</span>
+                    <span className="text-[11px] text-slate-400 block">Cash Reward</span>
+                  </div>
+
+                  {q.canClaim && (
+                    <button
+                      onClick={() => handleClaim(q.id)}
+                      disabled={claiming === q.id}
+                      className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md transition-all flex items-center gap-1"
+                    >
+                      <Gift size={14} />
+                      <span>{claiming === q.id ? "Claiming..." : "Claim Bonus"}</span>
+                    </button>
+                  )}
                 </div>
               </div>
 

@@ -22,9 +22,9 @@ export default function DriverHeatmap() {
     () => false
   );
   const [showSurge, setShowSurge] = useState(true);
-  const { activeRide, surgeAreas, vehicle } = useDriverStore();
+  const { activeRide, surgeAreas, vehicle, driverCoordinates } = useDriverStore();
 
-  const driverPos: [number, number] = [28.6139, 77.2090]; // Delhi NCR central hub
+  const driverPos: [number, number] = driverCoordinates || [28.6139, 77.2090]; // Live synced telemetry
 
   if (!isClient) {
     return (
@@ -81,9 +81,12 @@ export default function DriverHeatmap() {
     : [];
 
   return (
-    <div className="relative rounded-3xl overflow-hidden border border-slate-200/80 shadow-md bg-white flex flex-col">
+    <div
+      className="relative rounded-3xl overflow-hidden border border-slate-200/80 shadow-md bg-white flex flex-col z-0 isolate"
+      style={{ zIndex: 0 }}
+    >
       {/* Map Control Bar Overlay */}
-      <div className="absolute top-3 left-3 right-3 z-1000 flex items-center justify-between pointer-events-none">
+      <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-between pointer-events-none">
         <div className="pointer-events-auto flex items-center gap-2 bg-white/95 backdrop-blur-md px-3.5 py-1.5 rounded-full shadow-md border border-slate-200/80 text-xs font-bold text-slate-800">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
           <span>Driver Radar & Demand Heatmap</span>
@@ -105,12 +108,13 @@ export default function DriverHeatmap() {
       </div>
 
       {/* Leaflet Map Canvas */}
-      <div className="w-full h-88 relative">
+      <div className="w-full h-88 relative z-0" style={{ zIndex: 0 }}>
         <MapContainer
           center={driverPos}
           zoom={12}
           scrollWheelZoom={false}
-          style={{ width: "100%", height: "100%" }}
+          className="w-full h-full z-0"
+          style={{ width: "100%", height: "100%", zIndex: 0 }}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'

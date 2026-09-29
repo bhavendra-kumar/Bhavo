@@ -48,10 +48,13 @@ export default function IncomingDispatchModal() {
   const progressPercent = (secondsLeft / 15) * 100;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden border border-teal-500/30 flex flex-col">
+    <div
+      className="fixed inset-0 z-9999 flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm animate-in fade-in duration-200"
+      style={{ zIndex: 9999 }}
+    >
+      <div className="relative w-full max-w-lg max-h-[92vh] bg-white rounded-3xl shadow-2xl overflow-hidden border border-teal-500/30 flex flex-col my-auto">
         {/* Animated Countdown Progress Bar at Top */}
-        <div className="h-2 w-full bg-slate-100">
+        <div className="h-2 w-full bg-slate-100 shrink-0">
           <div
             className={`h-full transition-all duration-1000 ease-linear ${
               secondsLeft <= 5 ? "bg-rose-500" : "bg-emerald-500"
@@ -61,7 +64,7 @@ export default function IncomingDispatchModal() {
         </div>
 
         {/* Modal Header */}
-        <div className="px-6 pt-5 pb-4 bg-linear-to-r from-teal-900 to-emerald-900 text-white flex items-center justify-between">
+        <div className="px-6 pt-5 pb-4 bg-linear-to-r from-teal-900 to-emerald-900 text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
             <span className="relative flex h-3 w-3">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -87,7 +90,7 @@ export default function IncomingDispatchModal() {
         </div>
 
         {/* Body Content */}
-        <div className="p-6 flex flex-col gap-5">
+        <div className="p-5 sm:p-6 flex flex-col gap-4 overflow-y-auto overscroll-contain flex-1">
           {/* Estimated Driver Fare Box */}
           <div className="flex items-center justify-between p-4 rounded-2xl bg-teal-50/80 border border-teal-200">
             <div>
@@ -190,7 +193,7 @@ export default function IncomingDispatchModal() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-3 pt-2">
+          <div className="flex items-center gap-3 pt-2 shrink-0">
             <button
               onClick={declineDispatch}
               className="flex-1 py-3.5 px-4 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-[14px] transition-colors"
