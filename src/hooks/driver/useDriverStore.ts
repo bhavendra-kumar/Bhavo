@@ -105,6 +105,7 @@ interface DriverState {
   dutyState: DriverDutyState;
   isSidebarCollapsed: boolean;
   loading: boolean;
+  driverCoordinates: [number, number];
   
   driverProfile: {
     id: string;
@@ -128,19 +129,21 @@ interface DriverState {
   toggleSidebar: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
   fetchDriverData: () => Promise<void>;
-  toggleOnline: () => void;
-  setOnline: (online: boolean) => void;
+  toggleOnline: () => Promise<void>;
+  setOnline: (online: boolean) => Promise<void>;
+  pollDispatches: () => Promise<void>;
   acceptDispatch: () => Promise<boolean>;
   declineDispatch: () => void;
   markArrived: () => Promise<void>;
   verifyOtp: (enteredOtp: string) => Promise<boolean>;
-  completeTrip: (rating?: number) => Promise<void>;
+  completeTrip: (rating?: number, compliments?: string[]) => Promise<void>;
   cancelTrip: (reason: string) => Promise<void>;
-  simulateIncomingRide: () => void;
+  simulateIncomingRide: () => Promise<void>;
   sendMessage: (text: string) => Promise<void>;
+  updateLocation: (coords: [number, number]) => Promise<void>;
 }
 
-// Sample surge hot spots in Delhi NCR
+// Surge hot spots in Delhi NCR
 const DEFAULT_SURGE_AREAS: ISurgeArea[] = [
   { id: "surge-1", name: "Cyber City & DLF Hub", multiplier: 1.6, coordinates: [28.4900, 77.0900], radius: 1800 },
   { id: "surge-2", name: "Sector 62 IT Tech Zone", multiplier: 1.4, coordinates: [28.6250, 77.3750], radius: 1500 },
@@ -153,6 +156,7 @@ export const useDriverStore = create<DriverState>((set, get) => ({
   dutyState: "ONLINE_SEARCHING",
   isSidebarCollapsed: false,
   loading: false,
+  driverCoordinates: [28.6139, 77.2090],
 
   driverProfile: {
     id: "driver-101",
@@ -167,50 +171,13 @@ export const useDriverStore = create<DriverState>((set, get) => ({
 
   incomingDispatch: null,
   activeRide: null,
-  recentTrips: [
-    {
-      id: "ride-hist-1",
-      riderName: "Aarav Sharma",
-      pickup: "Sector 18 Metro Station",
-      dropoff: "Bhavo Tech Park, Sector 62",
-      fare: 280,
-      tip: 30,
-      distance: "7.2 km",
-      time: "45 mins ago",
-      vehicleType: "Cab Premium",
-      paymentMethod: "UPI",
-    },
-    {
-      id: "ride-hist-2",
-      riderName: "Meera Sen",
-      pickup: "Indirapuram Habitat Center",
-      dropoff: "Noida Electronic City",
-      fare: 195,
-      tip: 0,
-      distance: "4.8 km",
-      time: "2 hours ago",
-      vehicleType: "Cab Economy",
-      paymentMethod: "WALLET",
-    },
-    {
-      id: "ride-hist-3",
-      riderName: "Vikram Malhotra",
-      pickup: "Botanical Garden Gate 2",
-      dropoff: "DLF Mall of India",
-      fare: 140,
-      tip: 20,
-      distance: "3.1 km",
-      time: "3.5 hours ago",
-      vehicleType: "Auto",
-      paymentMethod: "CASH",
-    },
-  ],
+  recentTrips: [],
 
   stats: {
     todayEarnings: 1865,
     weeklyEarnings: 14280,
     tripsCompleted: 7,
-    onlineMinutes: 325, // 5h 25m
+    onlineMinutes: 325,
     acceptanceRate: 96,
     rating: 4.94,
     targetTrips: 10,
@@ -234,8 +201,14 @@ export const useDriverStore = create<DriverState>((set, get) => ({
 
   fetchDriverData: async () => {
     try {
-      set({ loading: true });
-      const res = await fetch("/api/driver/dashboard");
+      if (!get().driverProfile) {
+        set({ loading: true });
+      }
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const res = await fetch("/api/driver/dashboard", { signal: controller.signal });
+      clearTimeout(timeoutId);
+
       if (res.ok) {
         const json = await res.json();
         if (json.data) {
@@ -246,7 +219,8 @@ export const useDriverStore = create<DriverState>((set, get) => ({
             activeRide: activeRide || prev.activeRide,
             recentTrips: recentTrips || prev.recentTrips,
             vehicle: vehicle || prev.vehicle,
-            dutyState: activeRide ? "ON_TRIP" : prev.isOnline ? "ONLINE_SEARCHING" : "OFFLINE",
+            isOnline: profile?.isOnline ?? prev.isOnline,
+            dutyState: activeRide ? "ON_TRIP" : (profile?.isOnline ?? prev.isOnline) ? "ONLINE_SEARCHING" : "OFFLINE",
             loading: false,
           }));
           return;
@@ -258,7 +232,7 @@ export const useDriverStore = create<DriverState>((set, get) => ({
     }
   },
 
-  toggleOnline: () => {
+  toggleOnline: async () => {
     const current = get().isOnline;
     const nextOnline = !current;
     set({
@@ -270,9 +244,17 @@ export const useDriverStore = create<DriverState>((set, get) => ({
         ? "ONLINE_SEARCHING"
         : "OFFLINE",
     });
+
+    try {
+      await fetch("/api/driver/duty", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isOnline: nextOnline }),
+      });
+    } catch {}
   },
 
-  setOnline: (online: boolean) => {
+  setOnline: async (online: boolean) => {
     set({
       isOnline: online,
       incomingDispatch: online ? get().incomingDispatch : null,
@@ -282,6 +264,32 @@ export const useDriverStore = create<DriverState>((set, get) => ({
         ? "ONLINE_SEARCHING"
         : "OFFLINE",
     });
+
+    try {
+      await fetch("/api/driver/duty", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isOnline: online }),
+      });
+    } catch {}
+  },
+
+  pollDispatches: async () => {
+    const { isOnline, activeRide, incomingDispatch } = get();
+    if (!isOnline || activeRide || incomingDispatch) return;
+
+    try {
+      const res = await fetch("/api/driver/dispatches");
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data && !get().activeRide) {
+          set({
+            incomingDispatch: json.data,
+            dutyState: "DISPATCH_ALERT",
+          });
+        }
+      }
+    } catch {}
   },
 
   acceptDispatch: async () => {
@@ -310,7 +318,7 @@ export const useDriverStore = create<DriverState>((set, get) => ({
       distance: dispatch.dropoff.distanceText,
       duration: `${dispatch.dropoff.estDurationMinutes} mins`,
       status: "ACCEPTED",
-      otp: "4826", // Realistic OTP to match
+      otp: "4826",
       paymentMethod: dispatch.paymentMethod,
       paymentStatus: "PENDING",
       messages: [
@@ -329,16 +337,19 @@ export const useDriverStore = create<DriverState>((set, get) => ({
       dutyState: "ON_TRIP",
     });
 
-    // Notify backend if API is connected
     try {
-      await fetch("/api/driver/rides", {
+      const res = await fetch("/api/driver/rides", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "ACCEPT", rideId: newActiveRide._id }),
       });
-    } catch {
-      // Offline fallback state already preserved
-    }
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data && json.data.otp) {
+          set((s) => (s.activeRide ? { activeRide: { ...s.activeRide, otp: json.data.otp } } : {}));
+        }
+      }
+    } catch {}
 
     return true;
   },
@@ -374,7 +385,25 @@ export const useDriverStore = create<DriverState>((set, get) => ({
     const active = get().activeRide;
     if (!active) return false;
 
-    // Check OTP match (allow 4826, 1234 or any matching real ride OTP)
+    try {
+      const res = await fetch("/api/driver/rides", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "START", rideId: active._id, otp: enteredOtp }),
+      });
+
+      if (res.ok) {
+        set({
+          activeRide: {
+            ...active,
+            status: "IN_PROGRESS",
+          },
+        });
+        return true;
+      }
+    } catch {}
+
+    // Fallback permissive check for local test
     if (enteredOtp.trim() === active.otp || enteredOtp.trim() === "1234" || enteredOtp.trim() === "4826") {
       set({
         activeRide: {
@@ -382,28 +411,18 @@ export const useDriverStore = create<DriverState>((set, get) => ({
           status: "IN_PROGRESS",
         },
       });
-
-      try {
-        await fetch("/api/driver/rides", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "START", rideId: active._id, otp: enteredOtp }),
-        });
-      } catch {}
-
       return true;
     }
     return false;
   },
 
-  completeTrip: async (rating = 5) => {
+  completeTrip: async (rating = 5, compliments: string[] = []) => {
     const active = get().activeRide;
     if (!active) return;
 
     const completedFare = active.fare;
 
-    // Add to recent trips
-    const newRecent = {
+    const newRecent: IDriverTripHistoryItem = {
       id: active._id,
       riderName: active.rider.name,
       pickup: active.pickup.address,
@@ -426,6 +445,12 @@ export const useDriverStore = create<DriverState>((set, get) => ({
         weeklyEarnings: state.stats.weeklyEarnings + completedFare + 25,
         tripsCompleted: state.stats.tripsCompleted + 1,
       },
+      driverProfile: state.driverProfile
+        ? {
+            ...state.driverProfile,
+            walletBalance: state.driverProfile.walletBalance + completedFare + 25,
+          }
+        : null,
     }));
 
     try {
@@ -436,8 +461,11 @@ export const useDriverStore = create<DriverState>((set, get) => ({
           action: "COMPLETE",
           rideId: active._id,
           riderRating: rating,
+          riderCompliments: compliments,
         }),
       });
+      // Refresh to ensure full db sync
+      get().fetchDriverData();
     } catch {}
   },
 
@@ -456,23 +484,31 @@ export const useDriverStore = create<DriverState>((set, get) => ({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "CANCEL", rideId: active._id, reason }),
       });
+      get().fetchDriverData();
     } catch {}
   },
 
-  simulateIncomingRide: () => {
-    const riders = [
-      { name: "Ananya Iyer", phone: "+91 98201 55670", rating: 4.96 },
-      { name: "Rohan Varma", phone: "+91 98711 22345", rating: 4.88 },
-      { name: "Dr. Sunita Rao", phone: "+91 98100 88990", rating: 5.0 },
-      { name: "Kunal Mehra", phone: "+91 99580 12399", rating: 4.92 },
-    ];
-    const rider = riders[Math.floor(Math.random() * riders.length)];
+  simulateIncomingRide: async () => {
+    try {
+      const res = await fetch("/api/driver/dispatches", { method: "POST" });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data) {
+          set({
+            incomingDispatch: json.data,
+            dutyState: "DISPATCH_ALERT",
+          });
+          return;
+        }
+      }
+    } catch {}
 
+    // Fallback simulation
     const simulated: IDriverDispatch = {
       _id: `ride-${Date.now()}`,
-      riderName: rider.name,
-      riderPhone: rider.phone,
-      riderRating: rider.rating,
+      riderName: "Ananya Iyer",
+      riderPhone: "+91 98201 55670",
+      riderRating: 4.96,
       pickup: {
         address: "Max Hospital Gate 1, Sector 19, Noida",
         coordinates: [28.5823, 77.3274],
@@ -485,7 +521,7 @@ export const useDriverStore = create<DriverState>((set, get) => ({
         distanceText: "18.4 km",
         estDurationMinutes: 34,
       },
-      fare: Math.floor(360 + Math.random() * 120),
+      fare: 420,
       surgeMultiplier: 1.4,
       vehicleType: "Cab Premium",
       paymentMethod: "UPI",
@@ -516,10 +552,32 @@ export const useDriverStore = create<DriverState>((set, get) => ({
     });
 
     try {
-      await fetch(`/api/driver/rides/${active._id}/messages`, {
+      const res = await fetch(`/api/driver/rides/${active._id}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data) {
+          set((s) => (s.activeRide ? { activeRide: { ...s.activeRide, messages: json.data } } : {}));
+        }
+      }
+    } catch {}
+  },
+
+  updateLocation: async (coords: [number, number]) => {
+    set({ driverCoordinates: coords });
+    const active = get().activeRide;
+    try {
+      await fetch("/api/driver/rides", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "UPDATE_LOCATION",
+          rideId: active?._id,
+          coordinates: coords,
+        }),
       });
     } catch {}
   },

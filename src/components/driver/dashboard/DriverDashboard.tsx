@@ -26,8 +26,43 @@ import {
 import { useDialog } from "@/components/ui/DialogProvider";
 
 export default function DriverDashboard() {
-  const { activeRide } = useDriverStore();
+  const { activeRide, isOnline, pollDispatches, updateLocation } = useDriverStore();
   const { alert } = useDialog();
+
+  // Real-time dispatch listener polling
+  React.useEffect(() => {
+    if (!isOnline || activeRide) return;
+
+    // Check immediately on mount/online
+    pollDispatches();
+
+    const interval = setInterval(() => {
+      pollDispatches();
+    }, 3500);
+
+    return () => clearInterval(interval);
+  }, [isOnline, activeRide, pollDispatches]);
+
+  // Live telemetry updater during active trip
+  React.useEffect(() => {
+    if (!activeRide) return;
+
+    const interval = setInterval(() => {
+      // Simulate minor vehicle GPS updates
+      const targetCoords =
+        activeRide.status === "ACCEPTED" || activeRide.status === "ARRIVED"
+          ? activeRide.pickup.coordinates
+          : activeRide.dropoff.coordinates;
+
+      if (targetCoords) {
+        const deltaLat = (Math.random() - 0.5) * 0.0003;
+        const deltaLng = (Math.random() - 0.5) * 0.0003;
+        updateLocation([targetCoords[0] + deltaLat, targetCoords[1] + deltaLng]);
+      }
+    }, 6000);
+
+    return () => clearInterval(interval);
+  }, [activeRide, updateLocation]);
 
   const handleDestinationMode = () => {
     alert({

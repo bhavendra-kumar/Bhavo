@@ -66,7 +66,10 @@ export default function DriverCallModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
+    <div
+      className="fixed inset-0 z-9999 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-in fade-in duration-200"
+      style={{ zIndex: 9999 }}
+    >
       <div className="bg-slate-900 text-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl border border-slate-800 flex flex-col items-center p-6 text-center relative">
         {/* Top security badge */}
         <div className="flex items-center gap-1 text-[11px] font-semibold text-teal-400 bg-teal-950/70 border border-teal-800/60 px-3 py-1 rounded-full mb-6">

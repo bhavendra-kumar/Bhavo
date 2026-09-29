@@ -148,7 +148,7 @@ export default function SignUp({ initialRole = "RIDER" }: SignUpProps) {
         }
       `}</style>
 
-      <div style={{ display: "flex", minHeight: "100vh", fontFamily: "var(--font-geist-sans), -apple-system, sans-serif", alignItems: "flex-start" }}>
+      <div style={{ display: "flex", minHeight: "100vh", fontFamily: "var(--font-outfit), system-ui, sans-serif", alignItems: "flex-start" }}>
 
         {/* ════════════════════════════════════════════
             LEFT — Animated Night City Scene

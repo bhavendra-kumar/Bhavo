@@ -55,7 +55,10 @@ function DriverCallModalContent({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
+    <div
+      className="fixed inset-0 z-9999 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200"
+      style={{ zIndex: 9999 }}
+    >
       <div className="relative w-full max-w-sm bg-linear-to-b from-slate-900 via-[#042f2e] to-[#022c22] rounded-3xl shadow-2xl p-7 text-white flex flex-col items-center border border-teal-500/30">
         {/* Masked Call Privacy Badge */}
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30 text-[11px] font-bold mb-6">

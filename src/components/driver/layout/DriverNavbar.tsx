@@ -24,7 +24,15 @@ export default function DriverNavbar() {
   } = useDriverStore();
   const { alert } = useDialog();
 
-  const handleSos = () => {
+  const handleSos = async () => {
+    try {
+      await fetch("/api/driver/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isSos: true }),
+      });
+    } catch { }
+
     alert({
       title: "Driver Safety SOS Triggered",
       message:
@@ -58,9 +66,7 @@ export default function DriverNavbar() {
         </div>
       </div>
 
-      {/* Right: Master Duty Switch, Test Dispatch trigger, SOS & Profile */}
       <div className="flex items-center gap-3">
-        {/* Test Simulator Trigger Button */}
         <button
           onClick={simulateIncomingRide}
           className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition-colors shadow-xs"
@@ -70,7 +76,6 @@ export default function DriverNavbar() {
           <span>Simulate Ride</span>
         </button>
 
-        {/* SOS Emergency Button */}
         <button
           onClick={handleSos}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition-colors shadow-xs"
@@ -80,19 +85,16 @@ export default function DriverNavbar() {
           <span className="hidden sm:inline">SOS</span>
         </button>
 
-        {/* Master Duty Online Switch Pill */}
         <button
           onClick={toggleOnline}
-          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[12px] font-bold transition-all shadow-xs border ${
-            isOnline
-              ? "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
-              : "bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200"
-          }`}
+          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[12px] font-bold transition-all shadow-xs border ${isOnline
+            ? "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
+            : "bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200"
+            }`}
         >
           <span
-            className={`w-2.5 h-2.5 rounded-full ${
-              isOnline ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
-            }`}
+            className={`w-2.5 h-2.5 rounded-full ${isOnline ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
+              }`}
           />
           <span>{isOnline ? "ONLINE" : "OFFLINE"}</span>
           <Power size={13} className={isOnline ? "text-emerald-600" : "text-slate-400"} />

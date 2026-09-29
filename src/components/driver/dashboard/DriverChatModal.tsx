@@ -27,6 +27,7 @@ const DRIVER_QUICK_RESPONSES = [
 ];
 
 export default function DriverChatModal({
+  rideId,
   riderName = "Aarav Sharma",
   riderRating = 4.9,
   isOpen,
@@ -43,13 +44,34 @@ export default function DriverChatModal({
   const [inputText, setInputText] = useState("");
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
+  // Sync messages from backend
+  useEffect(() => {
+    if (!isOpen || !rideId) return;
+
+    const fetchMsgs = async () => {
+      try {
+        const res = await fetch(`/api/driver/rides/${rideId}/messages`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.data && Array.isArray(json.data) && json.data.length > 0) {
+            setMessages(json.data);
+          }
+        }
+      } catch {}
+    };
+
+    fetchMsgs();
+    const interval = setInterval(fetchMsgs, 2500);
+    return () => clearInterval(interval);
+  }, [isOpen, rideId]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   if (!isOpen) return null;
 
-  const handleSend = (textToSend?: string) => {
+  const handleSend = async (textToSend?: string) => {
     const text = textToSend || inputText;
     if (!text.trim()) return;
 
@@ -62,21 +84,28 @@ export default function DriverChatModal({
     setMessages((prev) => [...prev, newMsg]);
     setInputText("");
 
-    // Simulated passenger reply after 2 seconds
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          sender: "rider",
-          text: "Thanks for the update! See you soon.",
-          timestamp: new Date().toISOString(),
-        },
-      ]);
-    }, 2000);
+    if (rideId) {
+      try {
+        const res = await fetch(`/api/driver/rides/${rideId}/messages`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: text.trim() }),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.data) {
+            setMessages(json.data);
+          }
+        }
+      } catch {}
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+    <div
+      className="fixed inset-0 z-9999 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+      style={{ zIndex: 9999 }}
+    >
       <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden border border-teal-500/20 flex flex-col h-140">
         {/* Header */}
         <div className="px-5 py-4 bg-linear-to-r from-teal-900 to-emerald-950 text-white flex items-center justify-between">

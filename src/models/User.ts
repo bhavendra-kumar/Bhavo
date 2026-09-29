@@ -71,6 +71,54 @@ const UserSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    // Driver-specific telemetry and preferences
+    isOnline: {
+      type: Boolean,
+      default: true,
+    },
+    dutyState: {
+      type: String,
+      enum: ["OFFLINE", "ONLINE_SEARCHING", "DISPATCH_ALERT", "ON_TRIP"],
+      default: "ONLINE_SEARCHING",
+    },
+    driverCoordinates: {
+      type: [Number],
+      default: [28.6139, 77.2090], // Delhi NCR center
+    },
+    driverVehicle: {
+      model: { type: String, default: "Tata Tigor EV (White)" },
+      numberPlate: { type: String, default: "DL-01-EV-4429" },
+      type: { type: String, default: "Cab Premium (EV)" },
+      fuelType: { type: String, default: "EV" },
+      batteryOrFuelLevel: { type: Number, default: 82 },
+      documentsVerified: { type: Boolean, default: true },
+      insuranceValidUntil: { type: String, default: "18 Dec 2027" },
+    },
+    driverSettings: {
+      autoAccept: { type: Boolean, default: false },
+      audioCues: { type: Boolean, default: true },
+      petFriendly: { type: Boolean, default: true },
+      maxDistance: { type: String, default: "ANY" },
+      destinationMode: { type: Boolean, default: false },
+      destinationAddress: { type: String, default: "Block C, Sector 62, Noida" },
+    },
+    driverDocuments: {
+      type: [
+        {
+          name: { type: String, required: true },
+          status: { type: String, default: "VERIFIED" },
+          expiry: { type: String, required: true },
+          docId: { type: String, required: true },
+        },
+      ],
+      default: [
+        { name: "Commercial Driving License (DL)", status: "VERIFIED", expiry: "12 Oct 2029", docId: "DL-0420110094" },
+        { name: "Vehicle Registration Certificate (RC)", status: "VERIFIED", expiry: "24 Mar 2034", docId: "RC-DL01EV4429" },
+        { name: "Commercial Vehicle Insurance", status: "VERIFIED", expiry: "18 Dec 2027", docId: "POL-ICICI-8840" },
+        { name: "State Transport Permit & Fitness", status: "VERIFIED", expiry: "15 Jan 2028", docId: "PERMIT-NCR-993" },
+        { name: "Pollution Control (PUC / EV Exemption)", status: "EXEMPT", expiry: "Permanent EV Exemption", docId: "EV-GREEN-PUC" },
+      ],
+    },
   },
   {
     timestamps: true, // Automatically adds createdAt and updatedAt

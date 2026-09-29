@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useInView } from "../hooks";
 
 export default function AppPreview() {
@@ -204,7 +205,8 @@ export default function AppPreview() {
               </div>
             ))}
 
-            <button
+            <Link
+              href="/signup"
               style={{
                 width: "100%",
                 marginTop: 16,
@@ -217,10 +219,23 @@ export default function AppPreview() {
                 fontWeight: 700,
                 cursor: "pointer",
                 boxShadow: "0 4px 16px rgba(13,148,136,0.3)",
+                textDecoration: "none",
+                display: "block",
+                textAlign: "center",
+                boxSizing: "border-box",
+                transition: "all 0.2s ease",
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)";
+                (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 24px rgba(13,148,136,0.45)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
+                (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 16px rgba(13,148,136,0.3)";
               }}
             >
               Confirm Commute · $14.50
-            </button>
+            </Link>
           </div>
 
           {/* ── Right: info cards ── */}

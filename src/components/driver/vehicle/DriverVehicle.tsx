@@ -1,35 +1,113 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Car,
   ShieldCheck,
   BatteryCharging,
   FileCheck2,
   CheckCircle2,
+  RefreshCw,
 } from "lucide-react";
-import { useDriverStore } from "@/hooks/driver/useDriverStore";
+
+interface IDriverVehicleData {
+  model: string;
+  numberPlate: string;
+  type: string;
+  fuelType: string;
+  batteryOrFuelLevel: number;
+  documentsVerified: boolean;
+  insuranceValidUntil: string;
+}
+
+interface IDriverDocument {
+  name: string;
+  status: string;
+  expiry: string;
+  docId: string;
+}
 
 export default function DriverVehicle() {
-  const { vehicle } = useDriverStore();
+  const [vehicle, setVehicle] = useState<IDriverVehicleData>({
+    model: "Tata Tigor EV (White)",
+    numberPlate: "DL-01-EV-4429",
+    type: "Cab Premium (EV)",
+    fuelType: "EV",
+    batteryOrFuelLevel: 82,
+    documentsVerified: true,
+    insuranceValidUntil: "18 Dec 2027",
+  });
+  const [documents, setDocuments] = useState<IDriverDocument[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const documents = [
+  useEffect(() => {
+    let ignore = false;
+    fetch("/api/driver/vehicle")
+      .then((res) => res.json())
+      .then((json) => {
+        if (!ignore && json.data) {
+          if (json.data.vehicle) setVehicle(json.data.vehicle);
+          if (json.data.documents) setDocuments(json.data.documents);
+        }
+      })
+      .catch((e) => console.error(e))
+      .finally(() => {
+        if (!ignore) setLoading(false);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  const refreshVehicle = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/driver/vehicle");
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data) {
+          if (json.data.vehicle) setVehicle(json.data.vehicle);
+          if (json.data.documents) setDocuments(json.data.documents);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const defaultDocuments: IDriverDocument[] = [
     { name: "Commercial Driving License (DL)", status: "VERIFIED", expiry: "12 Oct 2029", docId: "DL-0420110094" },
     { name: "Vehicle Registration Certificate (RC)", status: "VERIFIED", expiry: "24 Mar 2034", docId: "RC-DL01EV4429" },
-    { name: "Commercial Vehicle Insurance", status: "VERIFIED", expiry: vehicle.insuranceValidUntil, docId: "POL-ICICI-8840" },
+    { name: "Commercial Vehicle Insurance", status: "VERIFIED", expiry: vehicle.insuranceValidUntil || "18 Dec 2027", docId: "POL-ICICI-8840" },
     { name: "State Transport Permit & Fitness", status: "VERIFIED", expiry: "15 Jan 2028", docId: "PERMIT-NCR-993" },
     { name: "Pollution Control (PUC / EV Exemption)", status: "EXEMPT", expiry: "Permanent EV Exemption", docId: "EV-GREEN-PUC" },
   ];
 
+  const docsToDisplay = documents.length > 0 ? documents : defaultDocuments;
+
   return (
     <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full pb-10">
-      <div>
-        <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-          Vehicle Telemetry & Compliance
-        </h2>
-        <p className="text-xs text-slate-500 mt-0.5">
-          Fleet diagnostics, vehicle specifications and regulatory documents
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+            Vehicle Telemetry & Compliance
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Fleet diagnostics, vehicle specifications and regulatory documents
+          </p>
+        </div>
+
+        <button
+          onClick={refreshVehicle}
+          className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-bold flex items-center gap-1.5 transition-colors"
+          title="Refresh vehicle status"
+        >
+          <RefreshCw size={14} className={loading ? "animate-spin text-teal-600" : ""} />
+          <span>Sync Status</span>
+        </button>
       </div>
 
       {/* Vehicle Overview Card */}
@@ -60,7 +138,9 @@ export default function DriverVehicle() {
             <BatteryCharging size={24} />
           </div>
           <div>
-            <span className="text-[11px] text-teal-200/70 font-bold uppercase block">Battery Level</span>
+            <span className="text-[11px] text-teal-200/70 font-bold uppercase block">
+              {vehicle.fuelType === "EV" ? "Battery Level" : "Fuel Level"}
+            </span>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-black text-white">{vehicle.batteryOrFuelLevel}%</span>
               <span className="text-xs text-emerald-300 font-bold">~210 km range</span>
@@ -79,7 +159,7 @@ export default function DriverVehicle() {
         </div>
 
         <div className="divide-y divide-slate-100">
-          {documents.map((doc, idx) => (
+          {docsToDisplay.map((doc, idx) => (
             <div key={idx} className="py-4 first:pt-1 last:pb-1 flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">

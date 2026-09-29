@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Shield,
   Save,
   CheckCircle2,
   Sliders,
+  Loader2,
 } from "lucide-react";
 import { useDialog } from "@/components/ui/DialogProvider";
 
@@ -16,16 +17,62 @@ export default function DriverSettings() {
   const [petFriendly, setPetFriendly] = useState(true);
   const [maxDistance, setMaxDistance] = useState("ANY");
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
-    alert({
-      title: "Captain Preferences Saved",
-      message: "Your shift preferences and dispatch filters have been updated successfully.",
-      confirmText: "Great",
-      variant: "success",
-    });
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch("/api/driver/settings");
+        if (res.ok) {
+          const json = await res.json();
+          if (json.data) {
+            setAutoAccept(Boolean(json.data.autoAccept));
+            setAudioCues(json.data.audioCues ?? true);
+            setPetFriendly(json.data.petFriendly ?? true);
+            setMaxDistance(json.data.maxDistance || "ANY");
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/driver/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          autoAccept,
+          audioCues,
+          petFriendly,
+          maxDistance,
+        }),
+      });
+
+      if (res.ok) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2500);
+        alert({
+          title: "Captain Preferences Saved",
+          message: "Your shift preferences and dispatch filters have been saved to your account.",
+          confirmText: "Great",
+          variant: "success",
+        });
+      }
+    } catch {
+      alert({
+        title: "Save Failed",
+        message: "Failed to save settings to the server. Please try again.",
+        confirmText: "OK",
+        variant: "danger",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -42,10 +89,17 @@ export default function DriverSettings() {
 
         <button
           onClick={handleSave}
+          disabled={saving}
           className="py-2.5 px-5 rounded-xl bg-teal-700 hover:bg-teal-800 text-white font-extrabold text-xs shadow-md transition-all active:scale-95 flex items-center gap-1.5"
         >
-          {saved ? <CheckCircle2 size={16} /> : <Save size={16} />}
-          <span>{saved ? "Saved!" : "Save Changes"}</span>
+          {saving ? (
+            <Loader2 size={16} className="animate-spin" />
+          ) : saved ? (
+            <CheckCircle2 size={16} />
+          ) : (
+            <Save size={16} />
+          )}
+          <span>{saving ? "Saving..." : saved ? "Saved!" : "Save Changes"}</span>
         </button>
       </div>
 

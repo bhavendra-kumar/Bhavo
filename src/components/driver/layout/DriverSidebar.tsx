@@ -14,8 +14,6 @@ import {
   Settings,
   LogOut,
   PanelLeftClose,
-  PanelLeftOpen,
-  Power,
 } from "lucide-react";
 import { useDriverStore } from "@/hooks/driver/useDriverStore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -65,9 +63,6 @@ export default function DriverSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const {
-    isOnline,
-    dutyState,
-    toggleOnline,
     driverProfile,
     vehicle,
     isSidebarCollapsed: collapsed,
@@ -102,88 +97,49 @@ export default function DriverSidebar() {
         borderRight: `1px solid ${BORDER}`,
       }}
     >
-      {/* Collapse Toggle */}
-      <button
-        onClick={toggleSidebar}
-        aria-label="Toggle sidebar"
-        className="absolute -right-3.5 top-6 z-50 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200"
-        style={{
-          background: "#ffffff",
-          border: `1.5px solid ${BORDER}`,
-          color: ACCENT,
-          boxShadow: "0 2px 8px rgba(13,148,136,0.22)",
-        }}
-      >
-        {collapsed ? <PanelLeftOpen size={13} /> : <PanelLeftClose size={13} />}
-      </button>
-
       {/* Logo & Driver Brand */}
       <div
-        className="flex items-center gap-3 h-20 px-5 shrink-0 overflow-hidden relative"
+        className="flex items-center justify-between h-22 px-4 shrink-0 overflow-hidden relative"
         style={{ borderBottom: `1px solid ${BORDER}` }}
       >
-        <div
-          className="flex items-center justify-center shrink-0 rounded-xl overflow-hidden bg-white shadow-sm"
-          style={{ width: 42, height: 42 }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/trimmed-logo.png" alt="Bhavo Logo" className="w-full h-full object-contain p-1" />
-        </div>
-
-        {!collapsed && (
-          <div className="flex flex-col min-w-0 leading-tight">
-            <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-white text-[16px] tracking-tight">BHAVO</span>
-              <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-300 border border-teal-500/30">
-                CAPTAIN
-              </span>
-            </div>
-            <span className="text-[11px] text-teal-200/60 font-medium truncate">
-              Driver Command Center
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Quick Duty Status Widget */}
-      <div className="p-3">
-        <button
-          onClick={toggleOnline}
-          className={`w-full rounded-xl p-2.5 transition-all flex items-center gap-3 border ${
-            isOnline
-              ? "bg-emerald-950/40 border-emerald-500/40 text-emerald-300 hover:bg-emerald-950/60"
-              : "bg-slate-900/60 border-slate-700/60 text-slate-400 hover:bg-slate-900/80"
-          }`}
-          title={isOnline ? "You are Online (Click to go Offline)" : "You are Offline (Click to go Online)"}
-        >
+        <div className="flex items-center gap-3 min-w-0">
           <div
-            className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
-              isOnline ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/30" : "bg-slate-700 text-slate-300"
+            onClick={collapsed ? toggleSidebar : undefined}
+            className={`flex items-center justify-center shrink-0 rounded-2xl overflow-hidden bg-white shadow-md transition-all ${
+              collapsed ? "cursor-pointer hover:ring-2 hover:ring-teal-400 hover:scale-105 active:scale-95" : ""
             }`}
+            style={{ width: 44, height: 44 }}
+            title={collapsed ? "Open sidebar" : undefined}
           >
-            <Power size={16} />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/trimmed-logo.png" alt="Bhavo Logo" className="w-full h-full object-contain p-1" />
           </div>
 
           {!collapsed && (
-            <div className="flex flex-col text-left min-w-0 flex-1">
-              <div className="flex items-center justify-between">
-                <span className="text-[13px] font-bold text-white leading-none">
-                  {isOnline ? "You're Online" : "You're Offline"}
+            <div className="flex flex-col min-w-0 leading-tight">
+              <div className="flex items-center gap-1.5">
+                <span className="font-black text-white text-[19px] tracking-tight">BHAVO</span>
+                <span className="text-[10px] uppercase font-black tracking-wider px-1.5 py-0.5 rounded-md bg-teal-500/20 text-teal-300 border border-teal-500/30">
+                  CAPTAIN
                 </span>
-                {isOnline && (
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                )}
               </div>
-              <span className="text-[10px] text-slate-300 font-medium truncate mt-0.5">
-                {dutyState === "ON_TRIP"
-                  ? "Trip In Progress"
-                  : isOnline
-                  ? "Receiving Rides"
-                  : "Tap to Start Shift"}
+              <span className="text-[11px] text-teal-200/70 font-semibold truncate mt-0.5">
+                Command Center
               </span>
             </div>
           )}
-        </button>
+        </div>
+
+        {!collapsed && (
+          <button
+            onClick={toggleSidebar}
+            aria-label="Close sidebar"
+            className="p-1.5 rounded-lg text-teal-200/60 hover:text-white hover:bg-white/10 transition-colors shrink-0"
+            title="Close sidebar"
+          >
+            <PanelLeftClose size={18} />
+          </button>
+        )}
       </div>
 
       {/* Navigation Links */}
@@ -240,24 +196,11 @@ export default function DriverSidebar() {
         ))}
       </div>
 
-      {/* Shift Earnings & Driver Profile Footer */}
+      {/* Driver Profile Footer */}
       <div
         className="p-3 shrink-0"
         style={{ borderTop: `1px solid ${BORDER}`, background: "rgba(0,0,0,0.18)" }}
       >
-        {!collapsed && (
-          <div className="mb-2.5 p-2.5 rounded-xl bg-teal-950/50 border border-teal-500/20 flex items-center justify-between">
-            <div>
-              <span className="text-[10px] text-teal-200/70 font-semibold block">Today&apos;s Earnings</span>
-              <span className="text-[15px] font-extrabold text-white">₹{stats.todayEarnings}</span>
-            </div>
-            <div className="text-right">
-              <span className="text-[10px] text-teal-200/70 font-semibold block">Completed</span>
-              <span className="text-[13px] font-bold text-teal-300">{stats.tripsCompleted} Trips</span>
-            </div>
-          </div>
-        )}
-
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2.5 min-w-0">
             <Avatar className="w-8 h-8 rounded-lg border border-teal-500/30 shrink-0">

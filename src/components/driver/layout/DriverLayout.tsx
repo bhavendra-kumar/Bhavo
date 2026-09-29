@@ -20,8 +20,12 @@ export default function DriverLayout({
   const { fetchDriverData, loading, driverProfile } = useDriverStore();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  const [safeguardTimeout, setSafeguardTimeout] = useState(false);
+
   useEffect(() => {
     fetchDriverData();
+    const timer = setTimeout(() => setSafeguardTimeout(true), 2500);
+    return () => clearTimeout(timer);
   }, [fetchDriverData]);
 
   useEffect(() => {
@@ -30,7 +34,7 @@ export default function DriverLayout({
     }
   }, [driverProfile, router]);
 
-  if (loading) {
+  if (loading && !driverProfile && !safeguardTimeout) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-[#f0fdfa]">
         <div className="flex flex-col items-center gap-3">
