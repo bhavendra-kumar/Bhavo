@@ -13,7 +13,6 @@ import {
   LifeBuoy,
   Settings,
   LogOut,
-  PanelLeftClose,
 } from "lucide-react";
 import { useDriverStore } from "@/hooks/driver/useDriverStore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -31,13 +30,13 @@ const DRIVER_NAV_ITEMS = [
     section: "FINANCE",
     links: [
       { name: "Earnings & Payouts", href: "/driver/earnings", icon: Wallet },
-      { name: "Incentive Quests", href: "/driver/incentives", icon: Award, badge: "₹350 Bonus" },
+      { name: "Incentive Quests", href: "/driver/incentives", icon: Award },
     ],
   },
   {
     section: "VEHICLE & SAFETY",
     links: [
-      { name: "Vehicle & Docs", href: "/driver/vehicle", icon: Car, badge: "Verified" },
+      { name: "Vehicle & Docs", href: "/driver/vehicle", icon: Car },
       { name: "Driver Support & SOS", href: "/driver/support", icon: LifeBuoy },
     ],
   },
@@ -68,6 +67,7 @@ export default function DriverSidebar() {
     isSidebarCollapsed: collapsed,
     toggleSidebar,
     stats,
+    verification,
   } = useDriverStore();
   const { confirm } = useDialog();
 
@@ -92,24 +92,26 @@ export default function DriverSidebar() {
     <aside
       className="relative h-screen flex flex-col shrink-0 transition-all duration-300 ease-in-out select-none"
       style={{
-        width: collapsed ? "68px" : "260px",
+        width: collapsed ? "70px" : "268px",
         background: BG,
         borderRight: `1px solid ${BORDER}`,
       }}
     >
-      {/* Logo & Driver Brand */}
+      {/* Logo & Driver Brand Header */}
       <div
-        className="flex items-center justify-between h-22 px-4 shrink-0 overflow-hidden relative"
+        className={`h-16 shrink-0 overflow-hidden relative flex items-center ${
+          collapsed ? "justify-center px-2" : "px-4"
+        }`}
         style={{ borderBottom: `1px solid ${BORDER}` }}
       >
         <div className="flex items-center gap-3 min-w-0">
           <div
             onClick={collapsed ? toggleSidebar : undefined}
-            className={`flex items-center justify-center shrink-0 rounded-2xl overflow-hidden bg-white shadow-md transition-all ${
+            className={`flex items-center justify-center shrink-0 rounded-xl overflow-hidden bg-white shadow-sm transition-all ${
               collapsed ? "cursor-pointer hover:ring-2 hover:ring-teal-400 hover:scale-105 active:scale-95" : ""
             }`}
-            style={{ width: 44, height: 44 }}
-            title={collapsed ? "Open sidebar" : undefined}
+            style={{ width: 38, height: 38 }}
+            title={collapsed ? "Expand sidebar" : undefined}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/trimmed-logo.png" alt="Bhavo Logo" className="w-full h-full object-contain p-1" />
@@ -118,8 +120,8 @@ export default function DriverSidebar() {
           {!collapsed && (
             <div className="flex flex-col min-w-0 leading-tight">
               <div className="flex items-center gap-1.5">
-                <span className="font-black text-white text-[19px] tracking-tight">BHAVO</span>
-                <span className="text-[10px] uppercase font-black tracking-wider px-1.5 py-0.5 rounded-md bg-teal-500/20 text-teal-300 border border-teal-500/30">
+                <span className="font-black text-white text-[18px] tracking-tight">BHAVO</span>
+                <span className="text-[9.5px] uppercase font-black tracking-wider px-1.5 py-0.5 rounded-md bg-teal-500/20 text-teal-300 border border-teal-500/30 shrink-0">
                   CAPTAIN
                 </span>
               </div>
@@ -129,17 +131,6 @@ export default function DriverSidebar() {
             </div>
           )}
         </div>
-
-        {!collapsed && (
-          <button
-            onClick={toggleSidebar}
-            aria-label="Close sidebar"
-            className="p-1.5 rounded-lg text-teal-200/60 hover:text-white hover:bg-white/10 transition-colors shrink-0"
-            title="Close sidebar"
-          >
-            <PanelLeftClose size={18} />
-          </button>
-        )}
       </div>
 
       {/* Navigation Links */}
@@ -161,7 +152,10 @@ export default function DriverSidebar() {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all relative group"
+                  className={`flex items-center gap-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all relative group ${
+                    collapsed ? "justify-center px-0" : "px-3"
+                  }`}
+                  title={collapsed ? item.name : undefined}
                   style={{
                     color: isActive ? TEXT_ACTIVE : TEXT_INACTIVE,
                     background: isActive ? BG_ACTIVE : "transparent",
@@ -180,14 +174,17 @@ export default function DriverSidebar() {
                     style={{ color: isActive ? ACCENT : "#94a3b8" }}
                   />
                   {!collapsed && (
-                    <div className="flex items-center justify-between flex-1 min-w-0">
-                      <span className="truncate">{item.name}</span>
-                      {item.badge && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">
-                          {item.badge}
-                        </span>
-                      )}
-                    </div>
+                    <span className="truncate flex-1">{item.name}</span>
+                  )}
+                  {item.href === "/driver/vehicle" && verification?.isVerified === false && (
+                    <span
+                      className={`rounded-full bg-amber-500 text-slate-950 font-black text-[9px] px-1.5 py-0.2 shrink-0 ${
+                        collapsed ? "w-2 h-2 p-0 -ml-2 -mt-2" : ""
+                      }`}
+                      title="Documents pending verification"
+                    >
+                      {!collapsed && "Review"}
+                    </span>
                   )}
                 </Link>
               );
@@ -201,7 +198,7 @@ export default function DriverSidebar() {
         className="p-3 shrink-0"
         style={{ borderTop: `1px solid ${BORDER}`, background: "rgba(0,0,0,0.18)" }}
       >
-        <div className="flex items-center justify-between gap-2">
+        <div className={`flex items-center gap-2 ${collapsed ? "justify-center flex-col" : "justify-between"}`}>
           <div className="flex items-center gap-2.5 min-w-0">
             <Avatar className="w-8 h-8 rounded-lg border border-teal-500/30 shrink-0">
               <AvatarImage src={driverProfile?.avatar || ""} />
@@ -230,7 +227,7 @@ export default function DriverSidebar() {
           <button
             onClick={handleLogout}
             title="Sign Out"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors cursor-pointer"
           >
             <LogOut size={16} />
           </button>

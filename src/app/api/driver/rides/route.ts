@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import dbConnect from "@/lib/mongoose";
+import User from "@/models/User";
 import Ride from "@/models/Ride";
 import { getDriverUser } from "@/lib/driverAuth";
+import { checkDriverVerification } from "@/lib/driverCompliance";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +24,21 @@ export async function POST(req: Request) {
     const ride = rideId && mongoose.isValidObjectId(rideId) ? await Ride.findById(rideId) : null;
 
     if (action === "ACCEPT") {
+      // STRICT CHECK: Driver cannot accept rides if documents are unverified
+      const verification = checkDriverVerification(driverUser);
+      if (!verification.isVerified) {
+        return NextResponse.json(
+          {
+            status: "error",
+            code: "DOCUMENTS_UNVERIFIED",
+            message:
+              verification.reason ||
+              "Cannot accept ride: All driver and vehicle documents must be verified first.",
+            verification,
+          },
+          { status: 403 }
+        );
+      }
       if (ride) {
         ride.status = "ACCEPTED";
         ride.driver = driverUser._id;
@@ -75,6 +92,14 @@ export async function POST(req: Request) {
           ride.riderCompliments = riderCompliments;
         }
         await ride.save();
+
+        if (ride.paymentMethod === "WALLET" && ride.rider) {
+          const riderUser = await User.findById(ride.rider);
+          if (riderUser) {
+            riderUser.walletBalance = Math.max(0, (riderUser.walletBalance || 0) - ride.fare);
+            await riderUser.save();
+          }
+        }
       }
 
       const creditedAmount = (ride?.fare || 250) + tipAmount;

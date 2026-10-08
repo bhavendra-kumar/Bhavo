@@ -111,14 +111,6 @@ export default function DriverSupport() {
 
   return (
     <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full pb-10">
-      <div>
-        <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-          Captain Assistance & SOS Safety
-        </h2>
-        <p className="text-xs text-slate-500 mt-0.5">
-          24/7 roadside assistance, safety response, and priority driver ticketing
-        </p>
-      </div>
 
       {/* Emergency SOS Banner */}
       <div className="p-6 rounded-3xl bg-rose-50 border-2 border-rose-300 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">

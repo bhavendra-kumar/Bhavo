@@ -26,8 +26,8 @@ export async function GET() {
       updatedAt: { $gte: startOfWeek },
     });
 
-    const todayCount = todayCountDb > 0 ? todayCountDb : 7;
-    const weekCount = weekCountDb > 0 ? weekCountDb : 28;
+    const todayCount = todayCountDb;
+    const weekCount = weekCountDb;
 
     const quests = [
       {
@@ -38,7 +38,7 @@ export async function GET() {
         progress: `${todayCount}/10 Completed`,
         percent: Math.min(100, Math.round((todayCount / 10) * 100)),
         timeRemaining: "Ends at 11:00 PM tonight",
-        active: true,
+        active: todayCount < 10,
         completed: todayCount >= 10,
         canClaim: todayCount >= 10,
       },
@@ -46,12 +46,12 @@ export async function GET() {
         id: "quest-peak",
         title: "Peak Hour Surge Hunter",
         bonus: "₹200",
-        target: "Complete 4 trips during morning rush (8:00 AM - 11:00 AM)",
-        progress: "4/4 Completed 🎉",
-        percent: 100,
-        timeRemaining: "Unlocked and credited to wallet",
-        active: false,
-        completed: true,
+        target: "Complete 4 trips today",
+        progress: `${Math.min(4, todayCount)}/4 Completed ${todayCount >= 4 ? "🎉" : ""}`,
+        percent: Math.min(100, Math.round((todayCount / 4) * 100)),
+        timeRemaining: todayCount >= 4 ? "Unlocked and credited to wallet" : "Active during shift hours",
+        active: todayCount < 4,
+        completed: todayCount >= 4,
         canClaim: false,
       },
       {
@@ -68,12 +68,16 @@ export async function GET() {
       },
     ];
 
+    const todayBonusEarned = todayCount >= 4 ? 200 : 0;
+    const weekBonusEarned = (weekCount >= 10 ? 350 : 0) + (weekCount >= 35 ? 1500 : 0);
+    const upcomingPotential = (todayCount < 10 ? 350 : 0) + (weekCount < 35 ? 1500 : 0) + (todayCount < 4 ? 200 : 0);
+
     return NextResponse.json({
       status: "success",
       data: {
-        todayBonusEarned: 200,
-        weekBonusEarned: 1200,
-        upcomingPotential: 1850,
+        todayBonusEarned,
+        weekBonusEarned,
+        upcomingPotential,
         quests,
       },
     });

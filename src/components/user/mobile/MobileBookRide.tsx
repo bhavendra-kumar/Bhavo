@@ -218,75 +218,95 @@ export default function MobileBookRide(props: MobileBookRideProps) {
           </div>
 
           {/* Driver Profile Card */}
-          <div className="card p-3.5 border border-teal-100 shadow-xs flex flex-col gap-3 bg-white">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-full bg-teal-600 text-white font-bold text-base flex items-center justify-center shrink-0">
-                  {activeRide.driverDetails?.name ? activeRide.driverDetails.name[0] : "B"}
-                </div>
-                <div>
-                  <p className="font-bold text-[14.5px] text-slate-900 leading-tight">
-                    {activeRide.driverDetails?.name || "Bhavo Pilot"}
-                  </p>
-                  <div className="flex items-center gap-1.5 text-[11.5px] text-slate-500 font-medium mt-0.5">
-                    <Star size={11} className="text-amber-400 fill-amber-400" />
-                    <span>{activeRide.driverDetails?.rating || 4.9}</span>
-                    <span>•</span>
-                    <span>{activeRide.driverDetails?.vehicleModel || activeRide.vehicleType}</span>
+          {activeRide.status === "SEARCHING" ? (
+            <div className="card p-5 border border-teal-100 shadow-xs flex flex-col items-center justify-center text-center gap-2.5 bg-white">
+              <div className="relative flex items-center justify-center w-12 h-12 rounded-full bg-teal-50 text-teal-600">
+                <span className="absolute w-full h-full rounded-full bg-teal-400/30 animate-ping" />
+                <Radio size={22} className="relative z-10 animate-pulse text-teal-600" />
+              </div>
+              <div>
+                <h4 className="font-extrabold text-[14px] text-slate-900">
+                  Broadcasting to Nearest Captains
+                </h4>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Connecting with nearby Bhavo Captains in Sector 62 / NCR. Awaiting acceptance.
+                </p>
+              </div>
+              <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden mt-1">
+                <div className="h-full bg-linear-to-r from-teal-400 to-emerald-500 animate-pulse w-3/4 rounded-full" />
+              </div>
+            </div>
+          ) : (
+            <div className="card p-3.5 border border-teal-100 shadow-xs flex flex-col gap-3 bg-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-full bg-teal-600 text-white font-bold text-base flex items-center justify-center shrink-0">
+                    {activeRide.driverDetails?.name ? activeRide.driverDetails.name[0] : "R"}
+                  </div>
+                  <div>
+                    <p className="font-bold text-[14.5px] text-slate-900 leading-tight">
+                      {activeRide.driverDetails?.name || "Rajesh Kumar (Captain)"}
+                    </p>
+                    <div className="flex items-center gap-1.5 text-[11.5px] text-slate-500 font-medium mt-0.5">
+                      <Star size={11} className="text-amber-400 fill-amber-400" />
+                      <span>{activeRide.driverDetails?.rating || 4.94}</span>
+                      <span>•</span>
+                      <span>{activeRide.driverDetails?.vehicleModel || "Tata Tigor EV"}</span>
+                    </div>
                   </div>
                 </div>
+
+                {activeRide.driverDetails?.vehicleNumber && (
+                  <span className="px-2 py-1 rounded bg-slate-100 font-mono text-[11.5px] font-black text-slate-800 border border-slate-200">
+                    {activeRide.driverDetails.vehicleNumber}
+                  </span>
+                )}
               </div>
 
-              {activeRide.driverDetails?.vehicleNumber && (
-                <span className="px-2 py-1 rounded bg-slate-100 font-mono text-[11.5px] font-black text-slate-800 border border-slate-200">
-                  {activeRide.driverDetails.vehicleNumber}
-                </span>
-              )}
-            </div>
-
-            {/* OTP Pin Card */}
-            <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-teal-50 border border-teal-200">
-              <div>
-                <p className="text-[9.5px] uppercase font-bold text-teal-800 tracking-wider">Start PIN</p>
-                <p className="text-[11px] text-teal-700">Share with pilot on arrival</p>
+              {/* OTP Pin Card */}
+              <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-teal-50 border border-teal-200">
+                <div>
+                  <p className="text-[9.5px] uppercase font-bold text-teal-800 tracking-wider">Start PIN</p>
+                  <p className="text-[11px] text-teal-700">Share with captain on arrival</p>
+                </div>
+                <div className="px-3.5 py-0.5 bg-white rounded-lg border border-teal-300 font-mono text-xl font-black text-teal-900 tracking-widest shadow-xs">
+                  {activeRide.otp}
+                </div>
               </div>
-              <div className="px-3.5 py-0.5 bg-white rounded-lg border border-teal-300 font-mono text-xl font-black text-teal-900 tracking-widest shadow-xs">
-                {activeRide.otp}
+
+              {/* Quick Action Buttons: Call, Message, SOS */}
+              <div className="grid grid-cols-4 gap-2 pt-0.5">
+                <button
+                  type="button"
+                  onClick={() => setIsCallOpen(true)}
+                  className="col-span-2 py-2.5 px-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-[12.5px] font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-98 transition-transform cursor-pointer"
+                >
+                  <Phone size={14} /> Call Driver
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsChatOpen(true)}
+                  className="py-2.5 px-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-[12px] font-bold flex items-center justify-center gap-1 border border-slate-200 active:scale-98 transition-transform cursor-pointer"
+                >
+                  <MessageSquare size={14} /> Chat
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    alert({
+                      title: "Emergency SOS",
+                      message: "Safety team and emergency services have been alerted.",
+                      variant: "danger",
+                    })
+                  }
+                  className="py-2.5 px-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-[12px] font-bold flex items-center justify-center active:scale-98 transition-transform cursor-pointer"
+                  title="Emergency SOS"
+                >
+                  <ShieldAlert size={16} />
+                </button>
               </div>
             </div>
-
-            {/* Quick Action Buttons: Call, Message, SOS */}
-            <div className="grid grid-cols-4 gap-2 pt-0.5">
-              <button
-                type="button"
-                onClick={() => setIsCallOpen(true)}
-                className="col-span-2 py-2.5 px-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-[12.5px] font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-98 transition-transform cursor-pointer"
-              >
-                <Phone size={14} /> Call Driver
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsChatOpen(true)}
-                className="py-2.5 px-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-[12px] font-bold flex items-center justify-center gap-1 border border-slate-200 active:scale-98 transition-transform cursor-pointer"
-              >
-                <MessageSquare size={14} /> Chat
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  alert({
-                    title: "Emergency SOS",
-                    message: "Safety team and emergency services have been alerted.",
-                    variant: "danger",
-                  })
-                }
-                className="py-2.5 px-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-[12px] font-bold flex items-center justify-center active:scale-98 transition-transform cursor-pointer"
-                title="Emergency SOS"
-              >
-                <ShieldAlert size={16} />
-              </button>
-            </div>
-          </div>
+          )}
 
           {/* Route Summary */}
           <div className="card p-3.5 border border-teal-100 flex flex-col gap-2.5 bg-white">

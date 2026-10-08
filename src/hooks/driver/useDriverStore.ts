@@ -24,6 +24,7 @@ export interface IDriverDispatch {
   surgeMultiplier: number;
   vehicleType: string;
   paymentMethod: "CASH" | "UPI" | "WALLET";
+  otp?: string;
   expiresAt: number; // timestamp
 }
 
@@ -87,6 +88,18 @@ export interface ISurgeArea {
   radius: number; // meters
 }
 
+export interface IDriverVerificationState {
+  isVerified: boolean;
+  driverDocsVerified: boolean;
+  vehicleDocsVerified: boolean;
+  pendingDocs: Array<{ name: string; category?: string; docId?: string; status?: string }>;
+  rejectedDocs: Array<{ name: string; category?: string; docId?: string; status?: string }>;
+  verifiedDocs: Array<{ name: string; category?: string; docId?: string; status?: string }>;
+  totalDocs: number;
+  verifiedCount: number;
+  reason?: string;
+}
+
 export interface IDriverTripHistoryItem {
   id?: string;
   riderName: string;
@@ -118,6 +131,7 @@ interface DriverState {
     role: string;
   } | null;
 
+  verification: IDriverVerificationState;
   incomingDispatch: IDriverDispatch | null;
   activeRide: IDriverActiveRide | null;
   recentTrips: IDriverTripHistoryItem[];
@@ -128,17 +142,18 @@ interface DriverState {
   // Actions
   toggleSidebar: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
+  setVerification: (v: IDriverVerificationState) => void;
   fetchDriverData: () => Promise<void>;
-  toggleOnline: () => Promise<void>;
-  setOnline: (online: boolean) => Promise<void>;
+  toggleOnline: (onBlocked?: (reason?: string) => void) => Promise<boolean>;
+  setOnline: (online: boolean, onBlocked?: (reason?: string) => void) => Promise<boolean>;
   pollDispatches: () => Promise<void>;
-  acceptDispatch: () => Promise<boolean>;
+  acceptDispatch: (onBlocked?: (reason?: string) => void) => Promise<boolean>;
   declineDispatch: () => void;
   markArrived: () => Promise<void>;
   verifyOtp: (enteredOtp: string) => Promise<boolean>;
   completeTrip: (rating?: number, compliments?: string[]) => Promise<void>;
   cancelTrip: (reason: string) => Promise<void>;
-  simulateIncomingRide: () => Promise<void>;
+  simulateIncomingRide: (onBlocked?: (reason?: string) => void) => Promise<boolean>;
   sendMessage: (text: string) => Promise<void>;
   updateLocation: (coords: [number, number]) => Promise<void>;
 }
@@ -158,15 +173,17 @@ export const useDriverStore = create<DriverState>((set, get) => ({
   loading: false,
   driverCoordinates: [28.6139, 77.2090],
 
-  driverProfile: {
-    id: "driver-101",
-    name: "Rajesh Kumar",
-    email: "rajesh.driver@bhavo.in",
-    phone: "+91 98765 43210",
-    rating: 4.94,
-    avatar: null,
-    walletBalance: 4250,
-    role: "DRIVER",
+  driverProfile: null,
+
+  verification: {
+    isVerified: true,
+    driverDocsVerified: true,
+    vehicleDocsVerified: true,
+    pendingDocs: [],
+    rejectedDocs: [],
+    verifiedDocs: [],
+    totalDocs: 8,
+    verifiedCount: 8,
   },
 
   incomingDispatch: null,
@@ -174,12 +191,12 @@ export const useDriverStore = create<DriverState>((set, get) => ({
   recentTrips: [],
 
   stats: {
-    todayEarnings: 1865,
-    weeklyEarnings: 14280,
-    tripsCompleted: 7,
-    onlineMinutes: 325,
-    acceptanceRate: 96,
-    rating: 4.94,
+    todayEarnings: 0,
+    weeklyEarnings: 0,
+    tripsCompleted: 0,
+    onlineMinutes: 0,
+    acceptanceRate: 100,
+    rating: 5.0,
     targetTrips: 10,
     targetBonus: 350,
   },
@@ -198,6 +215,7 @@ export const useDriverStore = create<DriverState>((set, get) => ({
 
   toggleSidebar: () => set((state) => ({ isSidebarCollapsed: !state.isSidebarCollapsed })),
   setSidebarCollapsed: (collapsed: boolean) => set({ isSidebarCollapsed: collapsed }),
+  setVerification: (verification: IDriverVerificationState) => set({ verification }),
 
   fetchDriverData: async () => {
     try {
@@ -212,15 +230,20 @@ export const useDriverStore = create<DriverState>((set, get) => ({
       if (res.ok) {
         const json = await res.json();
         if (json.data) {
-          const { profile, stats, activeRide, recentTrips, vehicle } = json.data;
+          const { profile, stats, activeRide, recentTrips, vehicle, surgeAreas, verification } = json.data;
+          const currentVerification = verification || get().verification;
+          const isVerified = currentVerification?.isVerified !== false;
+
           set((prev) => ({
             driverProfile: profile || prev.driverProfile,
             stats: stats || prev.stats,
-            activeRide: activeRide || prev.activeRide,
+            activeRide: activeRide !== undefined ? activeRide : prev.activeRide,
             recentTrips: recentTrips || prev.recentTrips,
             vehicle: vehicle || prev.vehicle,
-            isOnline: profile?.isOnline ?? prev.isOnline,
-            dutyState: activeRide ? "ON_TRIP" : (profile?.isOnline ?? prev.isOnline) ? "ONLINE_SEARCHING" : "OFFLINE",
+            surgeAreas: surgeAreas || prev.surgeAreas,
+            verification: currentVerification,
+            isOnline: isVerified ? (profile?.isOnline ?? prev.isOnline) : false,
+            dutyState: activeRide ? "ON_TRIP" : (isVerified && (profile?.isOnline ?? prev.isOnline)) ? "ONLINE_SEARCHING" : "OFFLINE",
             loading: false,
           }));
           return;
@@ -232,13 +255,26 @@ export const useDriverStore = create<DriverState>((set, get) => ({
     }
   },
 
-  toggleOnline: async () => {
+  toggleOnline: async (onBlocked?: (reason?: string) => void) => {
     const current = get().isOnline;
     const nextOnline = !current;
+    const { verification, activeRide } = get();
+
+    // STRICT CHECK: Driver cannot go online if documents are unverified
+    if (nextOnline && !verification.isVerified) {
+      if (onBlocked) {
+        onBlocked(
+          verification.reason ||
+          "All driver identity and vehicle compliance documents must be verified before going online."
+        );
+      }
+      return false;
+    }
+
     set({
       isOnline: nextOnline,
       incomingDispatch: nextOnline ? get().incomingDispatch : null,
-      dutyState: get().activeRide
+      dutyState: activeRide
         ? "ON_TRIP"
         : nextOnline
         ? "ONLINE_SEARCHING"
@@ -246,19 +282,48 @@ export const useDriverStore = create<DriverState>((set, get) => ({
     });
 
     try {
-      await fetch("/api/driver/duty", {
+      const res = await fetch("/api/driver/duty", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isOnline: nextOnline }),
       });
-    } catch {}
+      const data = await res.json();
+      if (!res.ok || data.status === "error") {
+        set({
+          isOnline: false,
+          dutyState: "OFFLINE",
+          verification: data.data?.verification || data.verification || get().verification,
+        });
+        if (onBlocked) {
+          onBlocked(data.message || "Document verification required before going online.");
+        }
+        return false;
+      }
+      if (data.data?.verification) {
+        set({ verification: data.data.verification });
+      }
+      return true;
+    } catch {
+      return true;
+    }
   },
 
-  setOnline: async (online: boolean) => {
+  setOnline: async (online: boolean, onBlocked?: (reason?: string) => void) => {
+    const { verification, activeRide } = get();
+    if (online && !verification.isVerified) {
+      if (onBlocked) {
+        onBlocked(
+          verification.reason ||
+          "All driver identity and vehicle compliance documents must be verified before going online."
+        );
+      }
+      return false;
+    }
+
     set({
       isOnline: online,
       incomingDispatch: online ? get().incomingDispatch : null,
-      dutyState: get().activeRide
+      dutyState: activeRide
         ? "ON_TRIP"
         : online
         ? "ONLINE_SEARCHING"
@@ -266,17 +331,33 @@ export const useDriverStore = create<DriverState>((set, get) => ({
     });
 
     try {
-      await fetch("/api/driver/duty", {
+      const res = await fetch("/api/driver/duty", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isOnline: online }),
       });
-    } catch {}
+      const data = await res.json();
+      if (!res.ok || data.status === "error") {
+        set({
+          isOnline: false,
+          dutyState: "OFFLINE",
+          verification: data.data?.verification || data.verification || get().verification,
+        });
+        if (onBlocked) {
+          onBlocked(data.message || "Document verification required.");
+        }
+        return false;
+      }
+      return true;
+    } catch {
+      return true;
+    }
   },
 
   pollDispatches: async () => {
-    const { isOnline, activeRide, incomingDispatch } = get();
-    if (!isOnline || activeRide || incomingDispatch) return;
+    const { isOnline, activeRide, incomingDispatch, verification } = get();
+    // Do not poll if offline, trip active, or unverified
+    if (!isOnline || activeRide || incomingDispatch || !verification.isVerified) return;
 
     try {
       const res = await fetch("/api/driver/dispatches");
@@ -292,9 +373,22 @@ export const useDriverStore = create<DriverState>((set, get) => ({
     } catch {}
   },
 
-  acceptDispatch: async () => {
+  acceptDispatch: async (onBlocked?: (reason?: string) => void) => {
     const dispatch = get().incomingDispatch;
     if (!dispatch) return false;
+
+    const { verification } = get();
+    // STRICT: Unverified drivers cannot accept rides
+    if (!verification.isVerified) {
+      if (onBlocked) {
+        onBlocked(
+          verification.reason ||
+          "Cannot accept ride: All driver and vehicle documents must be verified first."
+        );
+      }
+      set({ incomingDispatch: null, isOnline: false, dutyState: "OFFLINE" });
+      return false;
+    }
 
     // Transition to Active Ride
     const newActiveRide: IDriverActiveRide = {
@@ -318,7 +412,7 @@ export const useDriverStore = create<DriverState>((set, get) => ({
       distance: dispatch.dropoff.distanceText,
       duration: `${dispatch.dropoff.estDurationMinutes} mins`,
       status: "ACCEPTED",
-      otp: "4826",
+      otp: dispatch.otp || "4826",
       paymentMethod: dispatch.paymentMethod,
       paymentStatus: "PENDING",
       messages: [
@@ -343,11 +437,21 @@ export const useDriverStore = create<DriverState>((set, get) => ({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "ACCEPT", rideId: newActiveRide._id }),
       });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.data && json.data.otp) {
-          set((s) => (s.activeRide ? { activeRide: { ...s.activeRide, otp: json.data.otp } } : {}));
+      const json = await res.json();
+      if (!res.ok || json.status === "error") {
+        set({
+          activeRide: null,
+          dutyState: "OFFLINE",
+          isOnline: false,
+          verification: json.verification || get().verification,
+        });
+        if (onBlocked) {
+          onBlocked(json.message || "Cannot accept ride: Verification required.");
         }
+        return false;
+      }
+      if (json.data && json.data.otp) {
+        set((s) => (s.activeRide ? { activeRide: { ...s.activeRide, otp: json.data.otp } } : {}));
       }
     } catch {}
 
@@ -488,22 +592,48 @@ export const useDriverStore = create<DriverState>((set, get) => ({
     } catch {}
   },
 
-  simulateIncomingRide: async () => {
+  simulateIncomingRide: async (onBlocked?: (reason?: string) => void) => {
+    const { verification, isOnline } = get();
+
+    if (!verification.isVerified) {
+      if (onBlocked) {
+        onBlocked(
+          verification.reason ||
+          "Cannot receive ride requests: All driver identity and vehicle compliance documents must be verified first."
+        );
+      }
+      return false;
+    }
+
+    if (!isOnline) {
+      if (onBlocked) {
+        onBlocked("You must go online to receive ride dispatches.");
+      }
+      return false;
+    }
+
     try {
       const res = await fetch("/api/driver/dispatches", { method: "POST" });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.data) {
-          set({
-            incomingDispatch: json.data,
-            dutyState: "DISPATCH_ALERT",
-          });
-          return;
+      const json = await res.json();
+      if (!res.ok || json.status === "error") {
+        if (json.verification) {
+          set({ verification: json.verification, isOnline: false, dutyState: "OFFLINE" });
         }
+        if (onBlocked) {
+          onBlocked(json.message || "Ride request blocked: Documents pending review.");
+        }
+        return false;
+      }
+      if (json.data) {
+        set({
+          incomingDispatch: json.data,
+          dutyState: "DISPATCH_ALERT",
+        });
+        return true;
       }
     } catch {}
 
-    // Fallback simulation
+    // Fallback simulation only if verified
     const simulated: IDriverDispatch = {
       _id: `ride-${Date.now()}`,
       riderName: "Ananya Iyer",
@@ -532,6 +662,7 @@ export const useDriverStore = create<DriverState>((set, get) => ({
       incomingDispatch: simulated,
       dutyState: "DISPATCH_ALERT",
     });
+    return true;
   },
 
   sendMessage: async (text: string) => {

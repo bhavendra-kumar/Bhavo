@@ -99,18 +99,6 @@ export async function POST(req: Request) {
     // Generate 4 digit OTP for driver verification
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
 
-    // Default driver info for instant realistic simulation
-    const driverDetails = scheduledFor
-      ? undefined
-      : {
-          name: "Rajesh Kumar",
-          phone: "+91 98765 43210",
-          rating: 4.9,
-          vehicleNumber: "MH-01-AB-1234",
-          vehicleModel: vehicleType === "Auto" ? "Bajaj RE Auto" : vehicleType === "Bike" ? "Honda Shine" : "White Swift Dzire",
-          avatar: null,
-        };
-
     const newRide = await Ride.create({
       rider: user._id,
       pickup: {
@@ -127,29 +115,21 @@ export async function POST(req: Request) {
       fare: Number(typeof fare === "string" ? fare.replace(/[^0-9.]/g, "") : fare) || 250,
       distance,
       duration,
-      status: scheduledFor ? "ACCEPTED" : "SEARCHING",
-      driverDetails,
+      status: "SEARCHING",
+      driver: null,
+      driverDetails: undefined,
       otp,
       scheduledFor: scheduledFor ? new Date(scheduledFor) : null,
       paymentMethod,
       paymentStatus: "PENDING",
+      messages: [
+        {
+          sender: "rider",
+          text: "Hi! I am at the pickup location.",
+          timestamp: new Date(),
+        },
+      ],
     });
-
-    // If instant ride, automatically simulate driver acceptance after 6 seconds in background
-    if (!scheduledFor) {
-      setTimeout(async () => {
-        try {
-          const ride = await Ride.findById(newRide._id);
-          if (ride && ride.status === "SEARCHING") {
-            ride.status = "ACCEPTED";
-            await ride.save();
-            console.log(`[Ride Simulation] Ride ${ride._id} transitioned to ACCEPTED`);
-          }
-        } catch (err) {
-          console.error("[Ride Simulation Error]:", err);
-        }
-      }, 6000);
-    }
 
     return NextResponse.json(
       {

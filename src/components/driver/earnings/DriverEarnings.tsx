@@ -61,12 +61,12 @@ export default function DriverEarnings() {
     }
   };
 
-  const balance = data?.walletBalance ?? driverProfile?.walletBalance ?? 4250;
-  const todayEarnings = data?.todayEarnings ?? 1865;
-  const weeklyEarnings = data?.weeklyEarnings ?? 14280;
-  const tripsToday = data?.tripsToday ?? 7;
-  const tripsWeek = data?.tripsWeek ?? 44;
-  const tipsToday = data?.tipsToday ?? 85;
+  const balance = data?.walletBalance ?? driverProfile?.walletBalance ?? 0;
+  const todayEarnings = data?.todayEarnings ?? 0;
+  const weeklyEarnings = data?.weeklyEarnings ?? 0;
+  const tripsToday = data?.tripsToday ?? 0;
+  const tripsWeek = data?.tripsWeek ?? 0;
+  const tipsToday = data?.tipsToday ?? 0;
   const bankAccount = data?.bankAccount || {
     bankName: "HDFC Bank",
     accountNumber: "•••• 4921",
@@ -124,15 +124,6 @@ export default function DriverEarnings() {
 
   return (
     <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full pb-10">
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-          Earnings & Bank Transfers
-        </h2>
-        <p className="text-xs text-slate-500 mt-0.5">
-          Real-time income metrics, trip payouts, and instant withdrawals
-        </p>
-      </div>
 
       {/* Top Banner Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -213,7 +204,7 @@ export default function DriverEarnings() {
 
           <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
             <span className="text-slate-500">Incentive Bonuses</span>
-            <span className="font-extrabold text-amber-600">+₹1,200</span>
+            <span className="font-extrabold text-amber-600">+₹{data?.incentivesBonusWeek ?? 0}</span>
           </div>
         </div>
       </div>
@@ -231,15 +222,7 @@ export default function DriverEarnings() {
         </div>
 
         <div className="grid grid-cols-7 gap-2 pt-6 pb-2 items-end h-48 border-b border-slate-100">
-          {(data?.dailyTrend || [
-            { day: "Mon", amt: 2150, height: "70%" },
-            { day: "Tue", amt: 1840, height: "60%" },
-            { day: "Wed", amt: 2420, height: "82%" },
-            { day: "Thu", amt: 1980, height: "65%" },
-            { day: "Fri", amt: 2890, height: "95%" },
-            { day: "Sat", amt: 3100, height: "100%" },
-            { day: "Today", amt: todayEarnings, height: "62%", isToday: true },
-          ]).map((bar, idx) => (
+          {(data?.dailyTrend || []).map((bar, idx) => (
             <div key={idx} className="flex flex-col items-center gap-2 h-full justify-end group">
               <span className="text-[10px] font-bold text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity">
                 ₹{bar.amt}

@@ -3,6 +3,7 @@ import dbConnect from "@/lib/mongoose";
 import Ride from "@/models/Ride";
 import User from "@/models/User";
 import { getDriverUser } from "@/lib/driverAuth";
+import { checkDriverVerification } from "@/lib/driverCompliance";
 
 export const dynamic = "force-dynamic";
 
@@ -12,9 +13,14 @@ export async function GET() {
     await dbConnect();
     const user = await getDriverUser();
 
-    // If driver is offline or already on a trip, no new dispatches
-    if (!user.isOnline) {
-      return NextResponse.json({ status: "success", data: null });
+    // Check document verification
+    const verification = checkDriverVerification(user);
+    if (!verification.isVerified || !user.isOnline) {
+      return NextResponse.json({
+        status: "success",
+        data: null,
+        verification,
+      });
     }
 
     const activeRide = await Ride.findOne({
@@ -65,6 +71,7 @@ export async function GET() {
       surgeMultiplier: 1.3,
       vehicleType: searchingRide.vehicleType || "Cab Premium",
       paymentMethod: searchingRide.paymentMethod || "UPI",
+      otp: searchingRide.otp,
       expiresAt: Date.now() + 16000,
     };
 
@@ -80,6 +87,22 @@ export async function POST() {
   try {
     await dbConnect();
     const user = await getDriverUser();
+
+    // STRICT: Unverified drivers cannot receive dispatches
+    const verification = checkDriverVerification(user);
+    if (!verification.isVerified) {
+      return NextResponse.json(
+        {
+          status: "error",
+          code: "DOCUMENTS_UNVERIFIED",
+          message:
+            verification.reason ||
+            "Cannot dispatch ride: All driver and vehicle documents must be verified before receiving ride requests.",
+          verification,
+        },
+        { status: 403 }
+      );
+    }
 
     // Ensure or find a rider user to attach as passenger
     let rider = await User.findOne({ role: "RIDER" });
@@ -171,6 +194,7 @@ export async function POST() {
       surgeMultiplier: 1.4,
       vehicleType: createdRide.vehicleType,
       paymentMethod: createdRide.paymentMethod,
+      otp: createdRide.otp,
       expiresAt: Date.now() + 16000,
     };
 

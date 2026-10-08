@@ -44,13 +44,25 @@ export async function GET(
         try {
           const ride = await Ride.findOne({ _id: id, rider: user._id });
           if (!ride) {
-            controller.enqueue(encoder.encode(`event: error\ndata: ${JSON.stringify({ message: "Ride not found" })}\n\n`));
+            if (!isClosed) {
+              try {
+                controller.enqueue(encoder.encode(`event: error\ndata: ${JSON.stringify({ message: "Ride not found" })}\n\n`));
+                controller.close();
+              } catch {}
+            }
             clearInterval(interval);
-            controller.close();
             return;
           }
 
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(ride)}\n\n`));
+          if (!isClosed) {
+            try {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(ride)}\n\n`));
+            } catch {
+              isClosed = true;
+              clearInterval(interval);
+              return;
+            }
+          }
 
           // If ride is finished, close the stream
           if (ride.status === "COMPLETED" || ride.status === "CANCELLED") {
@@ -59,9 +71,11 @@ export async function GET(
               try { controller.close(); } catch {}
             }, 1000);
           }
-        } catch (err) {
-          console.error("[SSE Error]:", err);
+        } catch (err: any) {
           clearInterval(interval);
+          if (err?.code !== "ERR_INVALID_STATE") {
+            console.error("[SSE Error]:", err);
+          }
           try { controller.close(); } catch {}
         }
       }, 2500);

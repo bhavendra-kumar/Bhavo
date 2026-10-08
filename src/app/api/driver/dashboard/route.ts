@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongoose";
 import Ride from "@/models/Ride";
 import { getDriverUser } from "@/lib/driverAuth";
+import { checkDriverVerification } from "@/lib/driverCompliance";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +10,14 @@ export async function GET() {
   try {
     await dbConnect();
     const user = await getDriverUser();
+    const verification = checkDriverVerification(user);
+
+    // If documents are not verified, driver is strictly not allowed to be online
+    if (!verification.isVerified && user.isOnline) {
+      user.isOnline = false;
+      user.dutyState = "OFFLINE";
+      await user.save();
+    }
 
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
@@ -39,12 +48,11 @@ export async function GET() {
       0
     );
 
-    // Baseline fallback to retain realistic active driver appearance if fresh account
-    const todayEarnings = todayEarningsFromDb > 0 ? todayEarningsFromDb : 1865;
-    const weeklyEarnings = weeklyEarningsFromDb > 0 ? weeklyEarningsFromDb : 14280;
-    const tripsCompleted = todayCompleted.length > 0 ? todayCompleted.length : 7;
+    const todayEarnings = todayEarningsFromDb;
+    const weeklyEarnings = weeklyEarningsFromDb;
+    const tripsCompleted = todayCompleted.length;
 
-    // Driver profile
+    // Driver profile from MongoDB
     const driverProfile = {
       id: String(user._id),
       name: user.name,
@@ -52,10 +60,10 @@ export async function GET() {
       phone: user.phone || "+91 98765 43210",
       rating: user.rating || 4.94,
       avatar: user.avatar || null,
-      walletBalance: user.walletBalance ?? 4250,
+      walletBalance: user.walletBalance ?? 0,
       role: "DRIVER",
-      isOnline: user.isOnline ?? true,
-      dutyState: user.dutyState || "ONLINE_SEARCHING",
+      isOnline: verification.isVerified ? (user.isOnline ?? true) : false,
+      dutyState: verification.isVerified ? (user.dutyState || "ONLINE_SEARCHING") : "OFFLINE",
     };
 
     // Find real active ride assigned to this driver
@@ -98,24 +106,24 @@ export async function GET() {
       };
     }
 
-    // Fetch recent trips from MongoDB
+    // Fetch real recent trips from MongoDB
     const pastRides = await Ride.find({
       driver: user._id,
       status: { $in: ["COMPLETED", "CANCELLED"] },
     })
       .populate("rider", "name")
       .sort({ updatedAt: -1 })
-      .limit(6);
+      .limit(10);
 
     const recentTrips = pastRides.map((r) => {
       const rObj = (r.rider as unknown as { name?: string }) || {};
       return {
         id: String(r._id),
-        riderName: rObj.name || "Passenger " + String(r._id).slice(-4),
+        riderName: rObj.name || (r.driverDetails?.name ? "Passenger " + String(r._id).slice(-4) : "Rider"),
         pickup: r.pickup.address,
         dropoff: r.dropoff.address,
         fare: r.fare,
-        tip: r.tip || 20,
+        tip: r.tip || 0,
         distance: r.distance,
         time: new Date(r.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         vehicleType: r.vehicleType,
@@ -123,43 +131,11 @@ export async function GET() {
       };
     });
 
-    const defaultRecentTrips = [
-      {
-        id: "ride-hist-1",
-        riderName: "Aarav Sharma",
-        pickup: "Sector 18 Metro Station",
-        dropoff: "Bhavo Tech Park, Sector 62",
-        fare: 280,
-        tip: 30,
-        distance: "7.2 km",
-        time: "45 mins ago",
-        vehicleType: "Cab Premium",
-        paymentMethod: "UPI",
-      },
-      {
-        id: "ride-hist-2",
-        riderName: "Meera Sen",
-        pickup: "Indirapuram Habitat Center",
-        dropoff: "Noida Electronic City",
-        fare: 195,
-        tip: 0,
-        distance: "4.8 km",
-        time: "2 hours ago",
-        vehicleType: "Cab Economy",
-        paymentMethod: "WALLET",
-      },
-      {
-        id: "ride-hist-3",
-        riderName: "Vikram Malhotra",
-        pickup: "Botanical Garden Gate 2",
-        dropoff: "DLF Mall of India",
-        fare: 140,
-        tip: 20,
-        distance: "3.1 km",
-        time: "3.5 hours ago",
-        vehicleType: "Auto",
-        paymentMethod: "CASH",
-      },
+    const surgeAreas = [
+      { id: "surge-1", name: "Cyber City & DLF Hub", multiplier: 1.6, coordinates: [28.4900, 77.0900], radius: 1800 },
+      { id: "surge-2", name: "Sector 62 IT Tech Zone", multiplier: 1.4, coordinates: [28.6250, 77.3750], radius: 1500 },
+      { id: "surge-3", name: "Airport Terminal 3 Gate", multiplier: 1.9, coordinates: [28.5562, 77.1000], radius: 2200 },
+      { id: "surge-4", name: "Connaught Place Central", multiplier: 1.3, coordinates: [28.6315, 77.2167], radius: 1200 },
     ];
 
     return NextResponse.json({
@@ -170,89 +146,30 @@ export async function GET() {
           todayEarnings,
           weeklyEarnings,
           tripsCompleted,
-          onlineMinutes: 325,
-          acceptanceRate: 96,
+          onlineMinutes: Math.min(480, tripsCompleted * 35 + (tripsCompleted > 0 ? 45 : 0)),
+          acceptanceRate: 98,
           rating: user.rating || 4.94,
           targetTrips: 10,
           targetBonus: 350,
         },
-        vehicle: user.driverVehicle || {
-          model: "Tata Tigor EV (White)",
-          numberPlate: "DL-01-EV-4429",
-          type: "Cab Premium (EV)",
-          fuelType: "EV",
-          batteryOrFuelLevel: 82,
-          documentsVerified: true,
-          insuranceValidUntil: "18 Dec 2027",
+        verification,
+        vehicle: {
+          ...(user.driverVehicle?.toObject ? user.driverVehicle.toObject() : user.driverVehicle || {}),
+          model: user.driverVehicle?.model || "Tata Tigor EV (White)",
+          numberPlate: user.driverVehicle?.numberPlate || "DL-01-EV-4429",
+          type: user.driverVehicle?.type || "Cab Premium (EV)",
+          fuelType: user.driverVehicle?.fuelType || "EV",
+          batteryOrFuelLevel: user.driverVehicle?.batteryOrFuelLevel ?? 82,
+          documentsVerified: verification.isVerified,
+          insuranceValidUntil: user.driverVehicle?.insuranceValidUntil || "18 Dec 2027",
         },
         activeRide,
-        recentTrips: recentTrips.length > 0 ? recentTrips : defaultRecentTrips,
+        recentTrips,
+        surgeAreas,
       },
     });
   } catch (error) {
     console.error("[Driver Dashboard API Error]:", error);
-    return NextResponse.json({
-      status: "success",
-      data: {
-        profile: {
-          id: "driver-101",
-          name: "Rajesh Kumar",
-          email: "rajesh.driver@bhavo.in",
-          phone: "+91 98765 43210",
-          rating: 4.94,
-          avatar: null,
-          walletBalance: 4250,
-          role: "DRIVER",
-          isOnline: true,
-          dutyState: "ONLINE_SEARCHING",
-        },
-        stats: {
-          todayEarnings: 1865,
-          weeklyEarnings: 14280,
-          tripsCompleted: 7,
-          onlineMinutes: 325,
-          acceptanceRate: 96,
-          rating: 4.94,
-          targetTrips: 10,
-          targetBonus: 350,
-        },
-        vehicle: {
-          model: "Tata Tigor EV (White)",
-          numberPlate: "DL-01-EV-4429",
-          type: "Cab Premium (EV)",
-          fuelType: "EV",
-          batteryOrFuelLevel: 82,
-          documentsVerified: true,
-          insuranceValidUntil: "18 Dec 2027",
-        },
-        activeRide: null,
-        recentTrips: [
-          {
-            id: "ride-hist-1",
-            riderName: "Aarav Sharma",
-            pickup: "Sector 18 Metro Station",
-            dropoff: "Bhavo Tech Park, Sector 62",
-            fare: 280,
-            tip: 30,
-            distance: "7.2 km",
-            time: "45 mins ago",
-            vehicleType: "Cab Premium",
-            paymentMethod: "UPI",
-          },
-          {
-            id: "ride-hist-2",
-            riderName: "Meera Sen",
-            pickup: "Indirapuram Habitat Center",
-            dropoff: "Noida Electronic City",
-            fare: 195,
-            tip: 0,
-            distance: "4.8 km",
-            time: "2 hours ago",
-            vehicleType: "Cab Economy",
-            paymentMethod: "WALLET",
-          },
-        ],
-      },
-    });
+    return NextResponse.json({ status: "error", message: "Failed to load dashboard data" }, { status: 500 });
   }
 }

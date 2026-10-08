@@ -31,16 +31,15 @@ export async function GET() {
 
     const weekGrossDb = weekRides.reduce((acc, r) => acc + (r.fare || 0) + (r.tip || 0), 0);
 
-    const todayEarnings = todayGrossDb > 0 ? todayGrossDb : 1865;
-    const weeklyEarnings = weekGrossDb > 0 ? weekGrossDb : 14280;
-    const tripsTodayCount = todayRides.length > 0 ? todayRides.length : 7;
-    const tripsWeekCount = weekRides.length > 0 ? weekRides.length : 44;
-    const todayTips = todayTipsDb > 0 ? todayTipsDb : 85;
+    const todayEarnings = todayGrossDb;
+    const weeklyEarnings = weekGrossDb;
+    const tripsTodayCount = todayRides.length;
+    const tripsWeekCount = weekRides.length;
+    const todayTips = todayTipsDb;
 
-    // Build 7-day trend
+    // Build 7-day trend directly from MongoDB week rides
     const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const dailyTrend = [];
-    const baselineAmounts = [2150, 1840, 2420, 1980, 2890, 3100, todayEarnings];
 
     for (let i = 6; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
@@ -52,13 +51,12 @@ export async function GET() {
         return uTime >= d.getTime() && uTime < nextD.getTime();
       });
 
-      const dayDbAmount = ridesForDay.reduce((acc, r) => acc + (r.fare || 0) + (r.tip || 0), 0);
-      const amount = dayDbAmount > 0 ? dayDbAmount : isToday ? todayEarnings : baselineAmounts[6 - i] || 1950;
+      const amount = ridesForDay.reduce((acc, r) => acc + (r.fare || 0) + (r.tip || 0), 0);
 
       dailyTrend.push({
         day: isToday ? "Today" : dayNames[d.getDay()],
         amt: amount,
-        height: `${Math.min(100, Math.max(30, Math.round((amount / 3500) * 100)))}%`,
+        height: `${Math.min(100, Math.max(12, Math.round((amount / 3000) * 100)))}%`,
         isToday,
       });
     }
@@ -66,14 +64,14 @@ export async function GET() {
     return NextResponse.json({
       status: "success",
       data: {
-        walletBalance: user.walletBalance ?? 4250,
+        walletBalance: user.walletBalance ?? 0,
         todayEarnings,
         weeklyEarnings,
         tripsToday: tripsTodayCount,
         tripsWeek: tripsWeekCount,
         tipsToday: todayTips,
-        incentivesBonusWeek: 1200,
-        averagePerTrip: Math.round(todayEarnings / (tripsTodayCount || 1)),
+        incentivesBonusWeek: tripsWeekCount >= 10 ? 1200 : 0,
+        averagePerTrip: tripsTodayCount > 0 ? Math.round(todayEarnings / tripsTodayCount) : 0,
         bankAccount: {
           bankName: "HDFC Bank",
           accountNumber: "•••• 4921",
@@ -98,7 +96,7 @@ export async function POST(req: Request) {
     await dbConnect();
     const user = await getDriverUser();
 
-    const currentBalance = user.walletBalance ?? 4250;
+    const currentBalance = user.walletBalance ?? 0;
     const cashoutAmount = Number(amount) || currentBalance;
 
     if (cashoutAmount <= 0) {
