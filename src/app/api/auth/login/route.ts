@@ -5,12 +5,12 @@ import dbConnect from "@/lib/mongoose";
 import User from "@/models/User";
 
 const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || process.env.AUTH_SECRET
+  process.env.JWT_SECRET || process.env.AUTH_SECRET || "fallback_secret_please_change_me_in_production"
 );
 
 export async function POST(req: Request) {
   try {
-    const { email, password } = await req.json();
+    const { email, password, role } = await req.json();
 
     if (!email || !password) {
       return NextResponse.json({ status: "error", message: "Email and password are required" }, { status: 400 });
@@ -33,6 +33,12 @@ export async function POST(req: Request) {
     if (!isPasswordValid) {
       console.warn(`[Auth Login 401] Password mismatch for user: "${user.email}"`);
       return NextResponse.json({ status: "error", message: "Invalid email or password" }, { status: 401 });
+    }
+
+    // If user logged in selecting a specific role (e.g. "DRIVER" or "RIDER"), activate that role
+    if (role && (role === "DRIVER" || role === "RIDER")) {
+      user.role = role;
+      await user.save();
     }
 
     console.log(`[Auth Login 200] Successful login for: "${user.email}" (${user.role})`);

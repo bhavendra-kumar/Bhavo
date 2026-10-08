@@ -219,7 +219,7 @@ export default function Navbar() {
         {/* Mobile drawer */}
         <div
           style={{
-            maxHeight: menuOpen ? 400 : 0,
+            maxHeight: menuOpen ? 460 : 0,
             overflow: "hidden",
             transition: "max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
             background: "rgba(255,255,255,0.97)",
@@ -227,7 +227,7 @@ export default function Navbar() {
             borderTop: menuOpen ? "1px solid rgba(0,0,0,0.06)" : "none",
           }}
         >
-          <div style={{ padding: "16px 28px 24px", display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ padding: "16px 28px 24px", display: "flex", flexDirection: "column", gap: 6 }}>
             {NAV_LINKS.map((link) => (
               <Link
                 key={link}
@@ -247,6 +247,63 @@ export default function Navbar() {
                 {link}
               </Link>
             ))}
+
+            <div style={{ height: 1, background: "rgba(0,0,0,0.06)", margin: "8px 0" }} />
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <Link
+                href="/login"
+                onClick={() => setMenuOpen(false)}
+                style={{
+                  fontSize: 15,
+                  fontWeight: 600,
+                  color: "#0f172a",
+                  textDecoration: "none",
+                  padding: "12px 16px",
+                  borderRadius: 10,
+                  border: "1px solid #e2e8f0",
+                  textAlign: "center",
+                  background: "#fff",
+                }}
+              >
+                Log In
+              </Link>
+              <Link
+                href="/signup?role=driver"
+                onClick={() => setMenuOpen(false)}
+                style={{
+                  fontSize: 15,
+                  fontWeight: 600,
+                  color: "#0d9488",
+                  textDecoration: "none",
+                  padding: "12px 16px",
+                  borderRadius: 10,
+                  border: "1.5px solid rgba(13,148,136,0.3)",
+                  textAlign: "center",
+                  background: "rgba(13,148,136,0.05)",
+                }}
+              >
+                Become a Driver
+              </Link>
+              <Link
+                href="/signup"
+                onClick={() => setMenuOpen(false)}
+                className="btn-shimmer"
+                style={{
+                  background: "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)",
+                  color: "#fff",
+                  fontSize: 15,
+                  fontWeight: 700,
+                  textDecoration: "none",
+                  padding: "12px 16px",
+                  borderRadius: 10,
+                  textAlign: "center",
+                  boxShadow: "0 4px 16px rgba(13,148,136,0.35)",
+                }}
+              >
+                Start a Ride →
+              </Link>
+            </div>
           </div>
         </div>
       </nav>

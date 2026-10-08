@@ -7,12 +7,18 @@ import { useRouter } from "next/navigation";
 interface LoginProps {
   isRegistered?: boolean;
   initialEmail?: string;
+  initialRole?: "RIDER" | "DRIVER";
 }
 
-export default function Login({ isRegistered = false, initialEmail = "" }: LoginProps) {
+export default function Login({ isRegistered = false, initialEmail = "", initialRole = "RIDER" }: LoginProps) {
   const router = useRouter();
+  const [role, setRole] = useState<"RIDER" | "DRIVER">(initialRole);
   const [successMsg, setSuccessMsg] = useState("");
-  const displayMsg = successMsg || (isRegistered ? "Registration successful! Please log in." : "");
+  const displayMsg = successMsg || (isRegistered
+    ? (role === "DRIVER"
+      ? "Captain registration successful! Please log in to your driver portal."
+      : "Rider registration successful! Please log in to your account.")
+    : "");
   type ViewState = "login" | "forgot_otp" | "forgot_reset";
   const [view, setView] = useState<ViewState>("login");
   const [email, setEmail] = useState(initialEmail);
@@ -122,7 +128,7 @@ export default function Login({ isRegistered = false, initialEmail = "" }: Login
         const res = await fetch("/api/auth/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+          body: JSON.stringify({ email: email.trim().toLowerCase(), password, role }),
         });
 
         if (!res.ok) {
@@ -131,7 +137,13 @@ export default function Login({ isRegistered = false, initialEmail = "" }: Login
           setShake(true);
           setTimeout(() => setShake(false), 500);
         } else {
-          router.push("/user/dashboard");
+          const resData = await res.json();
+          const userRole = resData?.data?.role || role;
+          if (userRole === "DRIVER") {
+            router.push("/driver");
+          } else {
+            router.push("/user/dashboard");
+          }
         }
       } catch {
         setErrors({ form: "An unexpected error occurred." });
@@ -266,11 +278,9 @@ export default function Login({ isRegistered = false, initialEmail = "" }: Login
         }
       `}</style>
 
-      <div style={{ display: "flex", minHeight: "100vh", fontFamily: "var(--font-geist-sans), -apple-system, sans-serif", alignItems: "flex-start" }}>
+      <div style={{ display: "flex", minHeight: "100vh", fontFamily: "var(--font-outfit), system-ui, sans-serif", alignItems: "flex-start" }}>
 
-        {/* ════════════════════════════════════════════
-            LEFT — Animated Night City Scene
-        ════════════════════════════════════════════ */}
+
         <div className="auth-scene" style={{
           position: "sticky", top: 0, width: "52%", flexShrink: 0, height: "100vh",
           background: "linear-gradient(180deg, #020b0b 0%, #021a1a 45%, #042f2e 100%)",
@@ -480,15 +490,135 @@ export default function Login({ isRegistered = false, initialEmail = "" }: Login
             {/* Card top accent */}
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 4, background: "linear-gradient(90deg, #0d9488, #34d399, #0d9488)", borderRadius: "28px 28px 0 0", backgroundSize: "200% 100%", animation: "lane-dash 3s linear infinite" }} />
 
-            <div style={{ marginBottom: 28 }}>
+            {/* Top Dual Section Selector (Login as Rider / Driver) */}
+            {view === "login" && (
+              <div style={{ marginBottom: 24 }}>
+                <div style={{
+                  display: "flex",
+                  background: "#f1f5f9",
+                  borderRadius: 16,
+                  padding: 4,
+                  position: "relative",
+                  border: "1px solid #e2e8f0"
+                }}>
+                  {/* Sliding indicator */}
+                  <div style={{
+                    position: "absolute",
+                    top: 4,
+                    bottom: 4,
+                    left: role === "RIDER" ? 4 : "50%",
+                    right: role === "RIDER" ? "50%" : 4,
+                    background: "#ffffff",
+                    borderRadius: 12,
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                    border: role === "RIDER" ? "1px solid rgba(13,148,136,0.25)" : "1px solid rgba(217,119,6,0.25)"
+                  }} />
+
+                  {/* Rider Login Tab */}
+                  <button
+                    type="button"
+                    id="tab-login-rider"
+                    onClick={() => { setRole("RIDER"); setErrors({}); }}
+                    style={{
+                      flex: 1,
+                      padding: "11px 8px",
+                      border: "none",
+                      background: "transparent",
+                      cursor: "pointer",
+                      position: "relative",
+                      zIndex: 1,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 7,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: role === "RIDER" ? "#0f766e" : "#64748b",
+                      transition: "color 0.2s",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    <span style={{ fontSize: 16 }}>🚗</span>
+                    <span>Login as Rider</span>
+                  </button>
+
+                  {/* Driver Login Tab */}
+                  <button
+                    type="button"
+                    id="tab-login-driver"
+                    onClick={() => { setRole("DRIVER"); setErrors({}); }}
+                    style={{
+                      flex: 1,
+                      padding: "11px 8px",
+                      border: "none",
+                      background: "transparent",
+                      cursor: "pointer",
+                      position: "relative",
+                      zIndex: 1,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 7,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: role === "DRIVER" ? "#b45309" : "#64748b",
+                      transition: "color 0.2s",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    <span style={{ fontSize: 16 }}>🚖</span>
+                    <span>Login as Driver</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div style={{ marginBottom: 24 }}>
               {view === "login" && (
                 <>
-                  <h2 style={{ fontSize: 26, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.8px", marginBottom: 6 }}>
-                    Welcome back 👋
+                  <div style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "4px 10px",
+                    borderRadius: 20,
+                    fontSize: 11,
+                    fontWeight: 800,
+                    letterSpacing: "0.5px",
+                    textTransform: "uppercase",
+                    marginBottom: 10,
+                    background: role === "RIDER" ? "rgba(13,148,136,0.1)" : "rgba(245,158,11,0.14)",
+                    color: role === "RIDER" ? "#0f766e" : "#b45309"
+                  }}>
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: role === "RIDER" ? "#0d9488" : "#f59e0b" }} />
+                    {role === "RIDER" ? "Passenger Portal" : "Captain Hub"}
+                  </div>
+                  <h2 style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.8px", marginBottom: 6 }}>
+                    {role === "RIDER" ? "Login as Rider" : "Login as Driver"}
                   </h2>
-                  <p style={{ color: "#64748b", fontSize: 14, lineHeight: 1.5 }}>
-                    Sign in to your Bhavo account.
+                  <p style={{ color: "#64748b", fontSize: 13.5, lineHeight: 1.5 }}>
+                    {role === "RIDER"
+                      ? "Sign in to book rides, track commutes, and access your Bhavo wallet."
+                      : "Welcome back, Captain! Sign in to access your shift dispatches and earnings."}
                   </p>
+
+                  {/* Role-specific Value Props */}
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
+                    {role === "RIDER" ? (
+                      <>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: "#0d9488", background: "#f0fdfa", border: "1px solid #ccfbf1", padding: "3px 8px", borderRadius: 6 }}>🚗 Instant Rides</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: "#0d9488", background: "#f0fdfa", border: "1px solid #ccfbf1", padding: "3px 8px", borderRadius: 6 }}>⚡ Live ETA</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: "#0d9488", background: "#f0fdfa", border: "1px solid #ccfbf1", padding: "3px 8px", borderRadius: 6 }}>💳 Smart Wallet</span>
+                      </>
+                    ) : (
+                      <>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: "#b45309", background: "#fffbeb", border: "1px solid #fef3c7", padding: "3px 8px", borderRadius: 6 }}>🚖 Active Dispatches</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: "#b45309", background: "#fffbeb", border: "1px solid #fef3c7", padding: "3px 8px", borderRadius: 6 }}>💰 Shift Earnings</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: "#b45309", background: "#fffbeb", border: "1px solid #fef3c7", padding: "3px 8px", borderRadius: 6 }}>🛡️ Captain Support</span>
+                      </>
+                    )}
+                  </div>
                 </>
               )}
               {view === "forgot_otp" && (
@@ -657,7 +787,7 @@ export default function Login({ isRegistered = false, initialEmail = "" }: Login
                       />
                     ))}
                   </div>
-                  {errors.otp && <p className="field-error"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>{errors.otp}</p>}
+                  {errors.otp && <p className="field-error"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" /></svg>{errors.otp}</p>}
 
                   {/* Resend & Email Change Controls */}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
@@ -732,7 +862,7 @@ export default function Login({ isRegistered = false, initialEmail = "" }: Login
                         )}
                       </button>
                     </div>
-                    {errors.newPassword && <p className="field-error"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>{errors.newPassword}</p>}
+                    {errors.newPassword && <p className="field-error"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" /></svg>{errors.newPassword}</p>}
                   </div>
 
                   <div>
@@ -756,7 +886,7 @@ export default function Login({ isRegistered = false, initialEmail = "" }: Login
                         )}
                       </button>
                     </div>
-                    {errors.confirmNewPassword && <p className="field-error"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>{errors.confirmNewPassword}</p>}
+                    {errors.confirmNewPassword && <p className="field-error"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" /></svg>{errors.confirmNewPassword}</p>}
                   </div>
                 </>
               )}
@@ -767,17 +897,29 @@ export default function Login({ isRegistered = false, initialEmail = "" }: Login
                 className="btn-shimmer"
                 style={{
                   width: "100%", padding: "13px 20px",
-                  background: loading ? "#6ee7df" : "linear-gradient(135deg, #0d9488 0%, #059669 100%)",
+                  background: loading
+                    ? (role === "RIDER" ? "#6ee7df" : "#fed7aa")
+                    : (role === "RIDER"
+                      ? "linear-gradient(135deg, #0d9488 0%, #059669 100%)"
+                      : "linear-gradient(135deg, #0f766e 0%, #0d9488 40%, #b45309 100%)"),
                   color: "#fff", border: "none", borderRadius: 13,
                   fontSize: 14, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer",
-                  boxShadow: "0 4px 20px rgba(13,148,136,0.3), inset 0 1px 0 rgba(255,255,255,0.15)",
+                  boxShadow: role === "RIDER" ? "0 4px 20px rgba(13,148,136,0.3), inset 0 1px 0 rgba(255,255,255,0.15)" : "0 4px 20px rgba(180,83,9,0.25), inset 0 1px 0 rgba(255,255,255,0.15)",
                   transition: "all 0.25s ease", fontFamily: "inherit",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                   opacity: loading ? 0.8 : 1,
                   marginTop: 4,
                 }}
-                onMouseEnter={(e) => { if (!loading) { (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 28px rgba(13,148,136,0.4), inset 0 1px 0 rgba(255,255,255,0.2)"; } }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 20px rgba(13,148,136,0.3), inset 0 1px 0 rgba(255,255,255,0.15)"; }}
+                onMouseEnter={(e) => {
+                  if (!loading) {
+                    (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)";
+                    (e.currentTarget as HTMLElement).style.boxShadow = role === "RIDER" ? "0 8px 28px rgba(13,148,136,0.4)" : "0 8px 28px rgba(180,83,9,0.35)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
+                  (e.currentTarget as HTMLElement).style.boxShadow = role === "RIDER" ? "0 4px 20px rgba(13,148,136,0.3)" : "0 4px 20px rgba(180,83,9,0.25)";
+                }}
               >
                 {loading ? (
                   <>
@@ -786,7 +928,7 @@ export default function Login({ isRegistered = false, initialEmail = "" }: Login
                   </>
                 ) : (
                   <>
-                    {view === "login" && "Login In"}
+                    {view === "login" && (role === "RIDER" ? "Login as Rider" : "Login as Driver")}
                     {view === "forgot_otp" && "Verify OTP"}
                     {view === "forgot_reset" && "Reset Password"}
                     <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -800,7 +942,7 @@ export default function Login({ isRegistered = false, initialEmail = "" }: Login
             {view === "login" && (
               <>
                 {/* ── Divider ── */}
-                <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "24px 0 20px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "22px 0 18px" }}>
                   <div style={{ flex: 1, height: 1, background: "#f1f5f9" }} />
                   <span style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", letterSpacing: "0.5px", textTransform: "uppercase" }}>or continue with</span>
                   <div style={{ flex: 1, height: 1, background: "#f1f5f9" }} />
@@ -808,19 +950,20 @@ export default function Login({ isRegistered = false, initialEmail = "" }: Login
 
                 {/* ── Google Button (bottom) ── */}
                 <button
+                  type="button"
                   onClick={() => console.log("Google auth")}
                   style={{
                     width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
                     padding: "13px 20px",
                     background: "#fff", border: "1.5px solid #e2e8f0",
-                    borderRadius: 14, fontSize: 15, fontWeight: 700, color: "#1e293b",
+                    borderRadius: 14, fontSize: 14, fontWeight: 700, color: "#1e293b",
                     cursor: "pointer",
                     boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
                     transition: "all 0.2s ease", fontFamily: "inherit",
                   }}
                   onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLElement).style.borderColor = "#0d9488";
-                    (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 20px rgba(13,148,136,0.15)";
+                    (e.currentTarget as HTMLElement).style.borderColor = role === "RIDER" ? "#0d9488" : "#b45309";
+                    (e.currentTarget as HTMLElement).style.boxShadow = role === "RIDER" ? "0 4px 20px rgba(13,148,136,0.15)" : "0 4px 20px rgba(180,83,9,0.15)";
                     (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)";
                   }}
                   onMouseLeave={(e) => {
@@ -835,15 +978,26 @@ export default function Login({ isRegistered = false, initialEmail = "" }: Login
                     <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
                     <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
                   </svg>
-                  Continue with Google
+                  Continue as {role === "RIDER" ? "Rider" : "Driver"} with Google
                 </button>
 
-                {/* ── No account ── */}
-                <div style={{ marginTop: 24, textAlign: "center", color: "#64748b", fontSize: 14 }}>
-                  New to Bhavo?{" "}
-                  <Link href="/signup" style={{ color: "#0d9488", fontWeight: 700, textDecoration: "none" }}>
-                    Create an account →
-                  </Link>
+                {/* ── Registration link ── */}
+                <div style={{ marginTop: 22, textAlign: "center", color: "#64748b", fontSize: 13.5 }}>
+                  {role === "RIDER" ? (
+                    <>
+                      New to Bhavo?{" "}
+                      <Link href="/signup?role=rider" style={{ color: "#0d9488", fontWeight: 700, textDecoration: "none" }}>
+                        Register as Rider →
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      Want to drive with Bhavo?{" "}
+                      <Link href="/signup?role=driver" style={{ color: "#b45309", fontWeight: 700, textDecoration: "none" }}>
+                        Register as Driver →
+                      </Link>
+                    </>
+                  )}
                 </div>
               </>
             )}

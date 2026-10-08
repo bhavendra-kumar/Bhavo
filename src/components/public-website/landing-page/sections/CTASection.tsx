@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useInView } from "../hooks";
 
 export default function CTASection() {
@@ -27,7 +28,6 @@ export default function CTASection() {
           transition: "all 0.7s ease",
         }}
       >
-        {/* Decorative circles */}
         <div
           style={{
             position: "absolute",
@@ -98,7 +98,8 @@ export default function CTASection() {
             flexWrap: "wrap",
           }}
         >
-          <button
+          <Link
+            href="/signup"
             style={{
               background: "#fff",
               color: "#0d9488",
@@ -110,6 +111,10 @@ export default function CTASection() {
               cursor: "pointer",
               transition: "all 0.25s",
               boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
+              textDecoration: "none",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
             onMouseEnter={(e) => {
               (e.currentTarget as HTMLElement).style.transform =
@@ -125,8 +130,9 @@ export default function CTASection() {
             }}
           >
             Get Started Free →
-          </button>
-          <button
+          </Link>
+          <Link
+            href="/contact"
             style={{
               background: "rgba(255,255,255,0.12)",
               color: "#fff",
@@ -138,6 +144,10 @@ export default function CTASection() {
               cursor: "pointer",
               backdropFilter: "blur(8px)",
               transition: "all 0.25s",
+              textDecoration: "none",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
             onMouseEnter={(e) => {
               (e.currentTarget as HTMLElement).style.background =
@@ -153,7 +163,7 @@ export default function CTASection() {
             }}
           >
             Talk to Sales
-          </button>
+          </Link>
         </div>
       </div>
     </section>

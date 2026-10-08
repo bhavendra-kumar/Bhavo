@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 
 export default function Hero() {
   const [typed, setTyped] = useState("");
@@ -236,7 +237,8 @@ export default function Hero() {
           zIndex: 1,
         }}
       >
-        <button
+        <Link
+          href="/signup"
           className="btn-shimmer"
           style={{
             background: "linear-gradient(135deg, #0d9488, #0f766e)",
@@ -250,6 +252,10 @@ export default function Hero() {
             transition: "all 0.3s ease",
             boxShadow: "0 8px 32px rgba(13,148,136,0.35), inset 0 1px 0 rgba(255,255,255,0.15)",
             letterSpacing: "-0.2px",
+            textDecoration: "none",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
           onMouseEnter={(e) => {
             (e.currentTarget as HTMLElement).style.transform = "translateY(-3px) scale(1.02)";
@@ -261,8 +267,9 @@ export default function Hero() {
           }}
         >
           Get Started Free →
-        </button>
-        <button
+        </Link>
+        <Link
+          href="/signup?role=driver"
           style={{
             background: "#fff",
             color: "#0f172a",
@@ -274,6 +281,10 @@ export default function Hero() {
             cursor: "pointer",
             transition: "all 0.3s ease",
             boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+            textDecoration: "none",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
           onMouseEnter={(e) => {
             (e.currentTarget as HTMLElement).style.borderColor = "#0d9488";
@@ -289,7 +300,7 @@ export default function Hero() {
           }}
         >
           Become a Driver
-        </button>
+        </Link>
       </div>
     </section>
   );

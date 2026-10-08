@@ -5,6 +5,12 @@ export const metadata = {
   description: "Create a new Bhavo account.",
 };
 
-export default function SignUpPage() {
-  return <SignUp />;
+export default async function SignUpPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ role?: string }>;
+}) {
+  const params = searchParams ? await searchParams : undefined;
+  const initialRole = params?.role?.toUpperCase() === "DRIVER" ? "DRIVER" : "RIDER";
+  return <SignUp key={initialRole} initialRole={initialRole} />;
 }

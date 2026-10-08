@@ -1,4 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap");
 @import "tailwindcss";
 
 @layer base {
@@ -51,7 +50,7 @@
   }
 
   html, body {
-    font-family: "Outfit", system-ui, sans-serif;
+    font-family: var(--font-outfit), "Outfit", system-ui, sans-serif;
     background-color: #f0fdfa;
     color: #0f172a;
     -webkit-font-smoothing: antialiased;
@@ -69,6 +68,11 @@
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: #99f6e4; border-radius: 99px; }
   ::-webkit-scrollbar-thumb:hover { background: #5eead4; }
+
+  /* Prevent Leaflet maps and controls from bleeding through modals and overlays */
+  .leaflet-container {
+    z-index: 0 !important;
+  }
 }
 
 @layer utilities {
