@@ -77,20 +77,11 @@ export default function DriverSettings() {
 
   return (
     <div className="flex flex-col gap-6 max-w-4xl mx-auto w-full pb-10">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-            Captain Settings & Dispatch Filters
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Configure automated ride acceptance, navigation audio, and trip filters
-          </p>
-        </div>
-
+      <div className="flex items-center justify-end">
         <button
           onClick={handleSave}
           disabled={saving}
-          className="py-2.5 px-5 rounded-xl bg-teal-700 hover:bg-teal-800 text-white font-extrabold text-xs shadow-md transition-all active:scale-95 flex items-center gap-1.5"
+          className="py-2.5 px-5 rounded-xl bg-teal-700 hover:bg-teal-800 text-white font-extrabold text-xs shadow-md transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
         >
           {saving ? (
             <Loader2 size={16} className="animate-spin" />

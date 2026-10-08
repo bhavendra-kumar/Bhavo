@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useSyncExternalStore } from "react";
+import React, { useState, useEffect, useRef, useSyncExternalStore } from "react";
 import { Flame } from "lucide-react";
 import { useDriverStore } from "@/hooks/driver/useDriverStore";
 import L from "leaflet";
@@ -13,22 +13,67 @@ import {
   Popup,
   Circle,
   Polyline,
+  useMap,
 } from "react-leaflet";
+
+function MapController({ center }: { center: [number, number] }) {
+  const map = useMap();
+  const prevCenter = useRef<[number, number]>(center);
+  const isFirst = useRef(true);
+
+  useEffect(() => {
+    if (isFirst.current) {
+      isFirst.current = false;
+      return;
+    }
+    if (!map) return;
+    const hasMoved =
+      Math.abs(prevCenter.current[0] - center[0]) > 0.0001 ||
+      Math.abs(prevCenter.current[1] - center[1]) > 0.0001;
+
+    if (!hasMoved) return;
+    prevCenter.current = center;
+
+    try {
+      if (map.getContainer() && map.getPanes()?.mapPane) {
+        map.panTo(center, { animate: true, duration: 0.8 });
+      }
+    } catch { }
+  }, [center, map]);
+
+  return null;
+}
+
+const emptySubscribe = () => () => { };
 
 export default function DriverHeatmap() {
   const isClient = useSyncExternalStore(
-    () => () => {},
+    emptySubscribe,
     () => true,
     () => false
   );
+  const [mapKey] = useState(() => `driver-map-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`);
+  const mapRef = useRef<L.Map | null>(null);
   const [showSurge, setShowSurge] = useState(true);
   const { activeRide, surgeAreas, vehicle, driverCoordinates } = useDriverStore();
 
   const driverPos: [number, number] = driverCoordinates || [28.6139, 77.2090]; // Live synced telemetry
 
+  useEffect(() => {
+    return () => {
+      if (mapRef.current) {
+        try {
+          mapRef.current.off();
+          mapRef.current.remove();
+        } catch { }
+        mapRef.current = null;
+      }
+    };
+  }, []);
+
   if (!isClient) {
     return (
-      <div className="w-full h-80 rounded-2xl bg-slate-100 border border-slate-200 animate-pulse flex items-center justify-center text-slate-400 font-semibold text-sm">
+      <div className="w-full h-88 rounded-3xl bg-slate-100 border border-slate-200 animate-pulse flex items-center justify-center text-slate-400 font-semibold text-sm">
         Loading Driver Live Map & Surge Zones...
       </div>
     );
@@ -95,11 +140,10 @@ export default function DriverHeatmap() {
         <div className="pointer-events-auto flex items-center gap-1.5">
           <button
             onClick={() => setShowSurge(!showSurge)}
-            className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-md border transition-all ${
-              showSurge
+            className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-md border transition-all ${showSurge
                 ? "bg-amber-500 text-white border-amber-600 shadow-amber-500/20"
                 : "bg-white/95 text-slate-700 border-slate-200"
-            }`}
+              }`}
           >
             <Flame size={13} className={showSurge ? "animate-bounce" : "text-amber-500"} />
             <span>Surge Zones ({surgeAreas.length})</span>
@@ -110,12 +154,15 @@ export default function DriverHeatmap() {
       {/* Leaflet Map Canvas */}
       <div className="w-full h-88 relative z-0" style={{ zIndex: 0 }}>
         <MapContainer
+          key={mapKey}
+          ref={mapRef}
           center={driverPos}
           zoom={12}
           scrollWheelZoom={false}
           className="w-full h-full z-0"
           style={{ width: "100%", height: "100%", zIndex: 0 }}
         >
+          <MapController center={driverPos} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

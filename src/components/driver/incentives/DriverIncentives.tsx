@@ -90,50 +90,10 @@ export default function DriverIncentives() {
     }
   };
 
-  const quests: IQuest[] = data?.quests || [
-    {
-      id: "quest-daily",
-      title: "Daily Commute Rush Quest",
-      bonus: "₹350",
-      target: "Complete 10 rides today",
-      progress: "7/10 Completed",
-      percent: 70,
-      timeRemaining: "Ends at 11:00 PM tonight",
-      active: true,
-    },
-    {
-      id: "quest-peak",
-      title: "Peak Hour Surge Hunter",
-      bonus: "₹200",
-      target: "Complete 4 trips during morning rush (8:00 AM - 11:00 AM)",
-      progress: "4/4 Completed 🎉",
-      percent: 100,
-      timeRemaining: "Unlocked and credited to wallet",
-      active: false,
-      completed: true,
-    },
-    {
-      id: "quest-weekend",
-      title: "Weekend Warrior Marathon",
-      bonus: "₹1,500",
-      target: "Complete 35 trips between Friday 6 PM and Sunday midnight",
-      progress: "28/35 Completed",
-      percent: 80,
-      timeRemaining: "1 day 4 hours left",
-      active: true,
-    },
-  ];
+  const quests: IQuest[] = data?.quests || [];
 
   return (
     <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full pb-10">
-      <div>
-        <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-          Incentive Quests & Shift Bonuses
-        </h2>
-        <p className="text-xs text-slate-500 mt-0.5">
-          Hit ride milestone targets and earn extra guaranteed cash bonuses
-        </p>
-      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="p-5 rounded-3xl bg-amber-50 border border-amber-200 shadow-sm flex items-center gap-4">
@@ -143,7 +103,7 @@ export default function DriverIncentives() {
           <div>
             <span className="text-xs text-amber-800 font-bold uppercase">Today&apos;s Bonus Earned</span>
             <h3 className="text-2xl font-black text-amber-950 mt-0.5">
-              ₹{data?.todayBonusEarned ?? 200}
+              ₹{data?.todayBonusEarned ?? 0}
             </h3>
           </div>
         </div>
@@ -155,7 +115,7 @@ export default function DriverIncentives() {
           <div>
             <span className="text-xs text-teal-800 font-bold uppercase">This Week&apos;s Bonus</span>
             <h3 className="text-2xl font-black text-teal-950 mt-0.5">
-              ₹{data?.weekBonusEarned ?? 1200}
+              ₹{data?.weekBonusEarned ?? 0}
             </h3>
           </div>
         </div>
@@ -167,7 +127,7 @@ export default function DriverIncentives() {
           <div>
             <span className="text-xs text-emerald-800 font-bold uppercase">Upcoming Potential</span>
             <h3 className="text-2xl font-black text-emerald-950 mt-0.5">
-              ₹{data?.upcomingPotential ?? 1850}
+              ₹{data?.upcomingPotential ?? 0}
             </h3>
           </div>
         </div>
@@ -176,7 +136,12 @@ export default function DriverIncentives() {
       <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm flex flex-col gap-5">
         <h3 className="text-base font-extrabold text-slate-900">Active Shift Quests</h3>
         <div className="space-y-4">
-          {quests.map((q, i) => (
+          {quests.length === 0 ? (
+            <div className="text-center py-8 text-slate-400 text-xs font-semibold">
+              Loading active incentive quests...
+            </div>
+          ) : (
+            quests.map((q, i) => (
             <div
               key={q.id || i}
               className={`p-5 rounded-2xl border transition-all ${
@@ -233,7 +198,8 @@ export default function DriverIncentives() {
                 <span>{q.timeRemaining}</span>
               </div>
             </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
     </div>

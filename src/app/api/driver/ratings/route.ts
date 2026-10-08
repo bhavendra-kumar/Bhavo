@@ -10,51 +10,69 @@ export async function GET() {
     await dbConnect();
     const user = await getDriverUser();
 
-    const completedCount = await Ride.countDocuments({
+    const completedRides = await Ride.find({
       driver: user._id,
       status: "COMPLETED",
+    })
+      .populate("rider", "name")
+      .sort({ updatedAt: -1 });
+
+    const ratedRides = completedRides.filter((r) => r.riderRating && r.riderRating > 0);
+    const totalReviews = ratedRides.length;
+
+    let computedAvg = user.rating || 5.0;
+    if (totalReviews > 0) {
+      const sumRatings = ratedRides.reduce((acc, r) => acc + (r.riderRating || 5), 0);
+      computedAvg = Number((sumRatings / totalReviews).toFixed(2));
+    }
+
+    const fiveStarCount = ratedRides.filter((r) => r.riderRating === 5).length;
+    const fourStarCount = ratedRides.filter((r) => r.riderRating === 4).length;
+
+    // Real compliment tallies from database
+    const complimentCounts: Record<string, { count: number; iconKey: string }> = {
+      "Smooth & Safe Driving": { count: 0, iconKey: "ShieldCheck" },
+      "Polite & Professional": { count: 0, iconKey: "ThumbsUp" },
+      "Clean & Odor-free Car": { count: 0, iconKey: "Heart" },
+      "Punctual & Quick Pickup": { count: 0, iconKey: "Award" },
+    };
+
+    completedRides.forEach((r) => {
+      (r.riderCompliments || []).forEach((c) => {
+        if (complimentCounts[c]) {
+          complimentCounts[c].count++;
+        }
+      });
     });
 
-    const totalRidesRated = Math.max(completedCount, 500);
-    const fiveStarCount = Math.round(totalRidesRated * 0.976);
-    const fourStarCount = totalRidesRated - fiveStarCount;
+    const compliments = Object.entries(complimentCounts).map(([title, val]) => ({
+      title,
+      count: val.count,
+      iconKey: val.iconKey,
+    }));
 
-    const compliments = [
-      { title: "Smooth & Safe Driving", count: 142, iconKey: "ShieldCheck" },
-      { title: "Polite & Professional", count: 98, iconKey: "ThumbsUp" },
-      { title: "Clean & Odor-free Car", count: 86, iconKey: "Heart" },
-      { title: "Punctual & Quick Pickup", count: 64, iconKey: "Award" },
-    ];
+    const recentReviews = ratedRides.slice(0, 5).map((r) => {
+      const riderObj = (r.rider as unknown as { name?: string }) || {};
+      const complimentsText = r.riderCompliments && r.riderCompliments.length > 0
+        ? r.riderCompliments.join(", ") + " — excellent experience!"
+        : "Pleasant ride, safe driving and reached destination on time.";
 
-    const recentReviews = [
-      {
-        rider: "Dr. Sunita Rao",
-        rating: 5,
-        date: "Yesterday",
-        text: "Exceptional driving! Very peaceful ride, reached hospital right on time.",
-      },
-      {
-        rider: "Aarav Sharma",
-        rating: 5,
-        date: "2 days ago",
-        text: "Car was spotless and AC was perfect. Highly recommended captain!",
-      },
-      {
-        rider: "Kunal Mehra",
-        rating: 5,
-        date: "3 days ago",
-        text: "Great conversation and courteous behavior. 5 stars!",
-      },
-    ];
+      return {
+        rider: riderObj.name || (r.driverDetails?.name ? "Passenger " + String(r._id).slice(-4) : "Bhavo Rider"),
+        rating: r.riderRating || 5,
+        date: new Date(r.updatedAt).toLocaleDateString("en-IN", { month: "short", day: "numeric" }),
+        text: complimentsText,
+      };
+    });
 
     return NextResponse.json({
       status: "success",
       data: {
-        rating: user.rating || 4.94,
-        totalReviews: totalRidesRated,
+        rating: computedAvg,
+        totalReviews,
         fiveStarRides: fiveStarCount,
         fourStarRides: fourStarCount,
-        badge: "Top 5% Rated Captain",
+        badge: computedAvg >= 4.8 ? "Top 5% Rated Captain" : "Verified Bhavo Captain",
         compliments,
         recentReviews,
       },

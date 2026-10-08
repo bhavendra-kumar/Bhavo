@@ -17,34 +17,36 @@ interface IRatingData {
 export default function DriverRatings() {
   const { stats } = useDriverStore();
   const [data, setData] = useState<IRatingData | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let ignore = false;
     const fetchRatings = async () => {
       try {
+        setLoading(true);
         const res = await fetch("/api/driver/ratings");
         if (res.ok) {
           const json = await res.json();
-          if (json.data) {
+          if (!ignore && json.data) {
             setData(json.data);
           }
         }
       } catch (e) {
         console.error(e);
+      } finally {
+        if (!ignore) setLoading(false);
       }
     };
     fetchRatings();
+    return () => {
+      ignore = true;
+    };
   }, []);
 
-  const currentRating = data?.rating || stats.rating || 4.94;
-  const fiveStarCount = data?.fiveStarRides || 488;
-  const fourStarCount = data?.fourStarRides || 12;
-
-  const defaultCompliments = [
-    { title: "Smooth & Safe Driving", count: 142, icon: ShieldCheck },
-    { title: "Polite & Professional", count: 98, icon: ThumbsUp },
-    { title: "Clean & Odor-free Car", count: 86, icon: Heart },
-    { title: "Punctual & Quick Pickup", count: 64, icon: Award },
-  ];
+  const currentRating = data?.rating ?? stats.rating ?? 5.0;
+  const fiveStarCount = data?.fiveStarRides ?? 0;
+  const fourStarCount = data?.fourStarRides ?? 0;
+  const totalReviews = data?.totalReviews ?? (fiveStarCount + fourStarCount);
 
   const iconMap: Record<string, typeof ShieldCheck> = {
     ShieldCheck,
@@ -55,44 +57,17 @@ export default function DriverRatings() {
 
   const compliments = data?.compliments
     ? data.compliments.map((c) => ({
-      title: c.title,
-      count: c.count,
-      icon: iconMap[c.iconKey] || ShieldCheck,
-    }))
-    : defaultCompliments;
+        title: c.title,
+        count: c.count,
+        icon: iconMap[c.iconKey] || ShieldCheck,
+      }))
+    : [];
 
-  const recentReviews = data?.recentReviews || [
-    {
-      rider: "Dr. Sunita Rao",
-      rating: 5,
-      date: "Yesterday",
-      text: "Exceptional driving! Very peaceful ride, reached hospital right on time.",
-    },
-    {
-      rider: "Aarav Sharma",
-      rating: 5,
-      date: "2 days ago",
-      text: "Car was spotless and AC was perfect. Highly recommended captain!",
-    },
-    {
-      rider: "Kunal Mehra",
-      rating: 5,
-      date: "3 days ago",
-      text: "Great conversation and courteous behavior. 5 stars!",
-    },
-  ];
+  const recentReviews = data?.recentReviews || [];
 
   return (
     <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full pb-10">
-      <div>
-        <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-          Captain Ratings & Feedback
-        </h2>
-        <p className="text-xs text-slate-500 mt-0.5">
-          Passenger ratings, badge compliments, and performance standings
-        </p>
-      </div>
-
+      {/* Overview Card */}
       <div className="p-6 md:p-8 rounded-3xl bg-white border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-5">
           <div className="w-20 h-20 rounded-3xl bg-amber-50 border border-amber-200 flex flex-col items-center justify-center text-amber-500">
@@ -101,11 +76,11 @@ export default function DriverRatings() {
           </div>
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-teal-700 bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200">
-              {data?.badge || "Top 5% Rated Captain"}
+              {data?.badge || "Verified Bhavo Captain"}
             </span>
-            <h3 className="text-xl font-extrabold text-slate-900 mt-1">Excellent Performance Score</h3>
+            <h3 className="text-xl font-extrabold text-slate-900 mt-1">Captain Performance Score</h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Calculated across your last 500 completed rides (98% 5-Star reviews).
+              Calculated across {totalReviews} rated trip{totalReviews !== 1 ? "s" : ""} in the Bhavo database.
             </p>
           </div>
         </div>
@@ -145,22 +120,28 @@ export default function DriverRatings() {
       <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm flex flex-col gap-4">
         <h3 className="text-base font-extrabold text-slate-900">Recent Passenger Reviews</h3>
         <div className="divide-y divide-slate-100">
-          {recentReviews.map((r, i) => (
-            <div key={i} className="py-3.5 first:pt-1 last:pb-1">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="font-extrabold text-[14px] text-slate-800">{r.rider}</span>
-                  <div className="flex items-center text-amber-400">
-                    {[...Array(r.rating)].map((_, idx) => (
-                      <Star key={idx} size={12} className="fill-amber-400" />
-                    ))}
+          {recentReviews.length === 0 ? (
+            <p className="text-xs text-slate-400 py-6 text-center">
+              No passenger reviews recorded yet. Ratings from completed trips will appear here automatically.
+            </p>
+          ) : (
+            recentReviews.map((r, i) => (
+              <div key={i} className="py-3.5 first:pt-1 last:pb-1">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-[14px] text-slate-800">{r.rider}</span>
+                    <div className="flex items-center text-amber-400">
+                      {[...Array(r.rating)].map((_, idx) => (
+                        <Star key={idx} size={12} className="fill-amber-400" />
+                      ))}
+                    </div>
                   </div>
+                  <span className="text-[11px] text-slate-400">{r.date}</span>
                 </div>
-                <span className="text-[11px] text-slate-400">{r.date}</span>
+                <p className="text-xs text-slate-600 mt-1.5 italic">&ldquo;{r.text}&rdquo;</p>
               </div>
-              <p className="text-xs text-slate-600 mt-1.5 italic">&ldquo;{r.text}&rdquo;</p>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
     </div>

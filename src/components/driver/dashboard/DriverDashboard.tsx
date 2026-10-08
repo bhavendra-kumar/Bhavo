@@ -1,11 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import dynamic from "next/dynamic";
 import DriverDutyHero from "./DriverDutyHero";
+import DriverMetricsGrid from "./DriverMetricsGrid";
 import IncomingDispatchModal from "./IncomingDispatchModal";
 import ActiveTripManager from "./ActiveTripManager";
-import DriverMetricsGrid from "./DriverMetricsGrid";
 import RecentDriverTrips from "./RecentDriverTrips";
 import { useDriverStore } from "@/hooks/driver/useDriverStore";
 
@@ -17,34 +17,55 @@ const DriverHeatmap = dynamic(() => import("./DriverHeatmap"), {
     </div>
   ),
 });
+import Link from "next/link";
 import {
   Compass,
-  Fuel,
   Headphones,
   ChevronRight,
+  ShieldAlert,
 } from "lucide-react";
 import { useDialog } from "@/components/ui/DialogProvider";
 
 export default function DriverDashboard() {
-  const { activeRide, isOnline, pollDispatches, updateLocation } = useDriverStore();
+  const { activeRide, isOnline, pollDispatches, updateLocation, fetchDriverData, verification } = useDriverStore();
   const { alert } = useDialog();
 
+  // Fetch initial real backend data from MongoDB
+  useEffect(() => {
+    fetchDriverData();
+    const refreshTimer = setInterval(() => {
+      if (typeof document !== "undefined" && !document.hidden) {
+        fetchDriverData();
+      }
+    }, 6000);
+
+    return () => clearInterval(refreshTimer);
+  }, [fetchDriverData]);
+
   // Real-time dispatch listener polling
-  React.useEffect(() => {
-    if (!isOnline || activeRide) return;
+  useEffect(() => {
+    if (!isOnline || activeRide || !verification?.isVerified) return;
 
-    // Check immediately on mount/online
-    pollDispatches();
+    let isPolling = false;
+    const executePoll = async () => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      if (isPolling) return;
+      isPolling = true;
+      try {
+        await pollDispatches();
+      } finally {
+        isPolling = false;
+      }
+    };
 
-    const interval = setInterval(() => {
-      pollDispatches();
-    }, 3500);
+    executePoll();
+    const interval = setInterval(executePoll, 1500);
 
     return () => clearInterval(interval);
-  }, [isOnline, activeRide, pollDispatches]);
+  }, [isOnline, activeRide, pollDispatches, verification?.isVerified]);
 
   // Live telemetry updater during active trip
-  React.useEffect(() => {
+  useEffect(() => {
     if (!activeRide) return;
 
     const interval = setInterval(() => {
@@ -59,7 +80,7 @@ export default function DriverDashboard() {
         const deltaLng = (Math.random() - 0.5) * 0.0003;
         updateLocation([targetCoords[0] + deltaLat, targetCoords[1] + deltaLng]);
       }
-    }, 6000);
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [activeRide, updateLocation]);
@@ -74,29 +95,61 @@ export default function DriverDashboard() {
     });
   };
 
-  const handleEvPartnerHub = () => {
-    alert({
-      title: "Bhavo Captain EV & Fuel Partner Network",
-      message:
-        "Enjoy flat 15% cashback on fast DC charging at all Tata Power EV stations & ₹2.50/L rebate on HPCL fuel with your Bhavo Captain Fleet Card.",
-      confirmText: "Got It",
-      variant: "info",
-    });
-  };
-
   return (
     <div className="flex flex-col gap-6 flex-1 pb-10">
       {/* ── Incoming Ride Dispatch Overlay Modal ── */}
       <IncomingDispatchModal />
 
+      {/* ── Document Compliance Warning Banner (When Unverified) ── */}
+      {verification && !verification.isVerified && (
+        <div className="bg-linear-to-r from-amber-500/15 via-amber-500/10 to-rose-500/10 border border-amber-500/40 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-700 border border-amber-300 flex items-center justify-center shrink-0 mt-0.5">
+              <ShieldAlert size={22} className="text-amber-600 animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-extrabold text-[15px] text-slate-900">
+                  Compliance Action Required: Documents Under Verification
+                </h3>
+                <span className="text-[11px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                  Duty Restricted
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 mt-1 max-w-2xl leading-relaxed">
+                All vehicle and driver identity documents must be 100% verified by Bhavo Compliance before coming online. Until verification is complete, ride dispatches and acceptance remain strictly locked.
+              </p>
+              <div className="flex items-center gap-4 mt-2.5 text-xs font-semibold">
+                <span className="flex items-center gap-1.5 text-slate-700">
+                  <span className={`w-2 h-2 rounded-full ${verification.driverDocsVerified ? "bg-emerald-500" : "bg-amber-500"}`} />
+                  Driver Documents: {verification.driverDocsVerified ? "Verified" : "Pending Action"}
+                </span>
+                <span className="flex items-center gap-1.5 text-slate-700">
+                  <span className={`w-2 h-2 rounded-full ${verification.vehicleDocsVerified ? "bg-emerald-500" : "bg-amber-500"}`} />
+                  Vehicle Documents: {verification.vehicleDocsVerified ? "Verified" : "Pending Action"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <Link
+            href="/driver/vehicle"
+            className="w-full md:w-auto px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5 shrink-0 active:scale-95 cursor-pointer"
+          >
+            <span>Review & Verify Documents</span>
+            <ChevronRight size={14} />
+          </Link>
+        </div>
+      )}
+
       {/* ── Driver Duty Control & Status Hero ── */}
       <DriverDutyHero />
 
+      {/* ── 4-Bento Driver Shift Metrics Grid (Live from DB) ── */}
+      <DriverMetricsGrid />
+
       {/* ── Active Ride Commander (If Ride in Progress) ── */}
       {activeRide && <ActiveTripManager />}
-
-      {/* ── Shift Metrics & Performance Grid ── */}
-      <DriverMetricsGrid />
 
       {/* ── Main Operations Row: Map & Recent Trips ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -136,33 +189,6 @@ export default function DriverDashboard() {
               className="w-full py-2.5 px-4 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 font-bold text-xs border border-teal-200 transition-colors flex items-center justify-center gap-1.5"
             >
               <span>Set Route Filter (2 left)</span>
-              <ChevronRight size={14} />
-            </button>
-          </div>
-
-          {/* EV Charging & Partner Hub */}
-          <div className="bg-linear-to-br from-emerald-950 to-[#042f2e] rounded-3xl p-5 border border-emerald-500/30 text-white shadow-sm flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  PARTNER PERKS
-                </span>
-                <Fuel size={18} className="text-emerald-400" />
-              </div>
-
-              <h4 className="font-black text-lg text-white mt-3">
-                15% EV Fast Charge Rebate
-              </h4>
-              <p className="text-xs text-emerald-100/70 mt-1">
-                Show your Bhavo Captain ID at any Tata Power or Statiq charging hub to redeem instant discount.
-              </p>
-            </div>
-
-            <button
-              onClick={handleEvPartnerHub}
-              className="mt-4 w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition-colors flex items-center justify-center gap-1.5"
-            >
-              <span>Find Nearby Partner Stations</span>
               <ChevronRight size={14} />
             </button>
           </div>

@@ -11,9 +11,11 @@ import {
 } from "lucide-react";
 import { useDriverStore } from "@/hooks/driver/useDriverStore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useDialog } from "@/components/ui/DialogProvider";
 
 export default function IncomingDispatchModal() {
-  const { incomingDispatch, acceptDispatch, declineDispatch } = useDriverStore();
+  const { incomingDispatch, acceptDispatch, declineDispatch, verification } = useDriverStore();
+  const { alert } = useDialog();
   const [secondsLeft, setSecondsLeft] = useState(15);
   const [isAccepting, setIsAccepting] = useState(false);
 
@@ -40,8 +42,28 @@ export default function IncomingDispatchModal() {
   if (!incomingDispatch) return null;
 
   const handleAccept = async () => {
+    if (verification && !verification.isVerified) {
+      declineDispatch();
+      alert({
+        title: "Cannot Accept Ride",
+        message:
+          verification.reason ||
+          "All vehicle and driver identity documents must be verified before accepting rides.",
+        confirmText: "Go to Vehicle & Documents",
+        variant: "warning",
+      });
+      return;
+    }
+
     setIsAccepting(true);
-    await acceptDispatch();
+    await acceptDispatch((reason) => {
+      alert({
+        title: "Ride Acceptance Blocked",
+        message: reason || "Document verification required.",
+        confirmText: "Understood",
+        variant: "warning",
+      });
+    });
     setIsAccepting(false);
   };
 

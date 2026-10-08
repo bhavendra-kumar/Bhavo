@@ -5,7 +5,7 @@ import {
   MapPin, Clock, CarFront, Users, Wallet, Check,
   Star, Navigation, Home, Briefcase, CalendarClock, Heart,
   Phone, MessageSquare, XCircle, RefreshCw,
-  Radio, Compass, Loader2, Sparkles, ChevronRight
+  Radio, Compass, Loader2, Sparkles, ChevronRight, CheckCircle2
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -47,6 +47,8 @@ interface ActiveRide {
   distance: string;
   duration: string;
   otp: string;
+  paymentMethod?: "WALLET" | "CASH" | "UPI";
+  paymentStatus?: "PENDING" | "PAID";
   driverCoordinates?: [number, number];
   driverDetails?: {
     name: string;
@@ -119,6 +121,11 @@ export default function BookRidePage() {
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState("");
   const [activeRide, setActiveRide] = useState<ActiveRide | null>(null);
+  const [completedModalRide, setCompletedModalRide] = useState<ActiveRide | null>(null);
+  const [userRating, setUserRating] = useState(5);
+  const [userTip, setUserTip] = useState(0);
+  const [userCompliments, setUserCompliments] = useState<string[]>([]);
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
 
   // Modals for Driver Call & Chat
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -551,12 +558,109 @@ export default function BookRidePage() {
     }
   };
 
-  // Simulated moving driver coordinates during active ride
-  const driverPosition: [number, number] | null = activeRide
-    ? activeRide.driverCoordinates || [
-      activeRide.pickup.coordinates[0] + 0.003,
-      activeRide.pickup.coordinates[1] + 0.003,
-    ]
+  // Restore active ride from MongoDB on mount if rider reloads or returns
+  useEffect(() => {
+    let isMounted = true;
+    const checkActiveRide = async () => {
+      try {
+        const res = await fetch("/api/user/rides?status=active");
+        if (res.ok) {
+          const json = await res.json();
+          if (isMounted && Array.isArray(json.data) && json.data.length > 0) {
+            const current = json.data[0];
+            setActiveRide(current);
+            if (current.pickup?.coordinates) {
+              setPickupCoords(current.pickup.coordinates);
+              setPickupAddress(current.pickup.address);
+            }
+            if (current.dropoff?.coordinates) {
+              setDropoffCoords(current.dropoff.coordinates);
+              setDropoffAddress(current.dropoff.address);
+            }
+          }
+        }
+      } catch {}
+    };
+    checkActiveRide();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Real-time bidirectional synchronizer: updates when driver accepts, arrives, starts trip, moves GPS, or completes ride
+  useEffect(() => {
+    if (!activeRide?._id) return;
+    if (activeRide.status === "COMPLETED" || activeRide.status === "CANCELLED") return;
+
+    let isMounted = true;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/user/rides/${activeRide._id}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (isMounted && json.data) {
+            const updated = json.data;
+            if (updated.status === "COMPLETED") {
+              setCompletedModalRide(updated);
+              setActiveRide(null);
+              return;
+            }
+            if (updated.status === "CANCELLED") {
+              setActiveRide(null);
+              return;
+            }
+            setActiveRide(updated);
+          }
+        }
+      } catch (err) {
+        console.error("[Ride sync error]:", err);
+      }
+    }, 1500);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [activeRide?._id, activeRide?.status]);
+
+  // Submit feedback and complete ride review
+  const handleSubmitFeedback = async () => {
+    if (!completedModalRide) return;
+    setIsSubmittingFeedback(true);
+    try {
+      await fetch(`/api/user/rides/${completedModalRide._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "rate_trip",
+          rating: userRating,
+          tip: userTip,
+          compliments: userCompliments,
+        }),
+      });
+    } catch {}
+    setIsSubmittingFeedback(false);
+    setCompletedModalRide(null);
+    setUserTip(0);
+    setUserCompliments([]);
+    setUserRating(5);
+  };
+
+  const toggleCompliment = (comp: string) => {
+    if (userCompliments.includes(comp)) {
+      setUserCompliments(userCompliments.filter((c) => c !== comp));
+    } else {
+      setUserCompliments([...userCompliments, comp]);
+    }
+  };
+
+  // Real-time driver vehicle coordinates on user's map
+  const driverPosition: [number, number] | null = activeRide?.driverCoordinates
+    ? activeRide.driverCoordinates
+    : activeRide?.status === "ACCEPTED" || activeRide?.status === "ARRIVED"
+    ? [activeRide.pickup.coordinates[0] + 0.002, activeRide.pickup.coordinates[1] + 0.002]
+    : activeRide?.status === "IN_PROGRESS"
+    ? [activeRide.dropoff.coordinates[0] - 0.002, activeRide.dropoff.coordinates[1] - 0.002]
     : null;
 
   return (
@@ -648,59 +752,79 @@ export default function BookRidePage() {
                 </div>
 
                 {/* Driver Details Card */}
-                <div className="p-4 rounded-xl bg-white border border-teal-100 shadow-sm flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-teal-600 text-white font-bold text-lg flex items-center justify-center">
-                        {activeRide.driverDetails?.name ? activeRide.driverDetails.name[0] : "B"}
-                      </div>
-                      <div>
-                        <p className="font-bold text-[15px] text-slate-900">
-                          {activeRide.driverDetails?.name || "Bhavo Pilot"}
-                        </p>
-                        <div className="flex items-center gap-1.5 text-[12px] text-slate-500 font-medium">
-                          <Star size={12} className="text-amber-400 fill-amber-400" />
-                          <span>{activeRide.driverDetails?.rating || 4.9}</span>
-                          <span>•</span>
-                          <span>{activeRide.driverDetails?.vehicleModel || activeRide.vehicleType}</span>
+                {activeRide.status === "SEARCHING" ? (
+                  <div className="p-6 rounded-2xl bg-white border border-teal-100 shadow-sm flex flex-col items-center justify-center text-center gap-3">
+                    <div className="relative flex items-center justify-center w-14 h-14 rounded-full bg-teal-50 text-teal-600">
+                      <span className="absolute w-full h-full rounded-full bg-teal-400/30 animate-ping" />
+                      <Radio size={26} className="relative z-10 animate-pulse text-teal-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-[15px] text-slate-900">
+                        Broadcasting to Nearest Captains
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-1 max-w-xs">
+                        Connecting with nearby Bhavo Captains in Sector 62 / NCR. Awaiting driver acceptance.
+                      </p>
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mt-1">
+                      <div className="h-full bg-linear-to-r from-teal-400 to-emerald-500 animate-pulse w-3/4 rounded-full" />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-xl bg-white border border-teal-100 shadow-sm flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-teal-600 text-white font-bold text-lg flex items-center justify-center">
+                          {activeRide.driverDetails?.name ? activeRide.driverDetails.name[0] : "R"}
+                        </div>
+                        <div>
+                          <p className="font-bold text-[15px] text-slate-900">
+                            {activeRide.driverDetails?.name || "Rajesh Kumar (Captain)"}
+                          </p>
+                          <div className="flex items-center gap-1.5 text-[12px] text-slate-500 font-medium">
+                            <Star size={12} className="text-amber-400 fill-amber-400" />
+                            <span>{activeRide.driverDetails?.rating || 4.94}</span>
+                            <span>•</span>
+                            <span>{activeRide.driverDetails?.vehicleModel || "Tata Tigor EV"}</span>
+                          </div>
                         </div>
                       </div>
+
+                      {activeRide.driverDetails?.vehicleNumber && (
+                        <span className="px-2.5 py-1 rounded bg-slate-100 font-mono text-[12px] font-bold text-slate-800 border border-slate-200">
+                          {activeRide.driverDetails.vehicleNumber}
+                        </span>
+                      )}
                     </div>
 
-                    {activeRide.driverDetails?.vehicleNumber && (
-                      <span className="px-2.5 py-1 rounded bg-slate-100 font-mono text-[12px] font-bold text-slate-800 border border-slate-200">
-                        {activeRide.driverDetails.vehicleNumber}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* OTP Pin */}
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-teal-50 border border-teal-200">
-                    <div>
-                      <p className="text-[10px] uppercase font-bold text-teal-800 tracking-wider">Start PIN</p>
-                      <p className="text-[11px] text-teal-700">Share with driver on arrival</p>
+                    {/* OTP Pin */}
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-teal-50 border border-teal-200">
+                      <div>
+                        <p className="text-[10px] uppercase font-bold text-teal-800 tracking-wider">Start PIN</p>
+                        <p className="text-[11px] text-teal-700">Share with captain on arrival</p>
+                      </div>
+                      <div className="px-3.5 py-1 bg-white rounded-lg border border-teal-300 font-mono text-xl font-black text-teal-900 tracking-widest shadow-sm">
+                        {activeRide.otp}
+                      </div>
                     </div>
-                    <div className="px-3.5 py-1 bg-white rounded-lg border border-teal-300 font-mono text-xl font-black text-teal-900 tracking-widest shadow-sm">
-                      {activeRide.otp}
+
+                    {/* Real-Time Calling & Chat Buttons */}
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      <button
+                        onClick={() => setIsCallOpen(true)}
+                        className="py-2.5 px-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-[13px] font-bold flex items-center justify-center gap-2 shadow-md shadow-teal-600/20 transition-all active:scale-98 cursor-pointer"
+                      >
+                        <Phone size={14} /> Call Driver
+                      </button>
+                      <button
+                        onClick={() => setIsChatOpen(true)}
+                        className="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-[13px] font-bold flex items-center justify-center gap-2 border border-slate-200 transition-all active:scale-98 cursor-pointer"
+                      >
+                        <MessageSquare size={14} /> Message Driver
+                      </button>
                     </div>
                   </div>
-
-                  {/* Real-Time Calling & Chat Buttons */}
-                  <div className="grid grid-cols-2 gap-2 pt-1">
-                    <button
-                      onClick={() => setIsCallOpen(true)}
-                      className="py-2.5 px-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-[13px] font-bold flex items-center justify-center gap-2 shadow-md shadow-teal-600/20 transition-all active:scale-98"
-                    >
-                      <Phone size={14} /> Call Driver
-                    </button>
-                    <button
-                      onClick={() => setIsChatOpen(true)}
-                      className="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-[13px] font-bold flex items-center justify-center gap-2 border border-slate-200 transition-all active:scale-98"
-                    >
-                      <MessageSquare size={14} /> Message Driver
-                    </button>
-                  </div>
-                </div>
+                )}
 
                 {/* Route Summary */}
                 <div className="p-4 rounded-xl bg-white border border-teal-100 flex flex-col gap-3">
@@ -1385,6 +1509,131 @@ export default function BookRidePage() {
           isOpen={isCallOpen}
           onClose={() => setIsCallOpen(false)}
         />
+      )}
+
+      {/* Celebratory Ride Completed & Payment Receipt Modal */}
+      {completedModalRide && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl border border-teal-200 animate-in zoom-in-95 duration-200 flex flex-col gap-4 text-center">
+            {/* Success Badge */}
+            <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
+              <CheckCircle2 size={36} className="text-emerald-600" />
+            </div>
+
+            <div>
+              <h3 className="text-xl font-black text-slate-900">You&apos;ve Arrived!</h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Trip concluded safely at {completedModalRide.dropoff.address.split(",")[0]}
+              </p>
+            </div>
+
+            {/* Fare & Payment Box */}
+            <div className="p-4 rounded-2xl bg-teal-50/70 border border-teal-200 flex items-center justify-between">
+              <div className="text-left">
+                <span className="text-[10px] font-bold text-teal-700 uppercase tracking-wider block">
+                  Total Fare Paid
+                </span>
+                <span className="text-2xl font-black text-slate-900">
+                  ₹{completedModalRide.fare + userTip}
+                </span>
+              </div>
+              <div className="text-right">
+                <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300">
+                  <Check size={12} /> Paid via {completedModalRide.paymentMethod}
+                </span>
+                <span className="text-[11px] text-slate-400 block mt-1 font-mono">
+                  {completedModalRide.distance} • {completedModalRide.duration}
+                </span>
+              </div>
+            </div>
+
+            {/* Driver Info */}
+            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200 text-left">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-teal-700 text-white font-bold flex items-center justify-center text-sm">
+                  {completedModalRide.driverDetails?.name ? completedModalRide.driverDetails.name[0] : "R"}
+                </div>
+                <div>
+                  <h5 className="font-extrabold text-sm text-slate-900">
+                    {completedModalRide.driverDetails?.name || "Rajesh Kumar"}
+                  </h5>
+                  <span className="text-[11px] text-slate-500">
+                    {completedModalRide.driverDetails?.vehicleModel || "Tata Tigor EV"} • {completedModalRide.driverDetails?.vehicleNumber || "DL-01-EV-4429"}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 text-amber-500 font-bold text-xs">
+                <Star size={13} className="fill-amber-400 text-amber-400" />
+                <span>{completedModalRide.driverDetails?.rating || 4.9}</span>
+              </div>
+            </div>
+
+            {/* Rate Driver Stars */}
+            <div className="py-1">
+              <span className="text-xs font-bold text-slate-700 block mb-2">Rate your Bhavo Captain</span>
+              <div className="flex items-center justify-center gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    onClick={() => setUserRating(star)}
+                    className="p-1 hover:scale-110 transition-transform cursor-pointer"
+                  >
+                    <Star
+                      size={28}
+                      className={star <= userRating ? "fill-amber-400 text-amber-400" : "text-slate-300"}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Compliment Tags */}
+            <div className="flex flex-wrap gap-1.5 justify-center">
+              {["Clean Car", "Smooth Route", "Polite Captain", "On Time"].map((comp) => (
+                <button
+                  key={comp}
+                  onClick={() => toggleCompliment(comp)}
+                  className={`text-[11px] font-bold px-2.5 py-1 rounded-full border transition-all cursor-pointer ${
+                    userCompliments.includes(comp)
+                      ? "bg-teal-600 text-white border-teal-600 shadow-xs"
+                      : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                  }`}
+                >
+                  {comp}
+                </button>
+              ))}
+            </div>
+
+            {/* Add Tip Options */}
+            <div>
+              <span className="text-xs font-bold text-slate-700 block mb-1.5">Add a Tip for Good Service (Optional)</span>
+              <div className="grid grid-cols-4 gap-2">
+                {[0, 20, 30, 50].map((amt) => (
+                  <button
+                    key={amt}
+                    onClick={() => setUserTip(amt)}
+                    className={`py-1.5 rounded-xl text-xs font-extrabold border transition-all cursor-pointer ${
+                      userTip === amt
+                        ? "bg-teal-600 text-white border-teal-600 shadow-sm"
+                        : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    {amt === 0 ? "No Tip" : `+₹${amt}`}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Done Button */}
+            <button
+              onClick={handleSubmitFeedback}
+              disabled={isSubmittingFeedback}
+              className="w-full py-3.5 rounded-xl bg-linear-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-sm font-extrabold shadow-lg shadow-teal-600/20 active:scale-98 transition-all cursor-pointer mt-1"
+            >
+              {isSubmittingFeedback ? "Saving Feedback..." : "Done & Finish"}
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

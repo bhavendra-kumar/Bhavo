@@ -24,8 +24,60 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useDialog } from "@/components/ui/DialogProvider";
 
 export function DriverMobileHeader({ onOpenMenu }: { onOpenMenu: () => void }) {
-  const { isOnline, toggleOnline, simulateIncomingRide } = useDriverStore();
+  const router = useRouter();
+  const { isOnline, toggleOnline, simulateIncomingRide, verification } = useDriverStore();
   const { alert } = useDialog();
+
+  const isVerified = verification?.isVerified !== false;
+
+  const handleToggleOnline = async () => {
+    if (!isVerified) {
+      alert({
+        title: "Document Verification Required",
+        message:
+          verification?.reason ||
+          "All vehicle and driver identity documents must be verified before going online.",
+        confirmText: "Go to Vehicle & Documents",
+        variant: "warning",
+      });
+      router.push("/driver/vehicle");
+      return;
+    }
+    await toggleOnline((reason) => {
+      alert({
+        title: "Online Switch Blocked",
+        message: reason || "Document verification required.",
+        confirmText: "View Documents",
+        variant: "warning",
+      });
+      router.push("/driver/vehicle");
+    });
+  };
+
+  const handleSimulate = async () => {
+    if (!isVerified) {
+      alert({
+        title: "Dispatches Disabled",
+        message:
+          verification?.reason ||
+          "Cannot dispatch rides: All vehicle and driver documents must be verified first.",
+        confirmText: "Go to Documents",
+        variant: "warning",
+      });
+      router.push("/driver/vehicle");
+      return;
+    }
+    if (!isOnline) {
+      alert({
+        title: "Captain Offline",
+        message: "You must go online before receiving ride requests.",
+        confirmText: "OK",
+        variant: "info",
+      });
+      return;
+    }
+    await simulateIncomingRide();
+  };
 
   const handleSos = () => {
     alert({
@@ -58,18 +110,20 @@ export function DriverMobileHeader({ onOpenMenu }: { onOpenMenu: () => void }) {
       {/* Right Controls */}
       <div className="flex items-center gap-2">
         {/* Simulate Dispatch quick tap */}
-        <button
-          onClick={simulateIncomingRide}
-          className="p-1.5 rounded-full text-indigo-600 bg-indigo-50 border border-indigo-200 active:scale-95"
-          title="Simulate Dispatch"
-        >
-          <Sparkles size={16} />
-        </button>
+        {isVerified && isOnline && (
+          <button
+            onClick={handleSimulate}
+            className="p-1.5 rounded-full text-indigo-600 bg-indigo-50 border border-indigo-200 active:scale-95 cursor-pointer"
+            title="Simulate Dispatch"
+          >
+            <Sparkles size={16} />
+          </button>
+        )}
 
         {/* SOS Button */}
         <button
           onClick={handleSos}
-          className="p-1.5 rounded-full text-rose-600 bg-rose-50 border border-rose-200 active:scale-95"
+          className="p-1.5 rounded-full text-rose-600 bg-rose-50 border border-rose-200 active:scale-95 cursor-pointer"
           title="SOS"
         >
           <ShieldAlert size={16} />
@@ -77,17 +131,28 @@ export function DriverMobileHeader({ onOpenMenu }: { onOpenMenu: () => void }) {
 
         {/* Quick Duty Toggle */}
         <button
-          onClick={toggleOnline}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold border transition-all ${
-            isOnline
+          onClick={handleToggleOnline}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold border transition-all cursor-pointer ${
+            !isVerified
+              ? "bg-amber-50 text-amber-800 border-amber-300 shadow-xs"
+              : isOnline
               ? "bg-emerald-50 text-emerald-700 border-emerald-300 shadow-xs"
               : "bg-slate-100 text-slate-600 border-slate-300"
           }`}
         >
-          <span
-            className={`w-2 h-2 rounded-full ${isOnline ? "bg-emerald-500 animate-pulse" : "bg-slate-400"}`}
-          />
-          <span>{isOnline ? "ON" : "OFF"}</span>
+          {!isVerified ? (
+            <>
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
+              <span>LOCKED</span>
+            </>
+          ) : (
+            <>
+              <span
+                className={`w-2 h-2 rounded-full ${isOnline ? "bg-emerald-500 animate-pulse" : "bg-slate-400"}`}
+              />
+              <span>{isOnline ? "ON" : "OFF"}</span>
+            </>
+          )}
         </button>
       </div>
     </header>
@@ -150,7 +215,8 @@ export function DriverMobileMenuSheet({
   onClose: () => void;
 }) {
   const router = useRouter();
-  const { driverProfile, stats, isOnline, toggleOnline } = useDriverStore();
+  const { driverProfile, stats, isOnline, toggleOnline, verification } = useDriverStore();
+  const isVerified = verification?.isVerified !== false;
   const { confirm } = useDialog();
 
   if (!isOpen) return null;
@@ -203,17 +269,30 @@ export function DriverMobileMenuSheet({
 
         {/* Duty Card */}
         <div className="p-4">
-          <button
-            onClick={toggleOnline}
-            className={`w-full py-2.5 px-3 rounded-xl font-bold text-[13px] flex items-center justify-center gap-2 border ${
-              isOnline
-                ? "bg-emerald-500 text-white border-emerald-400 shadow-md shadow-emerald-500/20"
-                : "bg-slate-800 text-slate-300 border-slate-700"
-            }`}
-          >
-            <Power size={16} />
-            <span>{isOnline ? "You are Online (Tap to Go Offline)" : "You are Offline (Tap to Go Online)"}</span>
-          </button>
+          {!isVerified ? (
+            <button
+              onClick={() => {
+                onClose();
+                router.push("/driver/vehicle");
+              }}
+              className="w-full py-2.5 px-3 rounded-xl font-bold text-[13px] flex items-center justify-center gap-2 border bg-amber-500/20 text-amber-300 border-amber-400/40 shadow-xs cursor-pointer"
+            >
+              <ShieldAlert size={16} className="text-amber-400" />
+              <span>Verification Required (Duty Locked)</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => toggleOnline()}
+              className={`w-full py-2.5 px-3 rounded-xl font-bold text-[13px] flex items-center justify-center gap-2 border cursor-pointer ${
+                isOnline
+                  ? "bg-emerald-500 text-white border-emerald-400 shadow-md shadow-emerald-500/20"
+                  : "bg-slate-800 text-slate-300 border-slate-700"
+              }`}
+            >
+              <Power size={16} />
+              <span>{isOnline ? "You are Online (Tap to Go Offline)" : "You are Offline (Tap to Go Online)"}</span>
+            </button>
+          )}
         </div>
 
         {/* Links */}
@@ -248,15 +327,10 @@ export function DriverMobileMenuSheet({
           <Link
             href="/driver/incentives"
             onClick={onClose}
-            className="flex items-center justify-between p-2.5 rounded-xl hover:bg-white/10 text-teal-100"
+            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/10 text-teal-100"
           >
-            <div className="flex items-center gap-3">
-              <Award size={18} className="text-teal-400" />
-              <span>Incentive Quests</span>
-            </div>
-            <span className="text-[10px] font-bold bg-teal-500/20 text-teal-300 px-1.5 py-0.5 rounded">
-              ₹350 Bonus
-            </span>
+            <Award size={18} className="text-teal-400" />
+            <span>Incentive Quests</span>
           </Link>
           <Link
             href="/driver/vehicle"

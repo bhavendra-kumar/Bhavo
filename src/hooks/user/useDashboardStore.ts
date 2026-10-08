@@ -91,6 +91,7 @@ interface DashboardState {
   loading: boolean;
   error: string | null;
   activeStream: EventSource | null;
+  activePollTimer: ReturnType<typeof setInterval> | null;
 
   fetchDashboard: () => Promise<void>;
   cancelRide: (id: string) => Promise<boolean>;
@@ -99,6 +100,8 @@ interface DashboardState {
   subscribeToActiveRide: (rideId: string) => void;
   unsubscribeFromActiveRide: () => void;
   setActiveRide: (ride: IRideData | null) => void;
+  clearActiveRide: () => void;
+  submitRating: (rideId: string, rating: number, comment?: string, tipAmount?: number) => Promise<boolean>;
 }
 
 export const useDashboardStore = create<DashboardState>((set, get) => ({
@@ -106,6 +109,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   loading: true,
   error: null,
   activeStream: null,
+  activePollTimer: null,
 
   fetchDashboard: async () => {
     try {
@@ -131,6 +135,33 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     const current = get().data;
     if (current) {
       set({ data: { ...current, activeRide: ride } });
+    }
+  },
+
+  clearActiveRide: () => {
+    get().unsubscribeFromActiveRide();
+    const current = get().data;
+    if (current) {
+      set({ data: { ...current, activeRide: null } });
+    }
+    get().fetchDashboard();
+  },
+
+  submitRating: async (rideId: string, rating: number, comment?: string, tipAmount?: number) => {
+    try {
+      const res = await fetch(`/api/user/rides/${rideId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "rate_trip", rating, comment, tipAmount }),
+      });
+      if (res.ok) {
+        get().clearActiveRide();
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error("[useDashboardStore.submitRating]", err);
+      return false;
     }
   },
 
@@ -163,7 +194,10 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       if (res.ok) {
         const json = await res.json();
         const updatedRide = json.data as IRideData;
-        get().setActiveRide(updatedRide.status === "COMPLETED" ? null : updatedRide);
+        const current = get().data;
+        if (current) {
+          set({ data: { ...current, activeRide: updatedRide } });
+        }
         return true;
       }
       return false;
@@ -198,6 +232,32 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
     if (typeof window === "undefined") return;
 
+    // 1. Fallback & rapid polling interval every 1500ms
+    const pollTimer = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/user/rides/${rideId}`);
+        if (!res.ok) return;
+        const json = await res.json();
+        if (json.data) {
+          const current = get().data;
+          if (current) {
+            set({ data: { ...current, activeRide: json.data } });
+            if (json.data.status === "COMPLETED" || json.data.status === "CANCELLED") {
+              get().unsubscribeFromActiveRide();
+              if (json.data.status === "CANCELLED") {
+                get().fetchDashboard();
+              }
+            }
+          }
+        }
+      } catch {
+        // Ignore network glitches during polling
+      }
+    }, 1500);
+
+    set({ activePollTimer: pollTimer });
+
+    // 2. EventSource connection
     try {
       const es = new EventSource(`/api/user/rides/${rideId}/stream`);
 
@@ -206,7 +266,10 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
           const updatedRide = JSON.parse(event.data) as IRideData;
           const current = get().data;
           if (current) {
-            if (updatedRide.status === "COMPLETED" || updatedRide.status === "CANCELLED") {
+            if (updatedRide.status === "COMPLETED") {
+              set({ data: { ...current, activeRide: updatedRide } });
+              get().unsubscribeFromActiveRide();
+            } else if (updatedRide.status === "CANCELLED") {
               set({ data: { ...current, activeRide: null } });
               get().unsubscribeFromActiveRide();
               get().fetchDashboard();
@@ -220,8 +283,11 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       };
 
       es.onerror = () => {
-        // SSE error / disconnected, close gracefully
-        get().unsubscribeFromActiveRide();
+        const stream = get().activeStream;
+        if (stream) {
+          stream.close();
+          set({ activeStream: null });
+        }
       };
 
       set({ activeStream: es });
@@ -235,6 +301,11 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     if (stream) {
       stream.close();
       set({ activeStream: null });
+    }
+    const timer = get().activePollTimer;
+    if (timer) {
+      clearInterval(timer);
+      set({ activePollTimer: null });
     }
   },
 }));

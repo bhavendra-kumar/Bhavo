@@ -71,24 +71,26 @@ export async function PATCH(
       return NextResponse.json({ status: "success", message: "Ride cancelled successfully", data: ride });
     }
 
-    // Interactive Demo / Testing: advance through statuses
-    if (action === "advance_status") {
-      const order: Array<"SEARCHING" | "ACCEPTED" | "ARRIVED" | "IN_PROGRESS" | "COMPLETED"> = [
-        "SEARCHING",
-        "ACCEPTED",
-        "ARRIVED",
-        "IN_PROGRESS",
-        "COMPLETED",
-      ];
-      const currentIndex = order.indexOf(ride.status as (typeof order)[number]);
-      if (currentIndex !== -1 && currentIndex < order.length - 1) {
-        ride.status = order[currentIndex + 1];
-        if (ride.status === "COMPLETED") {
-          ride.paymentStatus = "PAID";
+    // Rate Trip action
+    if (action === "rate_trip") {
+      const { rating, tip, compliments } = body;
+      if (typeof rating === "number") ride.riderRating = rating;
+      if (typeof tip === "number") {
+        ride.tip = tip;
+        // Credit driver with tip if tip > 0
+        if (tip > 0 && ride.driver) {
+          const driverUser = await User.findById(ride.driver);
+          if (driverUser) {
+            driverUser.walletBalance = (driverUser.walletBalance || 0) + tip;
+            await driverUser.save();
+          }
         }
-        await ride.save();
       }
-      return NextResponse.json({ status: "success", message: `Status updated to ${ride.status}`, data: ride });
+      if (Array.isArray(compliments)) {
+        ride.riderCompliments = compliments;
+      }
+      await ride.save();
+      return NextResponse.json({ status: "success", message: "Feedback submitted successfully", data: ride });
     }
 
     return NextResponse.json({ status: "error", message: "Invalid action" }, { status: 400 });
