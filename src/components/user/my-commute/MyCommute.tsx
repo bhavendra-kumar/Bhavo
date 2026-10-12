@@ -22,6 +22,8 @@ interface CommuteItem {
   days: string[];
   vehicleType: string;
   isActive: boolean;
+  lastGeneratedRideId?: { _id?: string; status?: string; fare?: number; scheduledFor?: string } | null;
+  lastMaterializedAt?: string | null;
 }
 
 export default function MyCommutePage() {
@@ -271,6 +273,12 @@ export default function MyCommutePage() {
                       <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200/60">
                         {commute.vehicleType}
                       </span>
+                      {commute.lastGeneratedRideId && (
+                        <span className="text-[10.5px] font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-800 border border-blue-200/60 flex items-center gap-1">
+                          <Sparkles size={10} className="text-blue-600" />
+                          Ride Auto-Booked
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

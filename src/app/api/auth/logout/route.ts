@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getClearAuthCookieOptions } from "@/lib/auth";
 
 export async function POST() {
   const response = NextResponse.json(
@@ -6,16 +7,8 @@ export async function POST() {
     { status: 200 }
   );
 
-  // Clear the auth cookie by setting it to expire immediately
-  response.cookies.set({
-    name: "auth_token",
-    value: "",
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    expires: new Date(0), 
-    path: "/",
-  });
+  // Clear the auth cookie using centralized secure configuration
+  response.cookies.set(getClearAuthCookieOptions());
 
   return response;
 }

@@ -142,14 +142,14 @@ export function getDocCategory(name: string, explicitCategory?: string): "DRIVER
  * Synchronizes driver documents to ensure ONLY the 8 strictly required documents exist,
  * retaining existing verification statuses, IDs, and upload proofs.
  */
-export function syncDriverDocuments(currentDocs?: any[]): IDriverDoc[] {
+export function syncDriverDocuments(currentDocs?: Partial<IDriverDoc>[]): IDriverDoc[] {
   if (!Array.isArray(currentDocs) || currentDocs.length === 0) {
     return DEFAULT_DRIVER_DOCUMENTS.map((doc) => ({ ...doc }));
   }
 
   return DEFAULT_DRIVER_DOCUMENTS.map((defaultDoc) => {
     const defNameLower = defaultDoc.name.toLowerCase();
-    const matched = currentDocs.find((doc: any) => {
+    const matched = currentDocs.find((doc: Partial<IDriverDoc>) => {
       const docName = (doc?.name || "").toLowerCase();
       if (docName === defNameLower) return true;
       if (defNameLower.includes("license") && (docName.includes("license") || docName.includes("dl"))) return true;
@@ -187,8 +187,8 @@ export function syncDriverDocuments(currentDocs?: any[]): IDriverDoc[] {
  * 3. Both Driver category documents and Vehicle category documents are verified
  * 4. No document is 'PENDING' or 'REJECTED'
  */
-export function checkDriverVerification(user: any): IVerificationResult {
-  const rawDocs: any[] = user?.driverDocuments;
+export function checkDriverVerification(user: { driverVehicle?: { documentsVerified?: boolean }; driverDocuments?: IDriverDoc[] } | null | undefined): IVerificationResult {
+  const rawDocs = user?.driverDocuments;
   const normalizedDocs: IDriverDoc[] = syncDriverDocuments(rawDocs);
 
   const isDocValid = (d: IDriverDoc) => d.status === "VERIFIED" || d.status === "EXEMPT";

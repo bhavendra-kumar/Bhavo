@@ -22,7 +22,25 @@ const UserSchema = new mongoose.Schema(
       enum: ["USER", "RIDER", "DRIVER", "ADMIN"],
       default: "RIDER",
     },
+    status: {
+      type: String,
+      enum: ["ACTIVE", "SUSPENDED", "DISABLED"],
+      default: "ACTIVE",
+    },
+    tokenVersion: {
+      type: Number,
+      default: 0,
+    },
     walletBalance: {
+      type: Number,
+      default: 0,
+    },
+    walletBalanceInPaise: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    legacyUnverifiedBalance: {
       type: Number,
       default: 0,
     },
@@ -81,9 +99,18 @@ const UserSchema = new mongoose.Schema(
       enum: ["OFFLINE", "ONLINE_SEARCHING", "DISPATCH_ALERT", "ON_TRIP"],
       default: "ONLINE_SEARCHING",
     },
+    activeRideId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Ride",
+      default: null,
+    },
     driverCoordinates: {
       type: [Number],
       default: [28.6139, 77.2090], // Delhi NCR center
+    },
+    driverCoordinatesUpdatedAt: {
+      type: Date,
+      default: null,
     },
     driverVehicle: {
       model: { type: String, default: "Tata Tigor EV (White)" },
@@ -188,5 +215,9 @@ const UserSchema = new mongoose.Schema(
     timestamps: true, // Automatically adds createdAt and updatedAt
   }
 );
+
+// Indexes supporting Phase 1A authentication, Phase 1D driver eligibility, and Phase 1H admin searches
+UserSchema.index({ role: 1, status: 1, isOnline: 1, dutyState: 1 });
+UserSchema.index({ role: 1, status: 1 });
 
 export default mongoose.models.User || mongoose.model("User", UserSchema);

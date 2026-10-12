@@ -33,6 +33,11 @@ export interface IRideData {
   scheduledFor?: string | null;
   paymentMethod: "WALLET" | "CASH" | "UPI";
   paymentStatus: "PENDING" | "PAID";
+  locationStatus?: "FRESH" | "STALE" | "UNAVAILABLE" | "TERMINAL";
+  isLocationFresh?: boolean;
+  locationAgeSeconds?: number | null;
+  trackingVersion?: number;
+  driverCoordinatesUpdatedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -232,67 +237,97 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
     if (typeof window === "undefined") return;
 
-    // 1. Fallback & rapid polling interval every 1500ms
-    const pollTimer = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/user/rides/${rideId}`);
-        if (!res.ok) return;
-        const json = await res.json();
-        if (json.data) {
-          const current = get().data;
-          if (current) {
-            set({ data: { ...current, activeRide: json.data } });
-            if (json.data.status === "COMPLETED" || json.data.status === "CANCELLED") {
-              get().unsubscribeFromActiveRide();
-              if (json.data.status === "CANCELLED") {
-                get().fetchDashboard();
-              }
-            }
-          }
+    // Helper to safely apply state updates without stale version overwrites
+    const applyRideUpdate = (updatedRide: IRideData) => {
+      const current = get().data;
+      if (!current) return;
+
+      const currentActive = current.activeRide;
+      if (currentActive && currentActive._id === updatedRide._id) {
+        const curVer = currentActive.trackingVersion ?? 0;
+        const newVer = updatedRide.trackingVersion ?? 0;
+        // Monotonic guard: discard out-of-order or stale events
+        if (newVer < curVer) {
+          return;
         }
-      } catch {
-        // Ignore network glitches during polling
       }
-    }, 1500);
 
-    set({ activePollTimer: pollTimer });
+      if (updatedRide.status === "COMPLETED") {
+        set({ data: { ...current, activeRide: updatedRide } });
+        get().unsubscribeFromActiveRide();
+      } else if (updatedRide.status === "CANCELLED") {
+        set({ data: { ...current, activeRide: null } });
+        get().unsubscribeFromActiveRide();
+        get().fetchDashboard();
+      } else {
+        set({ data: { ...current, activeRide: updatedRide } });
+      }
+    };
 
-    // 2. EventSource connection
+    // Adaptive fallback polling (only active when SSE is unavailable)
+    const startFallbackPolling = () => {
+      if (get().activePollTimer) return;
+      let pollDelay = 3000;
+      let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+      const pollStep = async () => {
+        try {
+          const res = await fetch(`/api/user/rides/${rideId}`);
+          if (res.ok) {
+            const json = await res.json();
+            if (json.data) {
+              applyRideUpdate(json.data);
+              pollDelay = 3000; // Reset backoff on success
+            }
+          } else if (res.status === 404 || res.status === 401 || res.status === 403) {
+            get().unsubscribeFromActiveRide();
+            return;
+          } else {
+            pollDelay = Math.min(pollDelay * 1.5, 10000);
+          }
+        } catch {
+          pollDelay = Math.min(pollDelay * 1.5, 10000);
+        }
+
+        // Schedule next step if still active
+        const currentActive = get().data?.activeRide;
+        if (currentActive && currentActive.status !== "COMPLETED" && currentActive.status !== "CANCELLED") {
+          timeoutId = setTimeout(pollStep, pollDelay);
+          set({ activePollTimer: timeoutId as unknown as ReturnType<typeof setInterval> });
+        }
+      };
+
+      timeoutId = setTimeout(pollStep, pollDelay);
+      set({ activePollTimer: timeoutId as unknown as ReturnType<typeof setInterval> });
+    };
+
+    // Try EventSource connection first
     try {
       const es = new EventSource(`/api/user/rides/${rideId}/stream`);
 
       es.onmessage = (event) => {
         try {
           const updatedRide = JSON.parse(event.data) as IRideData;
-          const current = get().data;
-          if (current) {
-            if (updatedRide.status === "COMPLETED") {
-              set({ data: { ...current, activeRide: updatedRide } });
-              get().unsubscribeFromActiveRide();
-            } else if (updatedRide.status === "CANCELLED") {
-              set({ data: { ...current, activeRide: null } });
-              get().unsubscribeFromActiveRide();
-              get().fetchDashboard();
-            } else {
-              set({ data: { ...current, activeRide: updatedRide } });
-            }
-          }
+          applyRideUpdate(updatedRide);
         } catch (err) {
           console.error("[SSE parse error]", err);
         }
       };
 
       es.onerror = () => {
+        // Stream failed or closed by server; switch to adaptive fallback polling
         const stream = get().activeStream;
         if (stream) {
           stream.close();
           set({ activeStream: null });
         }
+        startFallbackPolling();
       };
 
       set({ activeStream: es });
-    } catch (err) {
-      console.error("[subscribeToActiveRide]", err);
+    } catch {
+      // EventSource failed to instantiate; fallback to adaptive polling immediately
+      startFallbackPolling();
     }
   },
 
@@ -304,6 +339,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     }
     const timer = get().activePollTimer;
     if (timer) {
+      clearTimeout(timer as unknown as ReturnType<typeof setTimeout>);
       clearInterval(timer);
       set({ activePollTimer: null });
     }

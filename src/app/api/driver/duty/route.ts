@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongoose";
 import { getDriverUser } from "@/lib/driverAuth";
+import { isAuthError, handleAuthError } from "@/lib/auth";
 import { checkDriverVerification } from "@/lib/driverCompliance";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     await dbConnect();
-    const user = await getDriverUser();
+    const user = await getDriverUser(req);
     const verification = checkDriverVerification(user);
 
     // If documents are not verified, driver is never allowed to be online
@@ -28,6 +29,9 @@ export async function GET() {
       },
     });
   } catch (error) {
+    if (isAuthError(error)) {
+      return handleAuthError(error);
+    }
     console.error("[Driver Duty GET Error]:", error);
     return NextResponse.json({ status: "error", message: "Internal server error" }, { status: 500 });
   }
@@ -39,7 +43,7 @@ export async function POST(req: Request) {
     const { isOnline } = body;
 
     await dbConnect();
-    const user = await getDriverUser();
+    const user = await getDriverUser(req);
     const verification = checkDriverVerification(user);
 
     // STRICT COMPLIANCE CHECK: Prevent driver from coming online if documents are unverified
@@ -65,9 +69,24 @@ export async function POST(req: Request) {
       );
     }
 
-    user.isOnline = Boolean(isOnline);
-    user.dutyState = isOnline ? "ONLINE_SEARCHING" : "OFFLINE";
-    await user.save();
+    // Active trip preservation: If driver has an active ride, retain ON_TRIP dutyState
+    const Ride = (await import("@/models/Ride")).default;
+    const activeRide = await Ride.findOne({
+      driver: user._id,
+      status: { $in: ["ACCEPTED", "ARRIVED", "IN_PROGRESS"] },
+    });
+
+    if (activeRide) {
+      user.isOnline = Boolean(isOnline);
+      user.dutyState = "ON_TRIP";
+      user.activeRideId = activeRide._id;
+      await user.save();
+    } else {
+      user.isOnline = Boolean(isOnline);
+      user.dutyState = isOnline ? "ONLINE_SEARCHING" : "OFFLINE";
+      user.activeRideId = null;
+      await user.save();
+    }
 
     return NextResponse.json({
       status: "success",
@@ -78,6 +97,9 @@ export async function POST(req: Request) {
       },
     });
   } catch (error) {
+    if (isAuthError(error)) {
+      return handleAuthError(error);
+    }
     console.error("[Driver Duty POST Error]:", error);
     return NextResponse.json({ status: "error", message: "Internal server error" }, { status: 500 });
   }

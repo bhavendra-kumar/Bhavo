@@ -69,6 +69,11 @@ interface ActiveRide {
   duration: string;
   otp: string;
   driverCoordinates?: [number, number];
+  locationStatus?: "FRESH" | "STALE" | "UNAVAILABLE" | "TERMINAL";
+  isLocationFresh?: boolean;
+  locationAgeSeconds?: number | null;
+  trackingVersion?: number;
+  driverCoordinatesUpdatedAt?: string | null;
   driverDetails?: {
     name: string;
     phone: string;
@@ -186,9 +191,25 @@ export default function MobileBookRide(props: MobileBookRideProps) {
 
           {/* Live tracking status floating badge */}
           <div className="absolute top-3 left-3 z-10 bg-white/95 backdrop-blur px-3 py-1.5 rounded-full border border-slate-200 shadow-md flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-teal-500 animate-pulse" />
+            <span
+              className={`w-2.5 h-2.5 rounded-full ${
+                activeRide.locationStatus === "FRESH"
+                  ? "bg-teal-500 animate-pulse"
+                  : activeRide.locationStatus === "STALE"
+                  ? "bg-amber-500 animate-pulse"
+                  : "bg-slate-400"
+              }`}
+            />
             <span className="text-[11.5px] font-bold text-slate-900">
-              Driver live tracking active
+              {activeRide.locationStatus === "FRESH"
+                ? activeRide.locationAgeSeconds !== undefined && activeRide.locationAgeSeconds !== null
+                  ? `Live GPS (${activeRide.locationAgeSeconds}s ago)`
+                  : "Driver live GPS active"
+                : activeRide.locationStatus === "STALE"
+                ? `GPS delayed (${activeRide.locationAgeSeconds ?? 120}s ago)`
+                : activeRide.locationStatus === "TERMINAL"
+                ? "Trip ended"
+                : "GPS unavailable"}
             </span>
           </div>
 

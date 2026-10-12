@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongoose";
 import Ride from "@/models/Ride";
 import { getDriverUser } from "@/lib/driverAuth";
+import { isAuthError, handleAuthError } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     await dbConnect();
-    const user = await getDriverUser();
+    const user = await getDriverUser(req);
 
     const now = new Date();
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -42,6 +43,7 @@ export async function GET() {
         completed: todayCount >= 10,
         canClaim: todayCount >= 10,
       },
+      
       {
         id: "quest-peak",
         title: "Peak Hour Surge Hunter",
@@ -82,6 +84,9 @@ export async function GET() {
       },
     });
   } catch (error) {
+    if (isAuthError(error)) {
+      return handleAuthError(error);
+    }
     console.error("[Driver Incentives GET Error]:", error);
     return NextResponse.json({ status: "error", message: "Internal server error" }, { status: 500 });
   }
@@ -89,28 +94,24 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { questId } = body;
-
     await dbConnect();
-    const user = await getDriverUser();
+    // Validate driver authentication
+    await getDriverUser(req);
 
-    // Reward bonus
-    const bonusMap: Record<string, number> = {
-      "quest-daily": 350,
-      "quest-weekend": 1500,
-    };
-
-    const bonus = bonusMap[questId] || 200;
-    user.walletBalance = (user.walletBalance || 0) + bonus;
-    await user.save();
-
-    return NextResponse.json({
-      status: "success",
-      message: `Bonus ₹${bonus} credited to your wallet!`,
-      data: { walletBalance: user.walletBalance },
-    });
+    // Phase 1C: Disable unverified monetary incentive claims until automated settlement is activated
+    return NextResponse.json(
+      {
+        status: "error",
+        code: "INCENTIVES_DISABLED_IN_V1",
+        message:
+          "Incentive claims are disabled in V1 until verified quest progression and automated escrow funding are activated.",
+      },
+      { status: 501 }
+    );
   } catch (error) {
+    if (isAuthError(error)) {
+      return handleAuthError(error);
+    }
     console.error("[Driver Incentives POST Error]:", error);
     return NextResponse.json({ status: "error", message: "Internal server error" }, { status: 500 });
   }

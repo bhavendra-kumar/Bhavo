@@ -1,23 +1,15 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongoose";
-import User from "@/models/User";
 import Ride from "@/models/Ride";
 import Commute from "@/models/Commute";
 import Place from "@/models/Place";
-import { getSession } from "@/lib/auth";
+import { requireRole, isAuthError, handleAuthError } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const session = await getSession();
-    if (!session?.email) {
-      return NextResponse.json({ status: "error", message: "Unauthorized" }, { status: 401 });
-    }
+    const user = await requireRole(["RIDER", "USER"], req);
 
     await dbConnect();
-    const user = await User.findOne({ email: session.email }).select("-password");
-    if (!user) {
-      return NextResponse.json({ status: "error", message: "User not found" }, { status: 404 });
-    }
 
     // 1. Fetch active ride (searching, accepted, arrived, in_progress)
     const activeRide = await Ride.findOne({
@@ -122,6 +114,9 @@ export async function GET() {
       },
     });
   } catch (error) {
+    if (isAuthError(error)) {
+      return handleAuthError(error);
+    }
     console.error("[Dashboard API Error]:", error);
     return NextResponse.json({ status: "error", message: "Internal server error" }, { status: 500 });
   }

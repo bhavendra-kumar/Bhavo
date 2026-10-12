@@ -3,6 +3,7 @@ import dbConnect from "@/lib/mongoose";
 import Ride from "@/models/Ride";
 import User from "@/models/User";
 import { getDriverUser } from "@/lib/driverAuth";
+import { isAuthError, handleAuthError } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -16,11 +17,9 @@ export async function GET(req: Request) {
     const skip = (page - 1) * limit;
 
     await dbConnect();
-    const user = await getDriverUser();
+    const user = await getDriverUser(req);
 
-    const driverCondition = {
-      $or: [{ driver: user._id }, { "driverDetails.phone": user.phone }],
-    };
+    const driverCondition = { driver: user._id };
 
     const andConditions: Array<Record<string, unknown>> = [driverCondition];
 
@@ -65,7 +64,6 @@ export async function GET(req: Request) {
 
     const query = andConditions.length === 1 ? andConditions[0] : { $and: andConditions };
 
-    const driverRidesCount = await Ride.countDocuments(driverCondition);
     const totalCount = await Ride.countDocuments(query);
     const rides = await Ride.find(query)
       .populate("rider", "name phone rating")
@@ -106,6 +104,9 @@ export async function GET(req: Request) {
       },
     });
   } catch (error) {
+    if (isAuthError(error)) {
+      return handleAuthError(error);
+    }
     console.error("[Driver Trips GET Error]:", error);
     return NextResponse.json({ status: "error", message: "Internal server error" }, { status: 500 });
   }

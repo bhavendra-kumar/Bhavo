@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongoose";
 import Ride from "@/models/Ride";
 import { getDriverUser } from "@/lib/driverAuth";
+import { isAuthError, handleAuthError } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     await dbConnect();
-    const user = await getDriverUser();
+    const user = await getDriverUser(req);
 
     const now = new Date();
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -51,15 +52,24 @@ export async function GET() {
         return uTime >= d.getTime() && uTime < nextD.getTime();
       });
 
-      const amount = ridesForDay.reduce((acc, r) => acc + (r.fare || 0) + (r.tip || 0), 0);
+      const dayTotal = ridesForDay.reduce((acc, r) => acc + (r.fare || 0) + (r.tip || 0), 0);
 
       dailyTrend.push({
         day: isToday ? "Today" : dayNames[d.getDay()],
-        amt: amount,
-        height: `${Math.min(100, Math.max(12, Math.round((amount / 3000) * 100)))}%`,
+        amount: dayTotal,
+        trips: ridesForDay.length,
         isToday,
       });
     }
+
+    const recentCompletedRides = todayRides.slice(0, 5).map((r) => ({
+      id: String(r._id),
+      rider: "Passenger " + String(r._id).slice(-4),
+      time: new Date(r.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      fare: (r.fare || 0) + (r.tip || 0),
+      tip: r.tip || 0,
+      mode: r.paymentMethod || "UPI",
+    }));
 
     return NextResponse.json({
       status: "success",
@@ -67,21 +77,18 @@ export async function GET() {
         walletBalance: user.walletBalance ?? 0,
         todayEarnings,
         weeklyEarnings,
-        tripsToday: tripsTodayCount,
-        tripsWeek: tripsWeekCount,
-        tipsToday: todayTips,
-        incentivesBonusWeek: tripsWeekCount >= 10 ? 1200 : 0,
-        averagePerTrip: tripsTodayCount > 0 ? Math.round(todayEarnings / tripsTodayCount) : 0,
-        bankAccount: {
-          bankName: "HDFC Bank",
-          accountNumber: "•••• 4921",
-          ifsc: "HDFC0001824",
-          holderName: user.name,
-        },
+        tripsTodayCount,
+        tripsWeekCount,
+        todayTips,
+        incentivesBonus: tripsTodayCount >= 4 ? 200 : 0,
         dailyTrend,
+        recentCompletedRides,
       },
     });
   } catch (error) {
+    if (isAuthError(error)) {
+      return handleAuthError(error);
+    }
     console.error("[Driver Earnings GET Error]:", error);
     return NextResponse.json({ status: "error", message: "Internal server error" }, { status: 500 });
   }
@@ -90,40 +97,24 @@ export async function GET() {
 // POST /api/driver/earnings - Instant cashout / bank transfer
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { amount } = body;
-
     await dbConnect();
-    const user = await getDriverUser();
+    // Validate driver authentication
+    await getDriverUser(req);
 
-    const currentBalance = user.walletBalance ?? 0;
-    const cashoutAmount = Number(amount) || currentBalance;
-
-    if (cashoutAmount <= 0) {
-      return NextResponse.json({ status: "error", message: "Invalid cashout amount" }, { status: 400 });
-    }
-
-    if (cashoutAmount > currentBalance) {
-      return NextResponse.json({ status: "error", message: "Insufficient wallet balance" }, { status: 400 });
-    }
-
-    user.walletBalance = currentBalance - cashoutAmount;
-    await user.save();
-
-    const referenceId = `BHAVO-PAY-${Date.now().toString().slice(-6)}`;
-
-    return NextResponse.json({
-      status: "success",
-      message: "Payout transferred successfully to your bank account",
-      data: {
-        transferredAmount: cashoutAmount,
-        remainingBalance: user.walletBalance,
-        referenceId,
-        destination: "HDFC Bank (•••• 4921)",
-        timestamp: new Date().toISOString(),
+    // Phase 1C: Disable mock cashout until banking/payout gateway integration is active
+    return NextResponse.json(
+      {
+        status: "error",
+        code: "CASHOUT_NOT_SUPPORTED_IN_V1",
+        message:
+          "Instant cashout / payout transfers are disabled in V1 until payment gateway / banking provider integration is active.",
       },
-    });
+      { status: 501 }
+    );
   } catch (error) {
+    if (isAuthError(error)) {
+      return handleAuthError(error);
+    }
     console.error("[Driver Earnings POST Error]:", error);
     return NextResponse.json({ status: "error", message: "Internal server error" }, { status: 500 });
   }

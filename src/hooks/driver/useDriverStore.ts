@@ -25,6 +25,7 @@ export interface IDriverDispatch {
   vehicleType: string;
   paymentMethod: "CASH" | "UPI" | "WALLET";
   otp?: string;
+  offerId?: string;
   expiresAt: number; // timestamp
 }
 
@@ -412,7 +413,7 @@ export const useDriverStore = create<DriverState>((set, get) => ({
       distance: dispatch.dropoff.distanceText,
       duration: `${dispatch.dropoff.estDurationMinutes} mins`,
       status: "ACCEPTED",
-      otp: dispatch.otp || "4826",
+      otp: dispatch.otp || "",
       paymentMethod: dispatch.paymentMethod,
       paymentStatus: "PENDING",
       messages: [
@@ -435,7 +436,11 @@ export const useDriverStore = create<DriverState>((set, get) => ({
       const res = await fetch("/api/driver/rides", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "ACCEPT", rideId: newActiveRide._id }),
+        body: JSON.stringify({
+          action: "ACCEPT",
+          rideId: newActiveRide._id,
+          offerId: dispatch.offerId,
+        }),
       });
       const json = await res.json();
       if (!res.ok || json.status === "error") {
@@ -458,11 +463,28 @@ export const useDriverStore = create<DriverState>((set, get) => ({
     return true;
   },
 
-  declineDispatch: () => {
+  declineDispatch: async () => {
+    const dispatch = get().incomingDispatch;
     set({
       incomingDispatch: null,
       dutyState: get().isOnline ? "ONLINE_SEARCHING" : "OFFLINE",
     });
+
+    if (dispatch && dispatch._id) {
+      try {
+        await fetch("/api/driver/rides", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "REJECT",
+            rideId: dispatch._id,
+            offerId: dispatch.offerId,
+          }),
+        });
+      } catch (err) {
+        console.error("[useDriverStore declineDispatch Error]:", err);
+      }
+    }
   },
 
   markArrived: async () => {
@@ -507,16 +529,6 @@ export const useDriverStore = create<DriverState>((set, get) => ({
       }
     } catch {}
 
-    // Fallback permissive check for local test
-    if (enteredOtp.trim() === active.otp || enteredOtp.trim() === "1234" || enteredOtp.trim() === "4826") {
-      set({
-        activeRide: {
-          ...active,
-          status: "IN_PROGRESS",
-        },
-      });
-      return true;
-    }
     return false;
   },
 
@@ -532,7 +544,7 @@ export const useDriverStore = create<DriverState>((set, get) => ({
       pickup: active.pickup.address,
       dropoff: active.dropoff.address,
       fare: completedFare,
-      tip: 25,
+      tip: 0,
       distance: active.distance,
       time: "Just now",
       vehicleType: active.vehicleType,
@@ -545,16 +557,10 @@ export const useDriverStore = create<DriverState>((set, get) => ({
       recentTrips: [newRecent, ...state.recentTrips],
       stats: {
         ...state.stats,
-        todayEarnings: state.stats.todayEarnings + completedFare + 25,
-        weeklyEarnings: state.stats.weeklyEarnings + completedFare + 25,
+        todayEarnings: state.stats.todayEarnings + completedFare,
+        weeklyEarnings: state.stats.weeklyEarnings + completedFare,
         tripsCompleted: state.stats.tripsCompleted + 1,
       },
-      driverProfile: state.driverProfile
-        ? {
-            ...state.driverProfile,
-            walletBalance: state.driverProfile.walletBalance + completedFare + 25,
-          }
-        : null,
     }));
 
     try {

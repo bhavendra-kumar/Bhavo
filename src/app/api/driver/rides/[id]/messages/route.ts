@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import dbConnect from "@/lib/mongoose";
 import Ride from "@/models/Ride";
 import { getDriverUser } from "@/lib/driverAuth";
+import { isAuthError, handleAuthError } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ export async function GET(
   try {
     const { id } = await params;
     await dbConnect();
-    await getDriverUser();
+    const driverUser = await getDriverUser(req);
 
     if (!mongoose.isValidObjectId(id)) {
       return NextResponse.json({
@@ -33,6 +34,11 @@ export async function GET(
       return NextResponse.json({ status: "error", message: "Ride not found" }, { status: 404 });
     }
 
+    // Ownership check: driver must be assigned to this ride
+    if (ride.driver && ride.driver.toString() !== driverUser._id.toString()) {
+      return NextResponse.json({ status: "error", message: "Forbidden: Not assigned to this ride" }, { status: 403 });
+    }
+
     // If no messages yet, seed an initial friendly greeting
     if (!ride.messages || ride.messages.length === 0) {
       ride.messages = [
@@ -47,6 +53,9 @@ export async function GET(
 
     return NextResponse.json({ status: "success", data: ride.messages });
   } catch (error) {
+    if (isAuthError(error)) {
+      return handleAuthError(error);
+    }
     console.error("[Driver Messages GET Error]:", error);
     return NextResponse.json({ status: "error", message: "Internal server error" }, { status: 500 });
   }
@@ -66,7 +75,7 @@ export async function POST(
     }
 
     await dbConnect();
-    await getDriverUser();
+    const driverUser = await getDriverUser(req);
 
     if (!mongoose.isValidObjectId(id)) {
       return NextResponse.json({
@@ -81,6 +90,11 @@ export async function POST(
     const ride = await Ride.findById(id);
     if (!ride) {
       return NextResponse.json({ status: "error", message: "Ride not found" }, { status: 404 });
+    }
+
+    // Ownership check: driver must be assigned to this ride
+    if (ride.driver && ride.driver.toString() !== driverUser._id.toString()) {
+      return NextResponse.json({ status: "error", message: "Forbidden: Not assigned to this ride" }, { status: 403 });
     }
 
     const driverMsg = {
@@ -121,6 +135,9 @@ export async function POST(
 
     return NextResponse.json({ status: "success", data: ride.messages }, { status: 201 });
   } catch (error) {
+    if (isAuthError(error)) {
+      return handleAuthError(error);
+    }
     console.error("[Driver Messages POST Error]:", error);
     return NextResponse.json({ status: "error", message: "Internal server error" }, { status: 500 });
   }

@@ -1,111 +1,66 @@
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import dbConnect from "@/lib/mongoose";
-import User from "@/models/User";
 import Ride from "@/models/Ride";
 import { getDriverUser } from "@/lib/driverAuth";
-import { checkDriverVerification } from "@/lib/driverCompliance";
+import { isAuthError, handleAuthError } from "@/lib/auth";
+import {
+  RideTransitionError,
+  transitionToAccepted,
+  transitionToOfferRejected,
+  transitionToArrived,
+  transitionToInProgress,
+  transitionToCompleted,
+  transitionToCancelledByDriver,
+} from "@/lib/rideStateMachine";
+import { confirmCashCollection, LedgerError } from "@/lib/ledgerService";
+import { driverLocationRateLimiter } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { action, rideId, otp, riderRating, riderCompliments, reason, coordinates } = body;
+    const { action, rideId, otp, riderRating, riderCompliments, reason, coordinates, offerId } = body;
 
     await dbConnect();
-    const driverUser = await getDriverUser();
+    const driverUser = await getDriverUser(req);
 
     if (!rideId && action !== "UPDATE_LOCATION") {
       return NextResponse.json({ status: "error", message: "Ride ID is required" }, { status: 400 });
     }
 
-    // Check if ride exists in DB if valid ObjectId
-    const ride = rideId && mongoose.isValidObjectId(rideId) ? await Ride.findById(rideId) : null;
-
     if (action === "ACCEPT") {
-      // STRICT CHECK: Driver cannot accept rides if documents are unverified
-      const verification = checkDriverVerification(driverUser);
-      if (!verification.isVerified) {
-        return NextResponse.json(
-          {
-            status: "error",
-            code: "DOCUMENTS_UNVERIFIED",
-            message:
-              verification.reason ||
-              "Cannot accept ride: All driver and vehicle documents must be verified first.",
-            verification,
-          },
-          { status: 403 }
-        );
-      }
-      if (ride) {
-        ride.status = "ACCEPTED";
-        ride.driver = driverUser._id;
-        ride.driverDetails = {
-          name: driverUser.name,
-          phone: driverUser.phone || "+91 98765 43210",
-          rating: driverUser.rating || 4.94,
-          vehicleNumber: driverUser.driverVehicle?.numberPlate || "DL-01-EV-4429",
-          vehicleModel: driverUser.driverVehicle?.model || "Tata Tigor EV",
-          avatar: driverUser.avatar || null,
-        };
-        ride.driverCoordinates = driverUser.driverCoordinates || [28.6139, 77.2090];
-        await ride.save();
-      }
+      const updatedRide = await transitionToAccepted({ rideId, driverUser, offerId });
+      return NextResponse.json({ status: "success", message: "Ride accepted", data: updatedRide });
+    }
 
-      driverUser.dutyState = "ON_TRIP";
-      await driverUser.save();
-
-      return NextResponse.json({ status: "success", message: "Ride accepted", data: ride });
+    if (action === "REJECT") {
+      const result = await transitionToOfferRejected({ rideId, driverUser, offerId });
+      return NextResponse.json({
+        status: "success",
+        message: "Ride offer declined successfully",
+        data: { rejected: result.rejected, rideId },
+      });
     }
 
     if (action === "ARRIVED") {
-      if (ride) {
-        ride.status = "ARRIVED";
-        await ride.save();
-      }
+      await transitionToArrived({ rideId, driverId: driverUser._id });
       return NextResponse.json({ status: "success", message: "Driver marked as arrived" });
     }
 
     if (action === "START") {
-      if (ride) {
-        const cleanOtp = String(otp || "").trim();
-        // Allow actual ride OTP, or universal test bypass codes
-        if (ride.otp && cleanOtp && ride.otp !== cleanOtp && cleanOtp !== "1234" && cleanOtp !== "4826") {
-          return NextResponse.json({ status: "error", message: "Invalid OTP code" }, { status: 400 });
-        }
-        ride.status = "IN_PROGRESS";
-        await ride.save();
-      }
+      await transitionToInProgress({ rideId, driverId: driverUser._id, otp });
       return NextResponse.json({ status: "success", message: "Ride started" });
     }
 
     if (action === "COMPLETE") {
-      const tipAmount = 25;
-      if (ride) {
-        ride.status = "COMPLETED";
-        ride.paymentStatus = "PAID";
-        ride.tip = tipAmount;
-        if (riderRating) ride.riderRating = riderRating;
-        if (riderCompliments && Array.isArray(riderCompliments)) {
-          ride.riderCompliments = riderCompliments;
-        }
-        await ride.save();
-
-        if (ride.paymentMethod === "WALLET" && ride.rider) {
-          const riderUser = await User.findById(ride.rider);
-          if (riderUser) {
-            riderUser.walletBalance = Math.max(0, (riderUser.walletBalance || 0) - ride.fare);
-            await riderUser.save();
-          }
-        }
-      }
-
-      const creditedAmount = (ride?.fare || 250) + tipAmount;
-      driverUser.walletBalance = (driverUser.walletBalance || 0) + creditedAmount;
-      driverUser.dutyState = driverUser.isOnline ? "ONLINE_SEARCHING" : "OFFLINE";
-      await driverUser.save();
+      const { creditedAmount } = await transitionToCompleted({
+        rideId,
+        driverUser,
+        rating: riderRating,
+        compliments: riderCompliments,
+      });
 
       return NextResponse.json({
         status: "success",
@@ -114,32 +69,136 @@ export async function POST(req: Request) {
       });
     }
 
-    if (action === "CANCEL") {
-      if (ride) {
-        ride.status = "CANCELLED";
-        ride.cancellationReason = reason || "Driver requested cancellation";
-        await ride.save();
-      }
-      driverUser.dutyState = driverUser.isOnline ? "ONLINE_SEARCHING" : "OFFLINE";
-      await driverUser.save();
+    if (action === "CONFIRM_CASH_COLLECTED") {
+      const result = await confirmCashCollection({
+        rideId,
+        driverId: driverUser._id,
+        driverName: driverUser.name,
+      });
 
+      return NextResponse.json({
+        status: "success",
+        message: result.alreadyCollected
+          ? "Cash collection already confirmed"
+          : "Cash collection confirmed successfully",
+        data: {
+          rideId: result.ride._id,
+          paymentStatus: result.ride.paymentStatus,
+          collectedAmount: result.collectedAmountInRupees,
+          alreadyCollected: result.alreadyCollected,
+          transactionId: result.transaction?.idempotencyKey,
+        },
+      });
+    }
+
+    if (action === "CANCEL") {
+      await transitionToCancelledByDriver({ rideId, driverUser, reason });
       return NextResponse.json({ status: "success", message: "Ride cancelled" });
     }
 
     if (action === "UPDATE_LOCATION") {
-      if (Array.isArray(coordinates) && coordinates.length === 2) {
-        driverUser.driverCoordinates = coordinates as [number, number];
-        await driverUser.save();
+      if (!Array.isArray(coordinates) || coordinates.length !== 2) {
+        return NextResponse.json(
+          {
+            status: "error",
+            code: "INVALID_COORDINATES",
+            message: "Coordinates must be an array of [latitude, longitude].",
+          },
+          { status: 400 }
+        );
+      }
+
+      const [lat, lng] = coordinates;
+      if (
+        typeof lat !== "number" ||
+        typeof lng !== "number" ||
+        !Number.isFinite(lat) ||
+        !Number.isFinite(lng) ||
+        lat < -90 ||
+        lat > 90 ||
+        lng < -180 ||
+        lng > 180
+      ) {
+        return NextResponse.json(
+          {
+            status: "error",
+            code: "INVALID_COORDINATES",
+            message: "Coordinates out of bounds. Latitude must be between -90 and 90, longitude between -180 and 180.",
+          },
+          { status: 400 }
+        );
+      }
+
+      const rateCheck = await driverLocationRateLimiter.check(String(driverUser._id));
+      if (!rateCheck.allowed) {
+        return NextResponse.json(
+          {
+            status: "error",
+            code: "TOO_MANY_REQUESTS",
+            message: "Driver location update frequency exceeded allowable threshold.",
+            retryAfterSeconds: rateCheck.retryAfterSeconds,
+          },
+          {
+            status: 429,
+            headers: {
+              "Retry-After": String(rateCheck.retryAfterSeconds || 1),
+            },
+          }
+        );
+      }
+      await driverLocationRateLimiter.recordFailure(String(driverUser._id));
+
+      const now = new Date();
+      driverUser.driverCoordinates = [lat, lng];
+      driverUser.driverCoordinatesUpdatedAt = now;
+      await driverUser.save();
+
+      let activeRideVersion: number | null = null;
+      if (rideId && mongoose.isValidObjectId(rideId)) {
+        // Update ride coordinates ONLY if the ride is actively assigned to this driver
+        const ride = await Ride.findOne({
+          _id: rideId,
+          driver: driverUser._id,
+          status: { $in: ["ACCEPTED", "ARRIVED", "IN_PROGRESS"] },
+        });
+
         if (ride) {
-          ride.driverCoordinates = coordinates as [number, number];
+          ride.driverCoordinates = [lat, lng];
+          ride.driverCoordinatesUpdatedAt = now;
+          ride.trackingVersion = (ride.trackingVersion || 1) + 1;
           await ride.save();
+          activeRideVersion = ride.trackingVersion;
         }
       }
-      return NextResponse.json({ status: "success", message: "Location updated" });
+
+      return NextResponse.json({
+        status: "success",
+        message: "Location updated",
+        data: {
+          coordinates: driverUser.driverCoordinates,
+          updatedAt: driverUser.driverCoordinatesUpdatedAt,
+          trackingVersion: activeRideVersion,
+        },
+      });
     }
 
     return NextResponse.json({ status: "error", message: "Invalid action" }, { status: 400 });
   } catch (error) {
+    if (isAuthError(error)) {
+      return handleAuthError(error);
+    }
+    if (error instanceof RideTransitionError) {
+      return NextResponse.json(
+        { status: "error", code: error.code, message: error.message },
+        { status: error.statusCode }
+      );
+    }
+    if (error instanceof LedgerError) {
+      return NextResponse.json(
+        { status: "error", code: error.code, message: error.message },
+        { status: error.statusCode }
+      );
+    }
     console.error("[Driver Ride Action Error]:", error);
     return NextResponse.json({ status: "error", message: "Internal server error" }, { status: 500 });
   }
