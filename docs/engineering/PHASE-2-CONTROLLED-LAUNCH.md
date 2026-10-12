@@ -31,23 +31,12 @@ Bhavo is structured as a portable Next.js 16 App Router application supporting t
 
 1. **Vercel Serverless Architecture (Primary Recommended Target):**
    - Native support for Next.js 16 App Router, edge route acceleration, and automatic TLS termination.
-   - **Source-Controlled Cron Manifest:** Added [`vercel.json`](file:///c:/Users/bhave/Bhavo/my-bhavo/vercel.json) to declare scheduled background processing jobs:
-     ```json
-     {
-       "$schema": "https://openapi.vercel.sh/vercel.json",
-       "crons": [
-         {
-           "path": "/api/cron/auto-booking",
-           "schedule": "*/2 * * * *"
-         },
-         {
-           "path": "/api/driver/dispatches/maintenance",
-           "schedule": "* * * * *"
-         }
-       ]
-     }
-     ```
-   - Automated invocation utilizes `CRON_SECRET` configured in Vercel project environment variables.
+   - **Vercel Hobby Tier Staging Configuration:** The root [`vercel.json`](file:///c:/Users/bhave/Bhavo/my-bhavo/vercel.json) on `staging-hobby` maintains a valid Vercel schema without native `"crons"` declarations because Vercel Hobby does not support sub-hourly or minute-level execution frequencies.
+   - **Required Schedule Cadence (External Scheduler Required on Hobby):**
+     - `/api/cron/auto-booking` — **every 2 minutes** (`*/2 * * * *`)
+     - `/api/driver/dispatches/maintenance` — **every minute** (`* * * * *`)
+   - For Hobby staging, an external scheduler (e.g. GitHub Actions, Google Cloud Scheduler, AWS EventBridge, cron-job.org, or an external cron runner) must be configured to trigger both endpoints at the exact required intervals, supplying `Authorization: Bearer <CRON_SECRET>` or `x-cron-secret: <CRON_SECRET>`.
+   - On Vercel Pro/Enterprise plans, native `"crons"` entries can optionally be declared directly in `vercel.json`.
 
 2. **Persistent Container / Node.js Host (Alternative On-Prem / VM Target):**
    - Production execution command: `npm start` (spawns `next start` on port 3000).
@@ -146,6 +135,10 @@ Pilot pricing is authoritative and calculated in integer paise:
 | `/api/cron/auto-booking` | GET / POST | Every 2 minutes (`*/2 * * * *`) | Materializes upcoming recurring commute rides within lookahead window (3 hours). |
 | `/api/driver/dispatches/maintenance` | GET / POST | Every 1 minute (`* * * * *`) | Sweeps expired dispatch offers, clears stale assignments, and advances dispatch attempts. |
 
+> [!IMPORTANT]
+> **Vercel Hobby Staging Scheduler Requirement:**
+> Vercel Hobby tier does not support sub-hourly or minute-level native crons. On the `staging-hobby` branch, native cron declarations in `vercel.json` are omitted to ensure Vercel deployment validation succeeds. An external scheduler (e.g., GitHub Actions scheduled workflows, Google Cloud Scheduler, AWS EventBridge, or cron-job.org) must be configured to trigger both endpoints at their exact required intervals (`*/2 * * * *` and `* * * * *`) supplying `Authorization: Bearer <CRON_SECRET>`. The endpoint handlers, secret validation, and state machine logic remain 100% identical.
+
 ### 6.2 Authentication & Secret Validation
 - Invocation requires HTTP header: `Authorization: Bearer <CRON_SECRET>` or `x-cron-secret: <CRON_SECRET>`.
 - Constant-time secret comparison via [`src/lib/cronAuth.ts`](file:///c:/Users/bhave/Bhavo/my-bhavo/src/lib/cronAuth.ts) prevents timing side-channels.
@@ -209,7 +202,7 @@ The following table provides the honest verification status of all deployment pr
 | **MongoDB Connection URI** | Database Network | Configured in source schema; **Requires Atlas cluster URI & IP whitelist** | Operator |
 | **MongoDB Automated Backups**| Disaster Recovery | Documented in runbook; **Requires Atlas automated snapshot policy** | Operator |
 | **SMTP Mail Server** | External Service | Configured with fail-safe fallback; **Requires verified SMTP credentials** | Operator |
-| **Cron Job Invocation** | Hosting Platform | Declared in `vercel.json`; **Requires Vercel Cron verification in dashboard** | Operator |
+| **Cron Job Invocation** | Hosting Platform | Configured for external scheduler on Hobby staging (`* * * * *` and `*/2 * * * *`); or native Vercel Cron on Pro plan | Operator |
 | **Online Payment Gateway** | Gateway | **Disabled by Policy** (Cash-only pilot) | Operator |
 
 ---
