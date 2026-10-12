@@ -2,9 +2,9 @@ name: Bhavo CI Pipeline
 
 on:
   push:
-    branches: [main, master, develop]
+    branches: [main, development, staging-hobby]
   pull_request:
-    branches: [main, master, develop]
+    branches: [main, development, staging-hobby]
 
 jobs:
   verify:
@@ -18,7 +18,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: "npm"
 
       - name: Install Dependencies
