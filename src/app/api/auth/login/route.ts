@@ -1,85 +1,127 @@
 import { NextResponse } from "next/server";
 import { compare } from "bcryptjs";
-import { SignJWT } from "jose";
 import dbConnect from "@/lib/mongoose";
 import User from "@/models/User";
-
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || process.env.AUTH_SECRET || "fallback_secret_please_change_me_in_production"
-);
+import { signAuthToken, getAuthCookieOptions } from "@/lib/auth";
+import { loginRateLimiter, getLoginRateLimitKey } from "@/lib/rateLimit";
 
 export async function POST(req: Request) {
   try {
-    const { email, password, role } = await req.json();
+    const body = await req.json();
+    const { email, password } = body;
 
     if (!email || !password) {
-      return NextResponse.json({ status: "error", message: "Email and password are required" }, { status: 400 });
+      return NextResponse.json(
+        { status: "error", message: "Email and password are required" },
+        { status: 400 }
+      );
     }
 
     const normalizedEmail = email.trim().toLowerCase();
 
+    // 1. IP + Account Rate Limiting Check
+    const ip =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      req.headers.get("x-real-ip") ||
+      "127.0.0.1";
+
+    const rateKey = getLoginRateLimitKey(ip, normalizedEmail);
+    const rateCheck = await loginRateLimiter.check(rateKey);
+
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        {
+          status: "error",
+          code: "TOO_MANY_REQUESTS",
+          message: "Too many failed login attempts. Please try again later.",
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(rateCheck.retryAfterSeconds || 60),
+          },
+        }
+      );
+    }
+
     await dbConnect();
-    // Search with case-insensitive matching to find user regardless of how it was originally saved
+    // Search with case-insensitive matching to find user
     const user = await User.findOne({
-      email: { $regex: new RegExp(`^${normalizedEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") }
+      email: { $regex: new RegExp(`^${normalizedEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") },
     });
 
+    // Generic error response to avoid account enumeration
     if (!user || !user.password) {
-      console.warn(`[Auth Login 401] User not found for email: "${email}" (normalized: "${normalizedEmail}")`);
-      return NextResponse.json({ status: "error", message: "Invalid email or password" }, { status: 401 });
+      await loginRateLimiter.recordFailure(rateKey);
+      return NextResponse.json(
+        { status: "error", message: "Invalid email or password" },
+        { status: 401 }
+      );
     }
 
     const isPasswordValid = await compare(password, user.password);
     if (!isPasswordValid) {
-      console.warn(`[Auth Login 401] Password mismatch for user: "${user.email}"`);
-      return NextResponse.json({ status: "error", message: "Invalid email or password" }, { status: 401 });
+      await loginRateLimiter.recordFailure(rateKey);
+      return NextResponse.json(
+        { status: "error", message: "Invalid email or password" },
+        { status: 401 }
+      );
     }
 
-    // If user logged in selecting a specific role (e.g. "DRIVER" or "RIDER"), activate that role
-    if (role && (role === "DRIVER" || role === "RIDER")) {
-      user.role = role;
-      await user.save();
+    // Account status validation
+    const userAny = user as Record<string, unknown>;
+    const userStatus = (userAny.status as string) || "ACTIVE";
+    if (
+      userStatus === "SUSPENDED" ||
+      userStatus === "DISABLED" ||
+      userAny.isSuspended === true ||
+      userAny.isDisabled === true
+    ) {
+      return NextResponse.json(
+        { status: "error", code: "ACCOUNT_SUSPENDED", message: "Account is suspended or disabled" },
+        { status: 403 }
+      );
     }
 
-    console.log(`[Auth Login 200] Successful login for: "${user.email}" (${user.role})`);
+    // On successful login, clear failure counter for this IP + account
+    await loginRateLimiter.reset(rateKey);
 
-    // Generate JWT token using jose
-    const alg = "HS256";
-    const jwt = await new SignJWT({
+    // Finding 4 fix: Server strictly preserves stored role from trusted DB record.
+    // Client input CANNOT mutate stored role.
+    const trustedRole = user.role || "RIDER";
+    const userTokenVersion = (userAny.tokenVersion as number) ?? 0;
+
+    // Generate JWT token with embedded tokenVersion for immediate server-side revocation
+    const jwt = await signAuthToken({
       id: user._id.toString(),
       email: user.email,
-      role: user.role,
-    })
-      .setProtectedHeader({ alg })
-      .setIssuedAt()
-      .setExpirationTime("7d") // 7 days expiration
-      .sign(JWT_SECRET);
-
-    const response = NextResponse.json({
-      status: "success",
-      message: "Logged in successfully",
-      data: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      }
-    }, { status: 200 });
-
-    // Set secure HTTP-only cookie
-    response.cookies.set({
-      name: "auth_token",
-      value: jwt,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7, // 7 days in seconds
-      path: "/",
+      role: trustedRole,
+      tokenVersion: userTokenVersion,
     });
+
+    const response = NextResponse.json(
+      {
+        status: "success",
+        message: "Logged in successfully",
+        data: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: trustedRole,
+        },
+      },
+      { status: 200 }
+    );
+
+    // Set secure HTTP-only cookie using centralized cookie configuration
+    response.cookies.set(getAuthCookieOptions(jwt));
 
     return response;
   } catch (error) {
     console.error("Login error:", error);
-    return NextResponse.json({ status: "error", message: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { status: "error", message: "Internal server error" },
+      { status: 500 }
+    );
   }
 }

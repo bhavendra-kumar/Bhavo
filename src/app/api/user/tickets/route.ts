@@ -3,6 +3,7 @@ import dbConnect from "@/lib/mongoose";
 import User from "@/models/User";
 import Ticket from "@/models/Ticket";
 import { getSession } from "@/lib/auth";
+import { ticketRateLimiter } from "@/lib/rateLimit";
 
 export async function GET() {
   try {
@@ -55,6 +56,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ status: "error", message: "User not found" }, { status: 404 });
     }
 
+    const rateCheck = await ticketRateLimiter.check(String(user._id));
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        {
+          status: "error",
+          code: "TOO_MANY_REQUESTS",
+          message: "Ticket submission rate exceeded. Please wait a few minutes before submitting another ticket.",
+          retryAfterSeconds: rateCheck.retryAfterSeconds,
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(rateCheck.retryAfterSeconds || 60),
+          },
+        }
+      );
+    }
+
     const body = await req.json();
     const { category = "app_issue", subject, description, priority = "MEDIUM" } = body;
 
@@ -65,9 +84,11 @@ export async function POST(req: Request) {
       );
     }
 
+    await ticketRateLimiter.recordFailure(String(user._id));
+
     const newTicket = await Ticket.create({
       user: user._id,
-      ticketId: `TK-${Math.floor(1000 + Math.random() * 9000)}`,
+      ticketId: `TK-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
       category,
       subject,
       description,

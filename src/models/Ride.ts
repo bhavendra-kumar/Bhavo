@@ -21,6 +21,13 @@ export interface IRideMessage {
   timestamp: Date;
 }
 
+export interface IDispatchOffer {
+  offerId: string;
+  driverId: mongoose.Types.ObjectId;
+  offeredAt: Date;
+  expiresAt: Date;
+}
+
 export interface IRide extends Document {
   rider: mongoose.Types.ObjectId;
   driver?: mongoose.Types.ObjectId | null;
@@ -30,18 +37,47 @@ export interface IRide extends Document {
   dropoff: ILocation;
   vehicleType: string;
   fare: number;
+  fareInPaise?: number;
   distance: string;
   duration: string;
   status: "SEARCHING" | "ACCEPTED" | "ARRIVED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
   otp: string;
   scheduledFor?: Date | null;
-  paymentMethod: "WALLET" | "CASH" | "UPI";
-  paymentStatus: "PENDING" | "PAID";
+  paymentMethod: "WALLET" | "CASH" | "UPI" | "ONLINE";
+  paymentStatus: "PENDING" | "PAID" | "PENDING_COLLECTION" | "COLLECTED" | "PENDING_PAYMENT" | "FAILED";
+  cashCollectedAt?: Date | null;
+  cashCollectedBy?: mongoose.Types.ObjectId | null;
+  pricingSnapshot?: {
+    baseFarePaise: number;
+    distanceKm: number;
+    distanceFarePaise: number;
+    petFriendlySurchargePaise: number;
+    totalFarePaise: number;
+    currency: string;
+    rateRuleVersion: string;
+    calculatedAt: Date;
+  } | null;
+  driverCoordinatesUpdatedAt?: Date | null;
+  trackingVersion?: number;
   messages: IRideMessage[];
   tip?: number;
   riderRating?: number;
   riderCompliments?: string[];
   cancellationReason?: string | null;
+  cancelledBy?: "RIDER" | "DRIVER" | null;
+  petFriendly?: boolean;
+  preferredDriver?: mongoose.Types.ObjectId | null;
+  currentOffer?: IDispatchOffer | null;
+  rejectedDrivers?: mongoose.Types.ObjectId[];
+  dispatchAttempts?: number;
+  dispatchStatus?: "PENDING_DISPATCH" | "DISPATCHING" | "OFFERED" | "ASSIGNED" | "EXHAUSTED";
+  acceptedAt?: Date | null;
+  arrivedAt?: Date | null;
+  startedAt?: Date | null;
+  completedAt?: Date | null;
+  cancelledAt?: Date | null;
+  commuteId?: mongoose.Types.ObjectId | null;
+  autoBookingOccurrenceKey?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -58,6 +94,7 @@ const RideSchema = new Schema<IRide>(
       type: Schema.Types.ObjectId,
       ref: "User",
       default: null,
+      index: true,
     },
     driverDetails: {
       name: { type: String, default: null },
@@ -70,6 +107,14 @@ const RideSchema = new Schema<IRide>(
     driverCoordinates: {
       type: [Number],
       default: null,
+    },
+    driverCoordinatesUpdatedAt: {
+      type: Date,
+      default: null,
+    },
+    trackingVersion: {
+      type: Number,
+      default: 1,
     },
     messages: {
       type: [
@@ -100,6 +145,10 @@ const RideSchema = new Schema<IRide>(
       required: true,
       default: 0,
     },
+    fareInPaise: {
+      type: Number,
+      default: 0,
+    },
     distance: {
       type: String,
       default: "5.2 km",
@@ -124,13 +173,36 @@ const RideSchema = new Schema<IRide>(
     },
     paymentMethod: {
       type: String,
-      enum: ["WALLET", "CASH", "UPI"],
+      enum: ["WALLET", "CASH", "UPI", "ONLINE"],
       default: "WALLET",
     },
     paymentStatus: {
       type: String,
-      enum: ["PENDING", "PAID"],
+      enum: ["PENDING", "PAID", "PENDING_COLLECTION", "COLLECTED", "PENDING_PAYMENT", "FAILED"],
       default: "PENDING",
+      index: true,
+    },
+    cashCollectedAt: {
+      type: Date,
+      default: null,
+    },
+    cashCollectedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    pricingSnapshot: {
+      type: {
+        baseFarePaise: { type: Number, required: true },
+        distanceKm: { type: Number, required: true },
+        distanceFarePaise: { type: Number, required: true },
+        petFriendlySurchargePaise: { type: Number, default: 0 },
+        totalFarePaise: { type: Number, required: true },
+        currency: { type: String, default: "INR" },
+        rateRuleVersion: { type: String, default: "v1_standard" },
+        calculatedAt: { type: Date, default: Date.now },
+      },
+      default: null,
     },
     tip: {
       type: Number,
@@ -148,11 +220,64 @@ const RideSchema = new Schema<IRide>(
       type: String,
       default: null,
     },
+    petFriendly: {
+      type: Boolean,
+      default: false,
+    },
+    preferredDriver: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    currentOffer: {
+      type: {
+        offerId: { type: String, required: true },
+        driverId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+        offeredAt: { type: Date, required: true },
+        expiresAt: { type: Date, required: true },
+      },
+      default: null,
+    },
+    rejectedDrivers: {
+      type: [{ type: Schema.Types.ObjectId, ref: "User" }],
+      default: [],
+    },
+    dispatchAttempts: {
+      type: Number,
+      default: 0,
+    },
+    dispatchStatus: {
+      type: String,
+      enum: ["PENDING_DISPATCH", "DISPATCHING", "OFFERED", "ASSIGNED", "EXHAUSTED"],
+      default: "PENDING_DISPATCH",
+      index: true,
+    },
+    commuteId: {
+      type: Schema.Types.ObjectId,
+      ref: "Commute",
+      default: null,
+      index: true,
+    },
+    autoBookingOccurrenceKey: {
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: true,
   }
 );
+
+// Indexes supporting Phase 1B, Phase 1D, Phase 1E tracking queries, Phase 1F idempotency, and Phase 1H admin operations
+RideSchema.index({ status: 1, driver: 1, scheduledFor: 1 });
+RideSchema.index({ rider: 1, status: 1 });
+RideSchema.index({ _id: 1, rider: 1, status: 1 });
+RideSchema.index({ _id: 1, driver: 1, status: 1 });
+RideSchema.index({ "currentOffer.driverId": 1, "currentOffer.expiresAt": 1 });
+RideSchema.index({ status: 1, dispatchStatus: 1, scheduledFor: 1 });
+RideSchema.index({ autoBookingOccurrenceKey: 1 }, { unique: true, sparse: true });
+RideSchema.index({ status: 1, createdAt: -1 });
+RideSchema.index({ createdAt: -1 });
 
 const Ride: Model<IRide> = mongoose.models.Ride || mongoose.model<IRide>("Ride", RideSchema);
 

@@ -1,7 +1,26 @@
 import { NextResponse } from "next/server";
+import { contactRateLimiter, getClientIp } from "@/lib/rateLimit";
 
 export async function POST(req: Request) {
   try {
+    const clientIp = getClientIp(req);
+    const rateCheck = await contactRateLimiter.check(`contact:${clientIp}`);
+
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: "Too many contact submissions. Please wait before submitting another message.",
+          retryAfterSeconds: rateCheck.retryAfterSeconds,
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(rateCheck.retryAfterSeconds || 60),
+          },
+        }
+      );
+    }
+
     const body = await req.json();
     const { firstName, lastName, email, message } = body;
 
@@ -12,13 +31,24 @@ export async function POST(req: Request) {
       );
     }
 
-    // Successfully received contact submission
-    console.log("[Bhavo Contact Form]", {
-      name: `${firstName} ${lastName || ""}`.trim(),
-      email,
-      message,
-      receivedAt: new Date().toISOString(),
-    });
+    if (
+      typeof firstName !== "string" ||
+      typeof email !== "string" ||
+      typeof message !== "string" ||
+      (lastName !== undefined && typeof lastName !== "string") ||
+      firstName.trim().length > 100 ||
+      (typeof lastName === "string" && lastName.trim().length > 100) ||
+      email.trim().length > 150 ||
+      message.trim().length > 2000
+    ) {
+      return NextResponse.json(
+        { error: "Submitted message or field length exceeds allowable limits." },
+        { status: 400 }
+      );
+    }
+
+    // Record submission against rate limit
+    await contactRateLimiter.recordFailure(`contact:${clientIp}`);
 
     return NextResponse.json({
       success: true,

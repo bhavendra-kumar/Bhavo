@@ -85,6 +85,37 @@ export default function DriverDashboard() {
     return () => clearInterval(interval);
   }, [activeRide, updateLocation]);
 
+  // Active ride live stream listener for immediate driver updates
+  useEffect(() => {
+    if (!activeRide?._id) return;
+    if (activeRide.status === "COMPLETED" || activeRide.status === "CANCELLED") return;
+
+    let es: EventSource | null = null;
+    try {
+      es = new EventSource(`/api/driver/rides/${activeRide._id}/stream`);
+      es.onmessage = (event) => {
+        try {
+          const snapshot = JSON.parse(event.data);
+          if (snapshot.status === "CANCELLED") {
+            useDriverStore.setState((state) => ({
+              activeRide: null,
+              dutyState: state.isOnline ? "ONLINE_SEARCHING" : "OFFLINE",
+            }));
+            fetchDriverData();
+          } else if (snapshot.status === "COMPLETED") {
+            fetchDriverData();
+          }
+        } catch {}
+      };
+    } catch {}
+
+    return () => {
+      if (es) {
+        es.close();
+      }
+    };
+  }, [activeRide?._id, activeRide?.status, fetchDriverData]);
+
   const handleDestinationMode = () => {
     alert({
       title: "Driver Destination Mode (Heading Home)",

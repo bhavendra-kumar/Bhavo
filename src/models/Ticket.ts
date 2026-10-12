@@ -25,7 +25,7 @@ const TicketSchema = new Schema<ITicket>(
       type: String,
       required: true,
       unique: true,
-      default: () => `TK-${Math.floor(1000 + Math.random() * 9000)}`,
+      default: () => `TK-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
     },
     category: {
       type: String,
@@ -61,6 +61,10 @@ const TicketSchema = new Schema<ITicket>(
     timestamps: true,
   }
 );
+
+// Indexes supporting Phase 1H support queue and user ticket lookups
+TicketSchema.index({ status: 1, priority: 1, createdAt: -1 });
+TicketSchema.index({ user: 1, createdAt: -1 });
 
 const Ticket: Model<ITicket> = mongoose.models.Ticket || mongoose.model<ITicket>("Ticket", TicketSchema);
 

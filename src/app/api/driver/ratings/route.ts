@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongoose";
 import Ride from "@/models/Ride";
 import { getDriverUser } from "@/lib/driverAuth";
+import { isAuthError, handleAuthError } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     await dbConnect();
-    const user = await getDriverUser();
+    const user = await getDriverUser(req);
 
     const completedRides = await Ride.find({
       driver: user._id,
@@ -78,6 +79,9 @@ export async function GET() {
       },
     });
   } catch (error) {
+    if (isAuthError(error)) {
+      return handleAuthError(error);
+    }
     console.error("[Driver Ratings GET Error]:", error);
     return NextResponse.json({ status: "error", message: "Internal server error" }, { status: 500 });
   }

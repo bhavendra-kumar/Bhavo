@@ -1,25 +1,44 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
-
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || process.env.AUTH_SECRET || "fallback_secret_please_change_me_in_production"
-);
+import { getJwtSecret, AUTH_COOKIE_NAME } from "@/lib/auth";
 
 export async function proxy(req: NextRequest) {
-  const token = req.cookies.get("auth_token")?.value;
+  const token = req.cookies.get(AUTH_COOKIE_NAME)?.value;
   
-  if (req.nextUrl.pathname.startsWith("/user") || req.nextUrl.pathname.startsWith("/driver")) {
-    if (req.nextUrl.searchParams.get("demo") === "true") {
-      return NextResponse.next();
-    }
+  if (req.nextUrl.pathname.startsWith("/admin")) {
     if (!token) {
       return NextResponse.redirect(new URL("/login", req.url));
     }
     try {
-      const { payload } = await jwtVerify(token, JWT_SECRET);
+      const secret = getJwtSecret();
+      const { payload } = await jwtVerify(token, secret);
+      if (payload.role !== "ADMIN") {
+        return NextResponse.redirect(new URL("/user/dashboard", req.url));
+      }
+      const response = NextResponse.next();
+      response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+      return response;
+    } catch {
+      const response = NextResponse.redirect(new URL("/login", req.url));
+      response.cookies.set(AUTH_COOKIE_NAME, "", { maxAge: 0, path: "/", httpOnly: true });
+      return response;
+    }
+  }
+
+  if (req.nextUrl.pathname.startsWith("/user") || req.nextUrl.pathname.startsWith("/driver")) {
+    // Finding 1 fix: All query parameter demo/bypass logic removed completely.
+    if (!token) {
+      return NextResponse.redirect(new URL("/login", req.url));
+    }
+    try {
+      const secret = getJwtSecret();
+      const { payload } = await jwtVerify(token, secret);
 
       // Role-based boundary enforcement
+      if (payload.role === "ADMIN") {
+        return NextResponse.redirect(new URL("/admin", req.url));
+      }
       if (payload.role === "DRIVER" && req.nextUrl.pathname.startsWith("/user")) {
         return NextResponse.redirect(new URL("/driver", req.url));
       }
@@ -27,10 +46,12 @@ export async function proxy(req: NextRequest) {
         return NextResponse.redirect(new URL("/user/dashboard", req.url));
       }
 
-      return NextResponse.next();
+      const response = NextResponse.next();
+      response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+      return response;
     } catch {
       const response = NextResponse.redirect(new URL("/login", req.url));
-      response.cookies.set("auth_token", "", { maxAge: 0 });
+      response.cookies.set(AUTH_COOKIE_NAME, "", { maxAge: 0, path: "/", httpOnly: true });
       return response;
     }
   }
@@ -38,8 +59,14 @@ export async function proxy(req: NextRequest) {
   if (req.nextUrl.pathname === "/login" || req.nextUrl.pathname === "/signup") {
     if (token) {
       try {
-        const { payload } = await jwtVerify(token, JWT_SECRET);
-        const destination = payload.role === "DRIVER" ? "/driver" : "/user/dashboard";
+        const secret = getJwtSecret();
+        const { payload } = await jwtVerify(token, secret);
+        const destination =
+          payload.role === "ADMIN"
+            ? "/admin"
+            : payload.role === "DRIVER"
+            ? "/driver"
+            : "/user/dashboard";
         return NextResponse.redirect(new URL(destination, req.url));
       } catch {}
     }

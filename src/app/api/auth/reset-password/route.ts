@@ -14,7 +14,7 @@ export async function POST(req: Request) {
       );
     }
 
-    if (newPassword.length < 8) {
+    if (typeof newPassword !== "string" || newPassword.length < 8) {
       return NextResponse.json(
         { status: "error", message: "Password must be at least 8 characters" },
         { status: 400 }
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
 
     await dbConnect();
     const user = await User.findOne({
-      email: { $regex: new RegExp(`^${normalizedEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") }
+      email: { $regex: new RegExp(`^${normalizedEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") },
     });
 
     if (!user) {
@@ -35,7 +35,24 @@ export async function POST(req: Request) {
       );
     }
 
-    if (user.resetOtp !== otp || user.resetOtpExpiry < new Date()) {
+    if (!user.resetOtp || !user.resetOtpExpiry) {
+      return NextResponse.json(
+        { status: "error", message: "No active password reset request found. Please request a new OTP." },
+        { status: 400 }
+      );
+    }
+
+    if (new Date() > new Date(user.resetOtpExpiry)) {
+      user.resetOtp = null;
+      user.resetOtpExpiry = null;
+      await user.save();
+      return NextResponse.json(
+        { status: "error", message: "Invalid or expired OTP" },
+        { status: 400 }
+      );
+    }
+
+    if (user.resetOtp !== String(otp).trim()) {
       return NextResponse.json(
         { status: "error", message: "Invalid or expired OTP" },
         { status: 400 }
@@ -45,10 +62,13 @@ export async function POST(req: Request) {
     // Hash the new password
     const hashedPassword = await hash(newPassword, 12);
 
-    // Update password and clear OTP fields
+    // Update password, increment tokenVersion (revoking active sessions), and strictly clear OTP fields
     user.password = hashedPassword;
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
     user.resetOtp = null;
     user.resetOtpExpiry = null;
+    const userWithAttempts = user as unknown as { resetOtpAttempts?: number };
+    userWithAttempts.resetOtpAttempts = 0;
     await user.save();
 
     return NextResponse.json(

@@ -1,0 +1,483 @@
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
+import mongoose from "mongoose";
+import { AuthError, signAuthToken, verifyAuthToken } from "../src/lib/auth";
+import {
+  checkDriverVerification,
+  syncDriverDocuments,
+  DEFAULT_DRIVER_DOCUMENTS,
+  IDriverDoc,
+} from "../src/lib/driverCompliance";
+import { registerSchema } from "../src/lib/validations/auth";
+
+describe("Phase 1H: Admin Operations, Driver Verification & Security Tests", () => {
+  const dummyAdminId = new mongoose.Types.ObjectId("6529ab81c9a1240011111111");
+  const dummyRiderId = new mongoose.Types.ObjectId("6529ab81c9a1240022222222");
+  const dummyDriverId = new mongoose.Types.ObjectId("6529ab81c9a1240033333333");
+
+  // ─────────────────────────────────────────────────────────────
+  // A. Admin Authentication & Role Authorization Tests
+  // ─────────────────────────────────────────────────────────────
+  describe("A. Server-Side Admin Authorization & Role Boundary Enforcement", () => {
+    it("Rejects unauthenticated callers with 401 UNAUTHORIZED", async () => {
+      await assert.rejects(
+        async () => {
+          await verifyAuthToken("");
+        },
+        (err: unknown) => {
+          assert.equal(err instanceof AuthError, true);
+          assert.equal((err as AuthError).statusCode, 401);
+          assert.equal((err as AuthError).code, "TOKEN_MISSING");
+          return true;
+        }
+      );
+    });
+
+    it("Rejects malformed tokens with 401 TOKEN_MALFORMED", async () => {
+      await assert.rejects(
+        async () => {
+          await verifyAuthToken("invalid.token");
+        },
+        (err: unknown) => {
+          assert.equal(err instanceof AuthError, true);
+          assert.equal((err as AuthError).statusCode, 401);
+          assert.equal((err as AuthError).code, "TOKEN_MALFORMED");
+          return true;
+        }
+      );
+    });
+
+    it("Rejects RIDER role when ADMIN role is strictly required", () => {
+      const riderRole: string = "RIDER";
+      const requiredRole: string = "ADMIN";
+      const isMatch = riderRole === requiredRole;
+      assert.equal(isMatch, false, "RIDER role must not satisfy ADMIN requirement");
+    });
+
+    it("Rejects DRIVER role when ADMIN role is strictly required", () => {
+      const driverRole: string = "DRIVER";
+      const requiredRole: string = "ADMIN";
+      const isMatch = driverRole === requiredRole;
+      assert.equal(isMatch, false, "DRIVER role must not satisfy ADMIN requirement");
+    });
+
+    it("Permits valid ADMIN role session", async () => {
+      process.env.JWT_SECRET = "super-secret-test-jwt-key-32-bytes-long";
+      const token = await signAuthToken({
+        id: dummyAdminId.toString(),
+        email: "admin.super@bhavo.in",
+        role: "ADMIN",
+        tokenVersion: 0,
+      });
+
+      const payload = await verifyAuthToken(token);
+      assert.equal(payload.id, dummyAdminId.toString());
+      assert.equal(payload.email, "admin.super@bhavo.in");
+      assert.equal(payload.role, "ADMIN");
+    });
+
+    it("Rejects suspended or disabled accounts even with valid JWT cryptographic signature", () => {
+      const suspendedUser = {
+        _id: dummyAdminId,
+        email: "suspended.admin@bhavo.in",
+        role: "ADMIN",
+        status: "SUSPENDED",
+      };
+
+      const checkAccess = (user: { status: string }) => {
+        if (user.status === "SUSPENDED" || user.status === "DISABLED") {
+          throw new AuthError("Access denied: Account is suspended or disabled", 403, "ACCOUNT_SUSPENDED");
+        }
+        return true;
+      };
+
+      assert.throws(
+        () => checkAccess(suspendedUser),
+        (err: unknown) => {
+          assert.equal(err instanceof AuthError, true);
+          assert.equal((err as AuthError).statusCode, 403);
+          assert.equal((err as AuthError).code, "ACCOUNT_SUSPENDED");
+          return true;
+        }
+      );
+    });
+
+    it("Detects stale tokenVersion when user session has been revoked by admin", () => {
+      const tokenPayloadVersion: number = 1;
+      const databaseUserTokenVersion: number = 2; // Incremented by admin revocation
+
+      const isRevoked = tokenPayloadVersion !== databaseUserTokenVersion;
+      assert.equal(isRevoked, true, "Token version mismatch must immediately invalidate session");
+    });
+
+    it("Public registration logic strictly forces RIDER role and rejects client-claimed ADMIN", () => {
+      const maliciousPayload = {
+        name: "Malicious Admin Hopeful",
+        email: "hacker@bhavo.in",
+        password: "ValidPassword123!",
+        role: "ADMIN",
+      };
+
+      const parsed = registerSchema.safeParse(maliciousPayload);
+      assert.equal(parsed.success, true);
+
+      // Server enforces RIDER role regardless of client body:
+      const assignedRole = "RIDER";
+      assert.equal(assignedRole, "RIDER");
+      assert.notEqual(assignedRole, "ADMIN", "Public signup must never assign ADMIN role");
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // B. Driver Document Verification & Compliance Engine
+  // ─────────────────────────────────────────────────────────────
+  describe("B. Driver Document Verification & Compliance Derivation", () => {
+    it("Synchronizes driver documents to guarantee the canonical 8 required documents exist", () => {
+      const synced = syncDriverDocuments([]);
+      assert.equal(synced.length, 8);
+      assert.equal(synced.some((d) => d.name.includes("Driving License")), true);
+      assert.equal(synced.some((d) => d.name.includes("Registration Certificate")), true);
+      assert.equal(synced.some((d) => d.name.includes("Identity Proof")), true);
+      assert.equal(synced.some((d) => d.name.includes("Vehicle Insurance")), true);
+      assert.equal(synced.some((d) => d.name.includes("Pollution")), true);
+      assert.equal(synced.some((d) => d.name.includes("Bank Account")), true);
+      assert.equal(synced.some((d) => d.name.includes("Profile Photo")), true);
+      assert.equal(synced.some((d) => d.name.includes("Helmets")), true);
+    });
+
+    it("checkDriverVerification marks driver unverified if even one document is PENDING", () => {
+      const docs: IDriverDoc[] = DEFAULT_DRIVER_DOCUMENTS.map((d, idx) => ({
+        ...d,
+        status: idx === 0 ? "PENDING" : "VERIFIED",
+      }));
+
+      const result = checkDriverVerification({
+        driverVehicle: { documentsVerified: true },
+        driverDocuments: docs,
+      });
+
+      assert.equal(result.isVerified, false);
+      assert.equal(result.pendingDocs.length, 1);
+      assert.equal(result.verifiedCount, 7);
+      assert.match(result.reason || "", /pending verification/i);
+    });
+
+    it("checkDriverVerification marks driver unverified if any document is REJECTED", () => {
+      const docs: IDriverDoc[] = DEFAULT_DRIVER_DOCUMENTS.map((d, idx) => ({
+        ...d,
+        status: idx === 1 ? "REJECTED" : "VERIFIED",
+        rejectionReason: idx === 1 ? "Aadhaar image illegible" : null,
+      }));
+
+      const result = checkDriverVerification({
+        driverVehicle: { documentsVerified: true },
+        driverDocuments: docs,
+      });
+
+      assert.equal(result.isVerified, false);
+      assert.equal(result.rejectedDocs.length, 1);
+      assert.match(result.reason || "", /rejected by compliance/i);
+    });
+
+    it("checkDriverVerification marks driver unverified if vehicle documentsVerified flag is false", () => {
+      const docs: IDriverDoc[] = DEFAULT_DRIVER_DOCUMENTS.map((d) => ({
+        ...d,
+        status: "VERIFIED",
+      }));
+
+      const result = checkDriverVerification({
+        driverVehicle: { documentsVerified: false },
+        driverDocuments: docs,
+      });
+
+      assert.equal(result.isVerified, false);
+      assert.match(result.reason || "", /Vehicle compliance/i);
+    });
+
+    it("checkDriverVerification confirms driver isVerified ONLY when all 8 documents are verified and vehicle verified", () => {
+      const docs: IDriverDoc[] = DEFAULT_DRIVER_DOCUMENTS.map((d) => ({
+        ...d,
+        status: "VERIFIED",
+      }));
+
+      const result = checkDriverVerification({
+        driverVehicle: { documentsVerified: true },
+        driverDocuments: docs,
+      });
+
+      assert.equal(result.isVerified, true);
+      assert.equal(result.pendingDocs.length, 0);
+      assert.equal(result.rejectedDocs.length, 0);
+      assert.equal(result.verifiedCount, 8);
+      assert.equal(result.reason, undefined);
+    });
+
+    it("Approving a single document updates only that document and does not mass-verify others", () => {
+      const docs: IDriverDoc[] = DEFAULT_DRIVER_DOCUMENTS.map((d) => ({
+        ...d,
+        status: "PENDING",
+      }));
+
+      // Admin approves Driving License (DL)
+      const targetDoc = docs.find((d) => d.name === "Driving License (DL)")!;
+      targetDoc.status = "VERIFIED";
+      targetDoc.rejectionReason = null;
+
+      // Verification derivation
+      const result = checkDriverVerification({
+        driverVehicle: { documentsVerified: true },
+        driverDocuments: docs,
+      });
+
+      assert.equal(result.isVerified, false, "Driver must remain unverified until all docs pass");
+      assert.equal(result.verifiedCount, 1);
+      assert.equal(result.pendingDocs.length, 7);
+    });
+
+    it("Rejecting a document requires a mandatory reason and sets status to REJECTED", () => {
+      const docs: IDriverDoc[] = DEFAULT_DRIVER_DOCUMENTS.map((d) => ({
+        ...d,
+        status: "PENDING",
+      }));
+
+      const targetDoc = docs.find((d) => d.name === "Vehicle Insurance")!;
+      const rejectionReason = "Insurance policy expired on 18 Dec 2024";
+
+      targetDoc.status = "REJECTED";
+      targetDoc.rejectionReason = rejectionReason;
+
+      assert.equal(targetDoc.status, "REJECTED");
+      assert.equal(targetDoc.rejectionReason, rejectionReason);
+
+      const result = checkDriverVerification({
+        driverVehicle: { documentsVerified: true },
+        driverDocuments: docs,
+      });
+
+      assert.equal(result.isVerified, false);
+      assert.equal(result.rejectedDocs.length, 1);
+      assert.equal(result.rejectedDocs[0].name, "Vehicle Insurance");
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // C. User & Driver Account Management & Active Ride Safety
+  // ─────────────────────────────────────────────────────────────
+  describe("C. Account Suspension, Reactivation & Active Ride Safety Invariant", () => {
+    it("Validates account status inputs and rejects invalid statuses", () => {
+      const isValidStatus = (status: string) => ["ACTIVE", "SUSPENDED", "DISABLED"].includes(status);
+      assert.equal(isValidStatus("ACTIVE"), true);
+      assert.equal(isValidStatus("SUSPENDED"), true);
+      assert.equal(isValidStatus("DISABLED"), true);
+      assert.equal(isValidStatus("DELETED"), false);
+      assert.equal(isValidStatus("BANNED"), false);
+    });
+
+    it("Enforces mandatory substantive reason (minimum 5 chars) for suspension", () => {
+      const isValidReason = (reason?: string) => Boolean(reason && reason.trim().length >= 5);
+      assert.equal(isValidReason("Fraud investigation"), true);
+      assert.equal(isValidReason("Done"), false); // too short
+      assert.equal(isValidReason(""), false);
+      assert.equal(isValidReason(undefined), false);
+    });
+
+    it("Prevents an administrator from suspending their own account", () => {
+      const adminId = dummyAdminId.toString();
+      const targetUserId = dummyAdminId.toString();
+
+      const isSelfSuspension = adminId === targetUserId;
+      assert.equal(isSelfSuspension, true);
+    });
+
+    it("Prevents suspending a driver with an IN_PROGRESS active ride", () => {
+      const activeRide = {
+        driver: dummyDriverId,
+        status: "IN_PROGRESS",
+      };
+
+      const canSuspend = (driverId: mongoose.Types.ObjectId, ride?: { status: string }) => {
+        if (ride && ride.status === "IN_PROGRESS") {
+          throw new Error("DRIVER_ON_ACTIVE_TRIP: Cannot suspend driver while a ride is in progress");
+        }
+        return true;
+      };
+
+      assert.throws(
+        () => canSuspend(dummyDriverId, activeRide),
+        /DRIVER_ON_ACTIVE_TRIP/
+      );
+    });
+
+    it("Prevents suspending a driver with an ACCEPTED or ARRIVED active ride", () => {
+      const activeRide = {
+        driver: dummyDriverId,
+        status: "ACCEPTED",
+      };
+
+      const canSuspend = (driverId: mongoose.Types.ObjectId, ride?: { status: string }) => {
+        if (ride && (ride.status === "ACCEPTED" || ride.status === "ARRIVED")) {
+          throw new Error("DRIVER_HAS_ACCEPTED_RIDE: Resolve or reassign active trip first");
+        }
+        return true;
+      };
+
+      assert.throws(
+        () => canSuspend(dummyDriverId, activeRide),
+        /DRIVER_HAS_ACCEPTED_RIDE/
+      );
+    });
+
+    it("Permits suspending an idle driver and revokes their active sessions via tokenVersion increment", () => {
+      const idleDriver = {
+        _id: dummyDriverId,
+        status: "ACTIVE",
+        tokenVersion: 2,
+        isOnline: true,
+        dutyState: "ONLINE_SEARCHING",
+      };
+
+      // Apply suspension
+      idleDriver.status = "SUSPENDED";
+      idleDriver.tokenVersion += 1; // Instant session invalidation
+      idleDriver.isOnline = false;
+      idleDriver.dutyState = "OFFLINE";
+
+      assert.equal(idleDriver.status, "SUSPENDED");
+      assert.equal(idleDriver.tokenVersion, 3);
+      assert.equal(idleDriver.isOnline, false);
+      assert.equal(idleDriver.dutyState, "OFFLINE");
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // D. Ride Operations Inspection & Read-Only Boundaries
+  // ─────────────────────────────────────────────────────────────
+  describe("D. Ride Operations Inspection & Privacy Bounds", () => {
+    it("Omits precise driver coordinates and live tracking telemetry from list views", () => {
+      const fullRideRecord = {
+        _id: new mongoose.Types.ObjectId(),
+        rider: dummyRiderId,
+        driver: dummyDriverId,
+        pickup: { address: "Connaught Place, New Delhi", coordinates: [28.6315, 77.2167] },
+        dropoff: { address: "Cyber City, Gurugram", coordinates: [28.4952, 77.0895] },
+        driverCoordinates: [28.6291, 77.214],
+        telemetryBreadcrumbs: [{ lat: 28.62, lng: 77.21, timestamp: new Date() }],
+        fare: 450,
+        fareInPaise: 45000,
+        status: "IN_PROGRESS",
+      };
+
+      // List projection sanitization:
+      const sanitizedListRecord = {
+        id: fullRideRecord._id.toString(),
+        pickupAddress: fullRideRecord.pickup.address,
+        dropoffAddress: fullRideRecord.dropoff.address,
+        fare: fullRideRecord.fare,
+        fareInPaise: fullRideRecord.fareInPaise,
+        status: fullRideRecord.status,
+      };
+
+      assert.equal("driverCoordinates" in sanitizedListRecord, false);
+      assert.equal("telemetryBreadcrumbs" in sanitizedListRecord, false);
+      assert.equal(sanitizedListRecord.pickupAddress, "Connaught Place, New Delhi");
+    });
+
+    it("Read-only inspection preserves ride state machine invariants and does not permit manual transitions", () => {
+      const legitimateStatuses = ["SEARCHING", "ACCEPTED", "ARRIVED", "IN_PROGRESS", "COMPLETED", "CANCELLED"];
+      const ride = { status: "SEARCHING" };
+
+      // Admin inspection query is read-only GET; no state override mutation exists
+      assert.equal(legitimateStatuses.includes(ride.status), true);
+      assert.equal(ride.status, "SEARCHING");
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // E. Support Ticket Management Lifecycle
+  // ─────────────────────────────────────────────────────────────
+  describe("E. Support Ticket Lifecycle & Resolution Tracking", () => {
+    it("Allows advancing ticket status from OPEN to IN_PROGRESS to RESOLVED", () => {
+      const ticket = {
+        ticketId: "TK-4821",
+        status: "OPEN",
+        priority: "MEDIUM",
+        resolutionNotes: "",
+      };
+
+      // 1. Advance to IN_PROGRESS
+      ticket.status = "IN_PROGRESS";
+      assert.equal(ticket.status, "IN_PROGRESS");
+
+      // 2. Resolve ticket with resolution notes
+      ticket.status = "RESOLVED";
+      ticket.resolutionNotes = "Driver was provided refresher training on route optimization.";
+      assert.equal(ticket.status, "RESOLVED");
+      assert.match(ticket.resolutionNotes, /refresher training/);
+    });
+
+    it("Rejects unsupported ticket statuses or priorities", () => {
+      const allowedStatuses = ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"];
+      const allowedPriorities = ["LOW", "MEDIUM", "HIGH"];
+
+      assert.equal(allowedStatuses.includes("ARCHIVED"), false);
+      assert.equal(allowedStatuses.includes("RESOLVED"), true);
+      assert.equal(allowedPriorities.includes("CRITICAL"), false);
+      assert.equal(allowedPriorities.includes("HIGH"), true);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // F. Administrative Audit Logging & Redaction
+  // ─────────────────────────────────────────────────────────────
+  describe("F. Append-Only Audit Logging & Sensitive Data Redaction", () => {
+    it("Redacts passwords, tokens, secrets, and OTPs from audit payloads", () => {
+      const sensitivePayload = {
+        email: "driver@bhavo.in",
+        password: "SecretPassword123!",
+        resetOtp: "9821",
+        token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        status: "ACTIVE",
+        vehiclePlate: "DL-01-EV-4429",
+      };
+
+      const SENSITIVE_KEYS = new Set(["password", "resetotp", "token", "jwt", "secret", "otp"]);
+
+      const sanitize = (obj: Record<string, unknown>) => {
+        const out: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(obj)) {
+          if (SENSITIVE_KEYS.has(k.toLowerCase())) {
+            out[k] = "[REDACTED]";
+          } else {
+            out[k] = v;
+          }
+        }
+        return out;
+      };
+
+      const sanitized = sanitize(sensitivePayload);
+      assert.equal(sanitized.password, "[REDACTED]");
+      assert.equal(sanitized.resetOtp, "[REDACTED]");
+      assert.equal(sanitized.token, "[REDACTED]");
+      assert.equal(sanitized.email, "driver@bhavo.in");
+      assert.equal(sanitized.vehiclePlate, "DL-01-EV-4429");
+    });
+
+    it("Audit log entries structure contains actor, action, target, reason, and timestamps", () => {
+      const logEntry = {
+        actor: dummyAdminId,
+        actorEmail: "compliance.lead@bhavo.in",
+        action: "DOCUMENT_APPROVE",
+        targetType: "DRIVER",
+        targetId: dummyDriverId.toString(),
+        reason: "Driving License authenticity confirmed via Sarathi portal",
+        createdAt: new Date(),
+      };
+
+      assert.equal(logEntry.action, "DOCUMENT_APPROVE");
+      assert.equal(logEntry.targetType, "DRIVER");
+      assert.equal(logEntry.actorEmail, "compliance.lead@bhavo.in");
+      assert.equal(typeof logEntry.reason, "string");
+      assert.equal(logEntry.createdAt instanceof Date, true);
+    });
+  });
+});

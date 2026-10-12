@@ -15,6 +15,11 @@ export interface ICommute extends Document {
   days: string[];
   vehicleType: string;
   isActive: boolean;
+  paymentMethod?: "WALLET" | "CASH" | "UPI" | "ONLINE";
+  petFriendly?: boolean;
+  preferredDriver?: mongoose.Types.ObjectId | null;
+  lastGeneratedRideId?: mongoose.Types.ObjectId | null;
+  lastMaterializedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -56,12 +61,38 @@ const CommuteSchema = new Schema<ICommute>(
     isActive: {
       type: Boolean,
       default: true,
+      index: true,
+    },
+    paymentMethod: {
+      type: String,
+      enum: ["WALLET", "CASH", "UPI", "ONLINE"],
+      default: "WALLET",
+    },
+    petFriendly: {
+      type: Boolean,
+      default: false,
+    },
+    preferredDriver: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    lastGeneratedRideId: {
+      type: Schema.Types.ObjectId,
+      ref: "Ride",
+      default: null,
+    },
+    lastMaterializedAt: {
+      type: Date,
+      default: null,
     },
   },
   {
     timestamps: true,
   }
 );
+
+CommuteSchema.index({ isActive: 1, updatedAt: -1 });
 
 const Commute: Model<ICommute> = mongoose.models.Commute || mongoose.model<ICommute>("Commute", CommuteSchema);
 

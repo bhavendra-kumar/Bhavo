@@ -289,14 +289,16 @@ export default function ActiveTripManager() {
                 </div>
               </div>
 
-              {/* Demo auto-fill button */}
-              <button
-                onClick={() => setEnteredOtp(activeRide.otp || "4826")}
-                className="text-[11px] font-bold text-teal-700 bg-teal-100/70 hover:bg-teal-200/80 px-2.5 py-1 rounded-lg transition-colors border border-teal-300 shrink-0"
-                title="Autofill passenger OTP for quick testing"
-              >
-                Auto-fill PIN ({activeRide.otp || "4826"})
-              </button>
+              {/* Demo auto-fill button (if OTP is available on active ride) */}
+              {activeRide.otp && (
+                <button
+                  onClick={() => setEnteredOtp(activeRide.otp)}
+                  className="text-[11px] font-bold text-teal-700 bg-teal-100/70 hover:bg-teal-200/80 px-2.5 py-1 rounded-lg transition-colors border border-teal-300 shrink-0"
+                  title="Autofill passenger OTP for testing"
+                >
+                  Auto-fill PIN ({activeRide.otp})
+                </button>
+              )}
             </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
@@ -318,7 +320,7 @@ export default function ActiveTripManager() {
                 />
                 {otpError && (
                   <span className="text-[11px] font-bold text-rose-600 mt-1 flex items-center justify-center gap-1">
-                    <AlertCircle size={12} /> Incorrect PIN code. Try {activeRide.otp || "4826"}.
+                    <AlertCircle size={12} /> Incorrect PIN code. Please ask the passenger for their PIN.
                   </span>
                 )}
               </div>

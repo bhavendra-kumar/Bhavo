@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongoose";
 import { getDriverUser } from "@/lib/driverAuth";
+import { isAuthError, handleAuthError } from "@/lib/auth";
 import {
-  DEFAULT_DRIVER_DOCUMENTS,
   checkDriverVerification,
   getDocCategory,
   syncDriverDocuments,
@@ -11,10 +11,10 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     await dbConnect();
-    const user = await getDriverUser();
+    const user = await getDriverUser(req);
 
     // Ensure documents exist and are strictly the 8 canonical documents
     user.driverDocuments = syncDriverDocuments(user.driverDocuments);
@@ -50,6 +50,9 @@ export async function GET() {
       },
     });
   } catch (error) {
+    if (isAuthError(error)) {
+      return handleAuthError(error);
+    }
     console.error("[Driver Vehicle GET Error]:", error);
     return NextResponse.json({ status: "error", message: "Internal server error" }, { status: 500 });
   }
@@ -61,65 +64,55 @@ export async function PATCH(req: Request) {
     const { action, docName, docData, documents, vehicle: vehicleUpdate } = body;
 
     await dbConnect();
-    const user = await getDriverUser();
+    const user = await getDriverUser(req);
 
     user.driverDocuments = syncDriverDocuments(user.driverDocuments);
 
-    // 1. Action: Fast Approve All Documents (Simulation / Admin verification)
+    // 1. Action: Reject driver self-verification bypass attempts
     if (action === "VERIFY_ALL") {
-      user.driverDocuments = user.driverDocuments.map((doc: any) => ({
-        name: doc.name,
-        category: getDocCategory(doc.name, doc.category),
-        status: "VERIFIED",
-        expiry: doc.expiry || "12 Oct 2029",
-        docId: doc.docId || "DOC-VERIFIED",
-        rejectionReason: null,
-      }));
-      if (user.driverVehicle) {
-        user.driverVehicle.documentsVerified = true;
-      }
+      return NextResponse.json(
+        {
+          status: "error",
+          code: "UNAUTHORIZED_OPERATION",
+          message: "Drivers are not authorized to self-verify compliance documents.",
+        },
+        { status: 403 }
+      );
     }
-    // 2. Action: Reset to Pending (Simulation of unverified state)
+    // 2. Action: Reset to Pending (Simulation of unverified state for testing)
     else if (action === "RESET_PENDING") {
-      user.driverDocuments = user.driverDocuments.map((doc: any, idx: number) => ({
+      user.driverDocuments = user.driverDocuments.map((doc: IDriverDoc, idx: number) => ({
         name: doc.name,
         category: getDocCategory(doc.name, doc.category),
         // Make DL and Helmets pending to demonstrate unverified duty lock
-        status: idx === 0 || idx === 7 ? "PENDING" : "VERIFIED",
+        status: (idx === 0 || idx === 7 ? "PENDING" : doc.status === "VERIFIED" ? "VERIFIED" : "PENDING") as "PENDING" | "VERIFIED",
         expiry: doc.expiry,
         docId: doc.docId,
         rejectionReason: null,
       }));
-      if (user.driverVehicle) {
-        user.driverVehicle.documentsVerified = false;
-      }
     }
-    // 3. Action: Toggle single document status between VERIFIED and PENDING
+    // 3. Action: Toggle single document status (Drivers can only request re-verification, NEVER self-verify)
     else if (action === "TOGGLE_DOC_STATUS" && docName) {
-      user.driverDocuments = user.driverDocuments.map((doc: any) => {
-        if (doc.name === docName) {
-          const nextStatus = doc.status === "VERIFIED" ? "PENDING" : "VERIFIED";
-          return {
-            ...doc,
-            category: getDocCategory(doc.name, doc.category),
-            status: nextStatus,
-            rejectionReason: nextStatus === "PENDING" ? "Awaiting document verification by Bhavo compliance team" : null,
-          };
-        }
-        return doc;
-      });
+      return NextResponse.json(
+        {
+          status: "error",
+          code: "UNAUTHORIZED_OPERATION",
+          message: "Drivers cannot alter document verification status.",
+        },
+        { status: 403 }
+      );
     }
-    // 4. Action: Update / Submit a single document
+    // 4. Action: Update / Submit a single document (Always forces status to PENDING review)
     else if (action === "UPDATE_DOC" && docName && docData) {
       let found = false;
-      user.driverDocuments = user.driverDocuments.map((doc: any) => {
+      user.driverDocuments = user.driverDocuments.map((doc: IDriverDoc) => {
         if (doc.name === docName) {
           found = true;
           return {
             ...doc,
             ...docData,
             category: getDocCategory(doc.name, docData.category || doc.category),
-            status: docData.status || "PENDING", // new uploads default to PENDING review
+            status: "PENDING" as const, // Strict: Driver submissions are ALWAYS pending compliance review
             updatedAt: new Date(),
           };
         }
@@ -130,26 +123,33 @@ export async function PATCH(req: Request) {
         user.driverDocuments.push({
           name: docName,
           category: getDocCategory(docName, docData.category),
-          status: docData.status || "PENDING",
+          status: "PENDING",
           expiry: docData.expiry || "Pending",
           docId: docData.docId || "N/A",
           fileUrl: docData.fileUrl || null,
         });
       }
     }
-    // 5. Direct documents array replacement
+    // 5. Direct documents array replacement (Sanitize: force PENDING on any non-existing verified docs)
     else if (Array.isArray(documents)) {
-      user.driverDocuments = documents.map((doc: any) => ({
+      const existingDocStatusMap = new Map(
+        user.driverDocuments.map((d: IDriverDoc) => [d.name, d.status])
+      );
+      user.driverDocuments = documents.map((doc: IDriverDoc) => ({
         ...doc,
         category: getDocCategory(doc.name, doc.category),
+        // A driver cannot elevate a document to VERIFIED if it wasn't already VERIFIED
+        status: existingDocStatusMap.get(doc.name) === "VERIFIED" ? "VERIFIED" : "PENDING",
       }));
     }
 
-    // 6. Direct vehicle details update
+    // 6. Direct vehicle details update (strip any client-supplied documentsVerified)
     if (vehicleUpdate && typeof vehicleUpdate === "object") {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { documentsVerified: _ignored, ...safeVehicleUpdate } = vehicleUpdate;
       user.driverVehicle = {
         ...user.driverVehicle,
-        ...vehicleUpdate,
+        ...safeVehicleUpdate,
       };
     } else if (body.model || body.numberPlate || body.batteryOrFuelLevel || body.fuelType) {
       const { model, numberPlate, fuelType, batteryOrFuelLevel, insuranceValidUntil, type } = body;
@@ -189,6 +189,9 @@ export async function PATCH(req: Request) {
       },
     });
   } catch (error) {
+    if (isAuthError(error)) {
+      return handleAuthError(error);
+    }
     console.error("[Driver Vehicle PATCH Error]:", error);
     return NextResponse.json({ status: "error", message: "Internal server error" }, { status: 500 });
   }

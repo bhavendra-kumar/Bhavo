@@ -17,7 +17,7 @@ interface IRatingData {
 export default function DriverRatings() {
   const { stats } = useDriverStore();
   const [data, setData] = useState<IRatingData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   useEffect(() => {
     let ignore = false;

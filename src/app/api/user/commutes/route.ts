@@ -17,7 +17,9 @@ export async function GET() {
       return NextResponse.json({ status: "error", message: "User not found" }, { status: 404 });
     }
 
-    const commutes = await Commute.find({ rider: user._id }).sort({ createdAt: 1 });
+    const commutes = await Commute.find({ rider: user._id })
+      .sort({ createdAt: 1 })
+      .populate("lastGeneratedRideId", "status fare scheduledFor");
     return NextResponse.json({ status: "success", data: commutes });
   } catch (error) {
     console.error("[Commutes GET Error]:", error);
@@ -46,6 +48,9 @@ export async function POST(req: Request) {
       time,
       days = ["Mon", "Tue", "Wed", "Thu", "Fri"],
       vehicleType = "Cab Premium",
+      paymentMethod = "WALLET",
+      petFriendly = false,
+      preferredDriver = null,
     } = body;
 
     if (!title || !pickup?.address || !dropoff?.address || !time) {
@@ -70,6 +75,9 @@ export async function POST(req: Request) {
       days,
       vehicleType,
       isActive: true,
+      paymentMethod: ["WALLET", "CASH", "UPI", "ONLINE"].includes(paymentMethod) ? paymentMethod : "WALLET",
+      petFriendly: Boolean(petFriendly),
+      preferredDriver: preferredDriver || null,
     });
 
     return NextResponse.json({ status: "success", data: commute }, { status: 201 });
@@ -92,14 +100,22 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ status: "error", message: "User not found" }, { status: 404 });
     }
 
-    const { id, isActive } = await req.json();
+    const body = await req.json();
+    const { id, isActive, paymentMethod, petFriendly, time, days } = body;
     if (!id) {
       return NextResponse.json({ status: "error", message: "Commute ID required" }, { status: 400 });
     }
 
+    const updateFields: Record<string, unknown> = {};
+    if (typeof isActive === "boolean") updateFields.isActive = isActive;
+    if (paymentMethod) updateFields.paymentMethod = paymentMethod;
+    if (typeof petFriendly === "boolean") updateFields.petFriendly = petFriendly;
+    if (time) updateFields.time = time;
+    if (Array.isArray(days)) updateFields.days = days;
+
     const commute = await Commute.findOneAndUpdate(
       { _id: id, rider: user._id },
-      { $set: { isActive } },
+      { $set: updateFields },
       { new: true }
     );
 

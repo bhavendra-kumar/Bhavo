@@ -1,23 +1,19 @@
 import { NextResponse } from "next/server";
+import crypto from "crypto";
+import mongoose from "mongoose";
 import dbConnect from "@/lib/mongoose";
-import User from "@/models/User";
 import Ride from "@/models/Ride";
-import { getSession } from "@/lib/auth";
+import { requireRole, isAuthError, handleAuthError } from "@/lib/auth";
+import { calculateAuthoritativeFare, PricingError } from "@/lib/pricingEngine";
 
-// GET /api/user/rides - List rides with optional filter
+export const dynamic = "force-dynamic";
+
+// GET /api/user/rides - List rides belonging strictly to the authenticated rider
 export async function GET(req: Request) {
   try {
-    const session = await getSession();
-    if (!session?.email) {
-      return NextResponse.json({ status: "error", message: "Unauthorized" }, { status: 401 });
-    }
+    const user = await requireRole(["RIDER", "USER"], req);
 
     await dbConnect();
-    const user = await User.findOne({ email: session.email });
-    if (!user) {
-      return NextResponse.json({ status: "error", message: "User not found" }, { status: 404 });
-    }
-
     const { searchParams } = new URL(req.url);
     const statusParam = searchParams.get("status")?.toLowerCase();
 
@@ -41,6 +37,9 @@ export async function GET(req: Request) {
       data: rides,
     });
   } catch (error) {
+    if (isAuthError(error)) {
+      return handleAuthError(error);
+    }
     console.error("[Rides GET Error]:", error);
     return NextResponse.json({ status: "error", message: "Internal server error" }, { status: 500 });
   }
@@ -49,27 +48,19 @@ export async function GET(req: Request) {
 // POST /api/user/rides - Book an instant or scheduled ride
 export async function POST(req: Request) {
   try {
-    const session = await getSession();
-    if (!session?.email) {
-      return NextResponse.json({ status: "error", message: "Unauthorized" }, { status: 401 });
-    }
+    const user = await requireRole(["RIDER", "USER"], req);
 
     await dbConnect();
-    const user = await User.findOne({ email: session.email });
-    if (!user) {
-      return NextResponse.json({ status: "error", message: "User not found" }, { status: 404 });
-    }
-
     const body = await req.json();
     const {
       pickup,
       dropoff,
       vehicleType = "Cab Premium",
-      fare = 350,
       distance = "8.5 km",
-      duration = "25 mins",
       scheduledFor = null,
       paymentMethod = "WALLET",
+      petFriendly = false,
+      preferredDriver = null,
     } = body;
 
     if (!pickup?.address || !dropoff?.address) {
@@ -78,6 +69,21 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+
+    // Validate preferredDriver format if supplied
+    let validPreferredDriver: mongoose.Types.ObjectId | null = null;
+    if (preferredDriver) {
+      if (typeof preferredDriver === "string" && mongoose.isValidObjectId(preferredDriver)) {
+        validPreferredDriver = new mongoose.Types.ObjectId(preferredDriver);
+      } else {
+        return NextResponse.json(
+          { status: "error", code: "INVALID_PREFERRED_DRIVER", message: "Invalid preferred driver identifier." },
+          { status: 400 }
+        );
+      }
+    }
+
+    const isPetFriendly = Boolean(petFriendly);
 
     // Check if rider already has an active ride
     const existingActiveRide = await Ride.findOne({
@@ -96,32 +102,82 @@ export async function POST(req: Request) {
       );
     }
 
-    // Generate 4 digit OTP for driver verification
-    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    // Generate cryptographically secure 4-digit OTP for driver boarding verification
+    const otp = crypto.randomInt(1000, 10000).toString();
 
+    // Authoritative Server-Side Pricing (Phase 1C)
+    // Client-supplied body.fare is completely ignored. Distance and route bounds are server-validated.
+    let claimedDistKm: number | null = null;
+    if (typeof distance === "string") {
+      const parsed = parseFloat(distance.replace(/[^0-9.]/g, ""));
+      if (!isNaN(parsed) && isFinite(parsed)) claimedDistKm = parsed;
+    } else if (typeof distance === "number" && isFinite(distance)) {
+      claimedDistKm = distance;
+    }
+
+    const pickupCoords = pickup.coordinates || [28.6139, 77.209];
+    const dropoffCoords = dropoff.coordinates || [28.5355, 77.391];
+
+    let fareResult;
+    try {
+      fareResult = calculateAuthoritativeFare({
+        pickupCoordinates: pickupCoords,
+        dropoffCoordinates: dropoffCoords,
+        vehicleType,
+        petFriendly: isPetFriendly,
+        claimedDistanceKm: claimedDistKm,
+      });
+    } catch (pricingErr) {
+      if (pricingErr instanceof PricingError) {
+        return NextResponse.json(
+          { status: "error", code: pricingErr.code, message: pricingErr.message },
+          { status: pricingErr.statusCode }
+        );
+      }
+      throw pricingErr;
+    }
+
+    const sanitizedPaymentMethod = ["WALLET", "CASH", "UPI", "ONLINE"].includes(paymentMethod)
+      ? paymentMethod
+      : "CASH";
+
+    // RIDE CREATION SECURITY:
+    // Rider identity is strictly derived from session (user._id).
+    // Initial status is server-controlled ("SEARCHING"). Client-supplied status is completely ignored.
+    // Driver is null. Client cannot assign any driver.
+    // Fare and route distance/duration are strictly server-authoritative.
+    // OTP is generated by server.
     const newRide = await Ride.create({
       rider: user._id,
       pickup: {
         address: pickup.address,
-        coordinates: pickup.coordinates || [28.6139, 77.2090],
+        coordinates: pickupCoords,
         landmark: pickup.landmark || "",
       },
       dropoff: {
         address: dropoff.address,
-        coordinates: dropoff.coordinates || [28.5355, 77.3910],
+        coordinates: dropoffCoords,
         landmark: dropoff.landmark || "",
       },
-      vehicleType,
-      fare: Number(typeof fare === "string" ? fare.replace(/[^0-9.]/g, "") : fare) || 250,
-      distance,
-      duration,
+      vehicleType: fareResult.rateCard.name,
+      fare: fareResult.fareInRupees,
+      fareInPaise: fareResult.fareInPaise,
+      distance: `${fareResult.distanceKm} km`,
+      duration: `${fareResult.durationMins} mins`,
+      pricingSnapshot: fareResult.pricingSnapshot,
       status: "SEARCHING",
       driver: null,
       driverDetails: undefined,
       otp,
       scheduledFor: scheduledFor ? new Date(scheduledFor) : null,
-      paymentMethod,
+      paymentMethod: sanitizedPaymentMethod,
       paymentStatus: "PENDING",
+      petFriendly: isPetFriendly,
+      preferredDriver: validPreferredDriver,
+      currentOffer: null,
+      rejectedDrivers: [],
+      dispatchAttempts: 0,
+      dispatchStatus: "PENDING_DISPATCH",
       messages: [
         {
           sender: "rider",
@@ -140,6 +196,9 @@ export async function POST(req: Request) {
       { status: 201 }
     );
   } catch (error) {
+    if (isAuthError(error)) {
+      return handleAuthError(error);
+    }
     console.error("[Rides POST Error]:", error);
     return NextResponse.json({ status: "error", message: "Internal server error" }, { status: 500 });
   }

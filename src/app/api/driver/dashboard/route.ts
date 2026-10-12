@@ -2,14 +2,15 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongoose";
 import Ride from "@/models/Ride";
 import { getDriverUser } from "@/lib/driverAuth";
+import { isAuthError, handleAuthError } from "@/lib/auth";
 import { checkDriverVerification } from "@/lib/driverCompliance";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     await dbConnect();
-    const user = await getDriverUser();
+    const user = await getDriverUser(req);
     const verification = checkDriverVerification(user);
 
     // If documents are not verified, driver is strictly not allowed to be online
@@ -98,7 +99,7 @@ export async function GET() {
         distance: activeRideDoc.distance,
         duration: activeRideDoc.duration,
         status: activeRideDoc.status,
-        otp: activeRideDoc.otp || "4826",
+        // Finding 6 fix: Driver must not receive the rider's secret OTP in dashboard payload
         paymentMethod: activeRideDoc.paymentMethod,
         paymentStatus: activeRideDoc.paymentStatus,
         messages: activeRideDoc.messages || [],
@@ -169,6 +170,9 @@ export async function GET() {
       },
     });
   } catch (error) {
+    if (isAuthError(error)) {
+      return handleAuthError(error);
+    }
     console.error("[Driver Dashboard API Error]:", error);
     return NextResponse.json({ status: "error", message: "Failed to load dashboard data" }, { status: 500 });
   }

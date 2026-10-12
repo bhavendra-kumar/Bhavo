@@ -18,7 +18,7 @@ export async function POST(req: Request) {
       );
     }
     
-    const { name, email, password, role } = parsed.data;
+    const { name, email, password } = parsed.data;
     const normalizedEmail = email.trim().toLowerCase();
 
     // Check if user exists
@@ -34,12 +34,13 @@ export async function POST(req: Request) {
     // Hash password
     const hashedPassword = await hash(password, 12);
 
-    // Create user
+    // Finding 4 fix: Normal public signup strictly creates a RIDER.
+    // Client input can NEVER grant DRIVER or ADMIN privileges.
     const user = await User.create({
       name,
       email: normalizedEmail,
       password: hashedPassword,
-      role: role || "RIDER",
+      role: "RIDER",
     });
 
     return NextResponse.json(

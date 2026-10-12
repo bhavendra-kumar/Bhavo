@@ -17,7 +17,8 @@ export async function sendOtpEmail({ to, name, otp }: SendOtpParams): Promise<{ 
   console.log(`\n==============================================`);
   console.log(`📧 [Bhavo Email Service]`);
   console.log(`To: ${to}`);
-  console.log(`OTP: ${otp}`);
+  const maskedOtp = process.env.NODE_ENV === "production" ? "[REDACTED]" : otp;
+  console.log(`OTP: ${maskedOtp}`);
   console.log(`SMTP Configured: ${Boolean(user && pass)}`);
   console.log(`==============================================\n`);
 

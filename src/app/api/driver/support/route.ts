@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongoose";
 import Ticket from "@/models/Ticket";
 import { getDriverUser } from "@/lib/driverAuth";
+import { isAuthError, handleAuthError } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     await dbConnect();
-    const user = await getDriverUser();
+    const user = await getDriverUser(req);
 
     const tickets = await Ticket.find({ user: user._id }).sort({ createdAt: -1 });
 
@@ -17,6 +18,9 @@ export async function GET() {
       data: tickets,
     });
   } catch (error) {
+    if (isAuthError(error)) {
+      return handleAuthError(error);
+    }
     console.error("[Driver Support GET Error]:", error);
     return NextResponse.json({ status: "error", message: "Internal server error" }, { status: 500 });
   }
@@ -28,7 +32,7 @@ export async function POST(req: Request) {
     const { topic = "FARE_DISPUTE", subject, description, isSos, coordinates } = body;
 
     await dbConnect();
-    const user = await getDriverUser();
+    const user = await getDriverUser(req);
 
     if (isSos) {
       const sosTicket = await Ticket.create({
@@ -77,6 +81,9 @@ export async function POST(req: Request) {
       { status: 201 }
     );
   } catch (error) {
+    if (isAuthError(error)) {
+      return handleAuthError(error);
+    }
     console.error("[Driver Support POST Error]:", error);
     return NextResponse.json({ status: "error", message: "Internal server error" }, { status: 500 });
   }

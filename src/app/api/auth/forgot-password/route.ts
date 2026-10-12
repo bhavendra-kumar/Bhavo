@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
+import crypto from "crypto";
 import dbConnect from "@/lib/mongoose";
 import User from "@/models/User";
 import { sendOtpEmail } from "@/lib/email";
+import {
+  forgotPasswordRateLimiter,
+  getForgotPasswordRateLimitKey,
+  getClientIp,
+} from "@/lib/rateLimit";
 
 export async function POST(req: Request) {
   try {
@@ -15,34 +21,51 @@ export async function POST(req: Request) {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
+    const clientIp = getClientIp(req);
+    const rateKey = getForgotPasswordRateLimitKey(clientIp, normalizedEmail);
 
-    // Check for common typos like gamail.com
-    const isGamail = normalizedEmail.includes("@gamail.com");
-
-    await dbConnect();
-    const user = await User.findOne({
-      email: { $regex: new RegExp(`^${normalizedEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") }
-    });
-
-    if (!user) {
-      const hint = isGamail
-        ? " Did you mean @gmail.com? Please verify your email address."
-        : " Please ensure you are using your registered Bhavo account email.";
+    const rateCheck = await forgotPasswordRateLimiter.check(rateKey);
+    if (!rateCheck.allowed) {
       return NextResponse.json(
         {
           status: "error",
-          message: `No account found with "${normalizedEmail}".${hint}`,
+          code: "TOO_MANY_REQUESTS",
+          message: "Too many password reset requests. Please wait a few minutes before trying again.",
+          retryAfterSeconds: rateCheck.retryAfterSeconds,
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(rateCheck.retryAfterSeconds || 60),
+          },
+        }
+      );
+    }
+
+    await dbConnect();
+    const user = await User.findOne({
+      email: { $regex: new RegExp(`^${normalizedEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") },
+    });
+
+    if (!user) {
+      await forgotPasswordRateLimiter.recordFailure(rateKey);
+      return NextResponse.json(
+        {
+          status: "error",
+          message: "No account found with this email address.",
         },
         { status: 404 }
       );
     }
 
-    // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    // Cryptographically secure 6-digit OTP generation
+    const otp = crypto.randomInt(100000, 1000000).toString();
     const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     user.resetOtp = otp;
     user.resetOtpExpiry = expiry;
+    // Reset attempt counter
+    (user as unknown as { resetOtpAttempts?: number }).resetOtpAttempts = 0;
     await user.save();
 
     // Send via email service
@@ -51,15 +74,6 @@ export async function POST(req: Request) {
       name: user.name,
       otp,
     });
-
-    console.log(`\n==========================================`);
-    console.log(`🔐 [Bhavo Auth] OTP for: ${user.email}`);
-    console.log(`🔑 OTP CODE: ${otp}`);
-    console.log(`📨 Sent via SMTP: ${emailResult.sent}`);
-    if (!emailResult.sent) {
-      console.log(`⚠️ Reason: ${emailResult.error}`);
-    }
-    console.log(`==========================================\n`);
 
     if (emailResult.sent) {
       return NextResponse.json(
@@ -72,21 +86,21 @@ export async function POST(req: Request) {
       );
     }
 
-    // Fallback if SMTP is not configured
+    // Safe fallback response when email server is not configured in development/test
+    // CRITICAL: NEVER leak the plaintext OTP in the response body or production logs!
     return NextResponse.json(
       {
         status: "success",
-        message: `OTP generated for ${user.email}. (Email server not configured in .env)`,
+        message: `Password reset request registered for ${user.email}.`,
         delivery: "mock",
-        devOtp: otp,
       },
       { status: 200 }
     );
   } catch (error: unknown) {
     const err = error as Error;
-    console.error("Forgot password error:", err);
+    console.error("Forgot password error:", err.message);
     return NextResponse.json(
-      { status: "error", message: err?.message || "Internal server error" },
+      { status: "error", message: "Internal server error" },
       { status: 500 }
     );
   }

@@ -50,6 +50,11 @@ interface ActiveRide {
   paymentMethod?: "WALLET" | "CASH" | "UPI";
   paymentStatus?: "PENDING" | "PAID";
   driverCoordinates?: [number, number];
+  locationStatus?: "FRESH" | "STALE" | "UNAVAILABLE" | "TERMINAL";
+  isLocationFresh?: boolean;
+  locationAgeSeconds?: number | null;
+  trackingVersion?: number;
+  driverCoordinatesUpdatedAt?: string | null;
   driverDetails?: {
     name: string;
     phone: string;
@@ -514,6 +519,7 @@ export default function BookRidePage() {
           distance: `${routeDistanceKm} km`,
           duration: `${routeDurationMins} mins`,
           scheduledFor,
+          petFriendly,
         }),
       });
 
@@ -587,39 +593,106 @@ export default function BookRidePage() {
     };
   }, []);
 
-  // Real-time bidirectional synchronizer: updates when driver accepts, arrives, starts trip, moves GPS, or completes ride
+  // Real-time bidirectional synchronizer: updates via SSE with adaptive fallback polling
   useEffect(() => {
     if (!activeRide?._id) return;
     if (activeRide.status === "COMPLETED" || activeRide.status === "CANCELLED") return;
 
     let isMounted = true;
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/user/rides/${activeRide._id}`);
-        if (res.ok) {
-          const json = await res.json();
-          if (isMounted && json.data) {
-            const updated = json.data;
-            if (updated.status === "COMPLETED") {
-              setCompletedModalRide(updated);
-              setActiveRide(null);
-              return;
-            }
-            if (updated.status === "CANCELLED") {
-              setActiveRide(null);
-              return;
-            }
-            setActiveRide(updated);
-          }
+    let es: EventSource | null = null;
+    let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+    let pollDelay = 3000;
+
+    const handleRideUpdate = (updated: ActiveRide) => {
+      if (!isMounted) return;
+      setActiveRide((current) => {
+        if (!current) return updated;
+        const curVer = current.trackingVersion ?? 0;
+        const newVer = updated.trackingVersion ?? 0;
+        if (newVer < curVer) {
+          // Monotonic guard: discard out-of-order updates
+          return current;
         }
-      } catch (err) {
-        console.error("[Ride sync error]:", err);
+        return updated;
+      });
+
+      if (updated.status === "COMPLETED") {
+        setCompletedModalRide(updated);
+        setActiveRide(null);
+        cleanup();
+      } else if (updated.status === "CANCELLED") {
+        setActiveRide(null);
+        cleanup();
       }
-    }, 1500);
+    };
+
+    const cleanup = () => {
+      if (es) {
+        es.close();
+        es = null;
+      }
+      if (fallbackTimer) {
+        clearTimeout(fallbackTimer);
+        fallbackTimer = null;
+      }
+    };
+
+    const startAdaptivePolling = () => {
+      if (!isMounted || fallbackTimer) return;
+
+      const pollStep = async () => {
+        if (!isMounted) return;
+        try {
+          const res = await fetch(`/api/user/rides/${activeRide._id}`);
+          if (res.ok) {
+            const json = await res.json();
+            if (isMounted && json.data) {
+              handleRideUpdate(json.data);
+              pollDelay = 3000;
+            }
+          } else if (res.status === 404 || res.status === 401 || res.status === 403) {
+            cleanup();
+            return;
+          } else {
+            pollDelay = Math.min(pollDelay * 1.5, 10000);
+          }
+        } catch {
+          pollDelay = Math.min(pollDelay * 1.5, 10000);
+        }
+
+        if (isMounted) {
+          fallbackTimer = setTimeout(pollStep, pollDelay);
+        }
+      };
+
+      fallbackTimer = setTimeout(pollStep, pollDelay);
+    };
+
+    try {
+      es = new EventSource(`/api/user/rides/${activeRide._id}/stream`);
+      es.onmessage = (event) => {
+        try {
+          const updated = JSON.parse(event.data) as ActiveRide;
+          handleRideUpdate(updated);
+        } catch (err) {
+          console.error("[Ride SSE parse error]:", err);
+        }
+      };
+
+      es.onerror = () => {
+        if (es) {
+          es.close();
+          es = null;
+        }
+        startAdaptivePolling();
+      };
+    } catch {
+      startAdaptivePolling();
+    }
 
     return () => {
       isMounted = false;
-      clearInterval(interval);
+      cleanup();
     };
   }, [activeRide?._id, activeRide?.status]);
 
@@ -654,14 +727,11 @@ export default function BookRidePage() {
     }
   };
 
-  // Real-time driver vehicle coordinates on user's map
-  const driverPosition: [number, number] | null = activeRide?.driverCoordinates
-    ? activeRide.driverCoordinates
-    : activeRide?.status === "ACCEPTED" || activeRide?.status === "ARRIVED"
-    ? [activeRide.pickup.coordinates[0] + 0.002, activeRide.pickup.coordinates[1] + 0.002]
-    : activeRide?.status === "IN_PROGRESS"
-    ? [activeRide.dropoff.coordinates[0] - 0.002, activeRide.dropoff.coordinates[1] - 0.002]
-    : null;
+  // Real-time driver vehicle coordinates on user's map (strictly authentic, no fake offsets)
+  const driverPosition: [number, number] | null =
+    activeRide?.driverCoordinates && Array.isArray(activeRide.driverCoordinates) && activeRide.driverCoordinates.length === 2
+      ? activeRide.driverCoordinates
+      : null;
 
   return (
     <div className="flex flex-col gap-4 flex-1">
@@ -895,9 +965,25 @@ export default function BookRidePage() {
 
               {/* Live tracking badge */}
               <div className="absolute top-4 left-4 z-10 bg-white/95 backdrop-blur px-3.5 py-2 rounded-xl border border-slate-200 shadow-md flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-teal-500 animate-pulse" />
+                <span
+                  className={`w-2.5 h-2.5 rounded-full ${
+                    activeRide.locationStatus === "FRESH"
+                      ? "bg-teal-500 animate-pulse"
+                      : activeRide.locationStatus === "STALE"
+                      ? "bg-amber-500 animate-pulse"
+                      : "bg-slate-400"
+                  }`}
+                />
                 <span className="text-[13px] font-bold text-slate-900">
-                  Driver live position updated
+                  {activeRide.locationStatus === "FRESH"
+                    ? activeRide.locationAgeSeconds !== undefined && activeRide.locationAgeSeconds !== null
+                      ? `Driver live GPS (${activeRide.locationAgeSeconds}s ago)`
+                      : "Driver live GPS active"
+                    : activeRide.locationStatus === "STALE"
+                    ? `GPS delayed (${activeRide.locationAgeSeconds ?? 120}s ago)`
+                    : activeRide.locationStatus === "TERMINAL"
+                    ? "Trip ended"
+                    : "Driver GPS unavailable"}
                 </span>
               </div>
             </div>
