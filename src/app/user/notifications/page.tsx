@@ -11,8 +11,8 @@ import { NotificationItem } from "@/components/user/Navbar";
 const FULL_NOTIFICATIONS: NotificationItem[] = [
   {
     id: "notif-1",
-    title: "Wallet Cashback Credited",
-    message: "₹50 promotional cashback has been credited to your Bhavo Wallet from your previous weekday rides!",
+    title: "Pilot Direct Cash Settlements",
+    message: "Bhavo pilot operates on direct cash payment settled with your verified captain upon trip drop-off.",
     time: "5 minutes ago",
     read: false,
     type: "wallet",
@@ -38,8 +38,8 @@ const FULL_NOTIFICATIONS: NotificationItem[] = [
   },
   {
     id: "notif-4",
-    title: "Ride Completed Receipt",
-    message: "Your trip from Connaught Place to Sector 44 has ended. Fare of ₹240 paid via Bhavo Wallet. Rating: 5 stars.",
+    title: "Pilot Trip Completion & Receipt",
+    message: "Completed ride receipts are archived in your account. Cash settlements are confirmed by the captain.",
     time: "Yesterday, 6:40 PM",
     read: true,
     type: "ride",

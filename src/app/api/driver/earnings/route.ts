@@ -62,6 +62,21 @@ export async function GET(req: Request) {
       });
     }
 
+    const maxAmount = Math.max(1, ...dailyTrend.map((d) => d.amount));
+    const formattedDailyTrend = dailyTrend.map((d) => ({
+      ...d,
+      amt: d.amount,
+      height: d.amount > 0 ? `${Math.max(15, Math.round((d.amount / maxAmount) * 100))}%` : "12%",
+    }));
+
+    const bankDoc = user.driverDocuments?.find((d: { name: string; docId?: string }) => d.name === "Bank Account Details");
+    const bankAccount = {
+      bankName: bankDoc ? "Linked Direct Deposit" : "Direct Deposit Account",
+      accountNumber: bankDoc?.docId ? bankDoc.docId : "Registered Account",
+      ifsc: "",
+      holderName: user.name || "",
+    };
+
     const recentCompletedRides = todayRides.slice(0, 5).map((r) => ({
       id: String(r._id),
       rider: "Passenger " + String(r._id).slice(-4),
@@ -78,10 +93,16 @@ export async function GET(req: Request) {
         todayEarnings,
         weeklyEarnings,
         tripsTodayCount,
+        tripsToday: tripsTodayCount,
         tripsWeekCount,
+        tripsWeek: tripsWeekCount,
         todayTips,
+        tipsToday: todayTips,
         incentivesBonus: tripsTodayCount >= 4 ? 200 : 0,
-        dailyTrend,
+        incentivesBonusWeek: weekRides.length >= 10 ? 350 : 0,
+        averagePerTrip: tripsTodayCount > 0 ? Math.round(todayEarnings / tripsTodayCount) : 0,
+        bankAccount,
+        dailyTrend: formattedDailyTrend,
         recentCompletedRides,
       },
     });

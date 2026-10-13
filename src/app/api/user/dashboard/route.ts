@@ -26,33 +26,8 @@ export async function GET(req: Request) {
       .sort({ scheduledFor: 1 })
       .limit(5);
 
-    // 3. Fetch or seed smart commute schedules
-    let commutes = await Commute.find({ rider: user._id }).sort({ createdAt: 1 });
-    if (commutes.length === 0) {
-      // Seed default smart commutes for initial experience
-      commutes = await Commute.create([
-        {
-          rider: user._id,
-          title: "Morning Commute",
-          time: "8:45 AM",
-          days: ["Mon", "Tue", "Wed", "Thu", "Fri"],
-          pickup: { address: "123 Tech Park Avenue, Block B", coordinates: [28.6139, 77.2090] },
-          dropoff: { address: "Bhavo Headquarters, Sector 44", coordinates: [28.5355, 77.3910] },
-          vehicleType: "Cab Premium",
-          isActive: true,
-        },
-        {
-          rider: user._id,
-          title: "Evening Return",
-          time: "6:30 PM",
-          days: ["Mon", "Tue", "Wed", "Thu", "Fri"],
-          pickup: { address: "Bhavo Headquarters, Sector 44", coordinates: [28.5355, 77.3910] },
-          dropoff: { address: "123 Tech Park Avenue, Block B", coordinates: [28.6139, 77.2090] },
-          vehicleType: "Cab Economy",
-          isActive: true,
-        },
-      ]);
-    }
+    // 3. Fetch smart commute schedules
+    const commutes = await Commute.find({ rider: user._id }).sort({ createdAt: 1 });
 
     // 4. Fetch recent past rides
     const recentRides = await Ride.find({
@@ -80,9 +55,26 @@ export async function GET(req: Request) {
       createdAt: { $gte: startOfMonth },
     });
 
-    const ridesCount = completedThisMonth || 6;
-    const timeSaved = Math.round(ridesCount * 14.5);
-    const co2Saved = Number(((ridesCount * 2.6) + 5.2).toFixed(1));
+    const monthExpenses = await Ride.aggregate([
+      {
+        $match: {
+          rider: user._id,
+          status: "COMPLETED",
+          createdAt: { $gte: startOfMonth },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: "$fare" },
+        },
+      },
+    ]);
+    const monthExpenseTotal = monthExpenses.length > 0 ? monthExpenses[0].total : 0;
+
+    const timeSaved = completedThisMonth > 0 ? Math.round(completedThisMonth * 14.5) : 0;
+    const co2Saved = completedThisMonth > 0 ? Number((completedThisMonth * 2.6).toFixed(1)) : 0;
+    const onTimeRate = completedThisMonth > 0 ? 100 : 0;
 
     return NextResponse.json({
       status: "success",
@@ -102,14 +94,14 @@ export async function GET(req: Request) {
         recentRides,
         savedPlaces,
         stats: {
-          ridesThisMonth: ridesCount,
+          ridesThisMonth: completedThisMonth,
           walletBalance: user.walletBalance,
           rating: user.rating,
           timeSavedMinutes: timeSaved,
-          onTimeRate: 99.4,
+          onTimeRate,
           co2SavedKg: co2Saved,
-          corporatePassRemaining: 14,
-          monthExpenseTotal: 3480,
+          corporatePassRemaining: 0,
+          monthExpenseTotal,
         },
       },
     });

@@ -202,6 +202,9 @@ export async function transitionToAccepted({
   }
 
   // 4. Active-trip exclusivity check (driver cannot have another active trip)
+  if (driverUser.activeRideId && driverUser.activeRideId.toString() !== rideId) {
+    throw new RideTransitionError("Driver already has an active ride in progress", 409, "DRIVER_OCCUPIED");
+  }
   const occupiedRide = await Ride.findOne({
     driver: driverUser._id,
     status: { $in: ["ACCEPTED", "ARRIVED", "IN_PROGRESS"] },

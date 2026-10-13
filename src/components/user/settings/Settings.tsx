@@ -54,14 +54,14 @@ export default function SettingsPage() {
 
   const handleDeleteAccount = async () => {
     const ok = await confirm({
-      title: "Delete account?",
-      message: "All your rides, wallet balance and data will be permanently erased. No going back.",
-      confirmText: "Delete",
-      cancelText: "Keep account",
+      title: "Request Account Deletion?",
+      message: "During the Bhavo pilot, account deletion requests require verifying pending cash settlements and active rides. You will be directed to Support to submit a request.",
+      confirmText: "Proceed to Support",
+      cancelText: "Cancel",
       variant: "danger",
     });
     if (!ok) return;
-    // TODO: call delete account API
+    router.push("/user/support");
   };
 
   return (
@@ -203,12 +203,16 @@ export default function SettingsPage() {
               <h2 className="font-bold text-[16px] text-slate-900">Help & Support</h2>
               <div className="flex flex-col gap-3">
                 {[
-                  { label: "FAQ & Help Center", desc: "Find answers to common questions." },
-                  { label: "Contact Support", desc: "Get in touch with our customer service team." },
-                  { label: "Report a Safety Issue", desc: "Immediately report an incident." },
-                  { label: "Terms of Service", desc: "Read our terms and conditions." },
-                ].map(({ label, desc }, i) => (
-                  <button key={i} className="flex items-center justify-between p-4 rounded-lg bg-slate-50 border border-slate-100 hover:border-teal-200 hover:bg-teal-50 transition-all text-left group">
+                  { label: "FAQ & Help Center", desc: "Find answers to common questions.", path: "/user/support" },
+                  { label: "Contact Support", desc: "Get in touch with our customer service team.", path: "/user/support" },
+                  { label: "Report a Safety Issue", desc: "Immediately report an incident.", path: "/user/support" },
+                  { label: "Terms of Service", desc: "Read our terms and conditions.", path: "/terms" },
+                ].map(({ label, desc, path }, i) => (
+                  <button
+                    key={i}
+                    onClick={() => router.push(path)}
+                    className="flex items-center justify-between p-4 rounded-lg bg-slate-50 border border-slate-100 hover:border-teal-200 hover:bg-teal-50 transition-all text-left group cursor-pointer"
+                  >
                     <div>
                       <p className="font-bold text-slate-900 text-[13px]">{label}</p>
                       <p className="text-[12px] font-medium text-slate-500">{desc}</p>

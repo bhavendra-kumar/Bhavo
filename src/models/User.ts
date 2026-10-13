@@ -92,12 +92,12 @@ const UserSchema = new mongoose.Schema(
     // Driver-specific telemetry and preferences
     isOnline: {
       type: Boolean,
-      default: true,
+      default: false,
     },
     dutyState: {
       type: String,
       enum: ["OFFLINE", "ONLINE_SEARCHING", "DISPATCH_ALERT", "ON_TRIP"],
-      default: "ONLINE_SEARCHING",
+      default: "OFFLINE",
     },
     activeRideId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -113,13 +113,13 @@ const UserSchema = new mongoose.Schema(
       default: null,
     },
     driverVehicle: {
-      model: { type: String, default: "Tata Tigor EV (White)" },
-      numberPlate: { type: String, default: "DL-01-EV-4429" },
-      type: { type: String, default: "Cab Premium (EV)" },
+      model: { type: String, default: "" },
+      numberPlate: { type: String, default: "" },
+      type: { type: String, default: "" },
       fuelType: { type: String, default: "EV" },
-      batteryOrFuelLevel: { type: Number, default: 82 },
-      documentsVerified: { type: Boolean, default: true },
-      insuranceValidUntil: { type: String, default: "18 Dec 2027" },
+      batteryOrFuelLevel: { type: Number, default: 100 },
+      documentsVerified: { type: Boolean, default: false },
+      insuranceValidUntil: { type: String, default: "" },
     },
     driverSettings: {
       autoAccept: { type: Boolean, default: false },
@@ -127,7 +127,7 @@ const UserSchema = new mongoose.Schema(
       petFriendly: { type: Boolean, default: true },
       maxDistance: { type: String, default: "ANY" },
       destinationMode: { type: Boolean, default: false },
-      destinationAddress: { type: String, default: "Block C, Sector 62, Noida" },
+      destinationAddress: { type: String, default: "" },
     },
     driverDocuments: {
       type: [
@@ -219,5 +219,6 @@ const UserSchema = new mongoose.Schema(
 // Indexes supporting Phase 1A authentication, Phase 1D driver eligibility, and Phase 1H admin searches
 UserSchema.index({ role: 1, status: 1, isOnline: 1, dutyState: 1 });
 UserSchema.index({ role: 1, status: 1 });
+UserSchema.index({ activeRideId: 1 }, { sparse: true });
 
 export default mongoose.models.User || mongoose.model("User", UserSchema);

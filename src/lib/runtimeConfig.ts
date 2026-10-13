@@ -184,13 +184,63 @@ export function isLivePaymentEnabled(): boolean {
   }
 
   // If someone explicitly attempts to turn on live payments, require approved provider credentials
-  const razorpayKey = process.env.RAZORPAY_KEY_ID;
-  const razorpaySecret = process.env.RAZORPAY_KEY_SECRET;
+  const razorpayKey = process.env.RAZORPAY_KEY_ID?.trim();
+  const razorpaySecret = process.env.RAZORPAY_KEY_SECRET?.trim();
   if (!razorpayKey || !razorpaySecret) {
     return false;
   }
 
   return true;
+}
+
+export interface RazorpayConfig {
+  keyId: string;
+  keySecret: string;
+  webhookSecret?: string;
+}
+
+/**
+ * Validates and retrieves server-side Razorpay configuration.
+ * Fails closed if online payments are disabled or credentials are missing.
+ */
+export function getRazorpayConfig(): RazorpayConfig {
+  if (!isLivePaymentEnabled()) {
+    throw new ConfigurationError(
+      "RAZORPAY",
+      "Online payments are disabled. Set LIVE_PAYMENTS_ENABLED=true with valid RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET."
+    );
+  }
+
+  const keyId = process.env.RAZORPAY_KEY_ID?.trim();
+  const keySecret = process.env.RAZORPAY_KEY_SECRET?.trim();
+
+  if (!keyId || !keySecret) {
+    throw new ConfigurationError(
+      "RAZORPAY",
+      "Razorpay credentials (RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET) are missing or empty."
+    );
+  }
+
+  return {
+    keyId,
+    keySecret,
+    webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET?.trim() || undefined,
+  };
+}
+
+/**
+ * Validates and returns the Razorpay webhook secret.
+ * Fails closed if missing or empty.
+ */
+export function getRazorpayWebhookSecret(): string {
+  const secret = process.env.RAZORPAY_WEBHOOK_SECRET?.trim();
+  if (!secret) {
+    throw new ConfigurationError(
+      "RAZORPAY_WEBHOOK_SECRET",
+      "Razorpay webhook secret (RAZORPAY_WEBHOOK_SECRET) is missing or unconfigured."
+    );
+  }
+  return secret;
 }
 
 /**

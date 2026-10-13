@@ -951,7 +951,7 @@ export default function Login({ isRegistered = false, initialEmail = "", initial
                 {/* ── Google Button (bottom) ── */}
                 <button
                   type="button"
-                  onClick={() => console.log("Google auth")}
+                  onClick={() => setErrors({ form: "Google Sign-In is currently in private preview. Please log in using your email and password." })}
                   style={{
                     width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
                     padding: "13px 20px",

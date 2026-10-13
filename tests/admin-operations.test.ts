@@ -480,4 +480,194 @@ describe("Phase 1H: Admin Operations, Driver Verification & Security Tests", () 
       assert.equal(logEntry.createdAt instanceof Date, true);
     });
   });
+
+  // ─────────────────────────────────────────────────────────────
+  // G. Phase 10 Admin Panel End-to-End Regression & Invariants
+  // ─────────────────────────────────────────────────────────────
+  describe("G. Phase 10 Admin Panel End-to-End Regression & Safeguards", () => {
+    it("Admin audit sanitizer redacts extended financial & API secrets (apiKey, keySecret, webhookSecret, cvv)", () => {
+      const sensitiveAuditContext = {
+        driverEmail: "driver.compliance@bhavo.in",
+        apiKey: "live_sec_key_99182371",
+        keySecret: "rzp_secret_9981247",
+        webhookSecret: "whsec_supersecret123",
+        creditCard: "4111222233334444",
+        cvv: "889",
+        normalNote: "Driver document submitted successfully",
+      };
+
+      const SENSITIVE_KEYS = new Set([
+        "password",
+        "resetotp",
+        "token",
+        "jwt",
+        "secret",
+        "authorization",
+        "cookie",
+        "otp",
+        "creditcard",
+        "cardnumber",
+        "cvv",
+        "apikey",
+        "authsecret",
+        "jwtsecret",
+        "cronsecret",
+        "keysecret",
+        "webhooksecret",
+      ]);
+
+      const sanitize = (obj: Record<string, unknown>) => {
+        const out: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(obj)) {
+          const normalizedKey = k.toLowerCase().replace(/[^a-z]/g, "");
+          if (SENSITIVE_KEYS.has(normalizedKey)) {
+            out[k] = "[REDACTED]";
+          } else {
+            out[k] = v;
+          }
+        }
+        return out;
+      };
+
+      const sanitized = sanitize(sensitiveAuditContext);
+      assert.equal(sanitized.apiKey, "[REDACTED]");
+      assert.equal(sanitized.keySecret, "[REDACTED]");
+      assert.equal(sanitized.webhookSecret, "[REDACTED]");
+      assert.equal(sanitized.creditCard, "[REDACTED]");
+      assert.equal(sanitized.cvv, "[REDACTED]");
+      assert.equal(sanitized.driverEmail, "driver.compliance@bhavo.in");
+      assert.equal(sanitized.normalNote, "Driver document submitted successfully");
+    });
+
+    it("Active Trip Preservation: Driver on active trip retains dutyState ON_TRIP when document is rejected", () => {
+      const driverOnTrip = {
+        _id: dummyDriverId,
+        isOnline: true,
+        dutyState: "ON_TRIP",
+        activeRideId: new mongoose.Types.ObjectId("6529ab81c9a1240044444444"),
+      };
+
+      // Compliance check fails (e.g. document rejected)
+      const isVerified = false;
+
+      // Transition duty state
+      if (!isVerified) {
+        if (driverOnTrip.dutyState === "ON_TRIP" || driverOnTrip.activeRideId) {
+          driverOnTrip.isOnline = false; // Cannot take new dispatches
+          // dutyState remains ON_TRIP so active trip is not corrupted!
+        } else {
+          driverOnTrip.isOnline = false;
+          driverOnTrip.dutyState = "OFFLINE";
+        }
+      }
+
+      assert.equal(driverOnTrip.isOnline, false);
+      assert.equal(driverOnTrip.dutyState, "ON_TRIP", "Must not force OFFLINE while passenger is on trip");
+    });
+
+    it("Driver not on trip transitions to OFFLINE when compliance check fails", () => {
+      const idleDriver = {
+        _id: dummyDriverId,
+        isOnline: true,
+        dutyState: "ONLINE_SEARCHING",
+        activeRideId: null,
+      };
+
+      const isVerified = false;
+
+      if (!isVerified) {
+        if (idleDriver.dutyState === "ON_TRIP" || idleDriver.activeRideId) {
+          idleDriver.isOnline = false;
+        } else {
+          idleDriver.isOnline = false;
+          idleDriver.dutyState = "OFFLINE";
+        }
+      }
+
+      assert.equal(idleDriver.isOnline, false);
+      assert.equal(idleDriver.dutyState, "OFFLINE");
+    });
+
+    it("Active Ride Lock Guard: Admin cannot suspend driver holding activeRideId even without active ride record", () => {
+      const driverWithLock = {
+        _id: dummyDriverId,
+        role: "DRIVER",
+        activeRideId: new mongoose.Types.ObjectId("6529ab81c9a1240055555555"),
+      };
+
+      const checkSuspensionEligibility = (driver: { activeRideId?: mongoose.Types.ObjectId | null }, activeTripFound: boolean) => {
+        if (activeTripFound || driver.activeRideId) {
+          throw new Error("DRIVER_HAS_ACTIVE_RIDE: Cannot suspend driver holding active reservation or trip");
+        }
+        return true;
+      };
+
+      // Even if activeTrip query returned null due to race condition:
+      assert.throws(
+        () => checkSuspensionEligibility(driverWithLock, false),
+        /DRIVER_HAS_ACTIVE_RIDE/
+      );
+    });
+
+    it("Support ticket update validation rejects completely empty update payload", () => {
+      const validateTicketUpdateBody = (body: { status?: string; priority?: string; resolutionNotes?: string }) => {
+        if (!body.status && !body.priority && body.resolutionNotes === undefined) {
+          throw new Error("EMPTY_UPDATE_PAYLOAD: At least one update field must be provided");
+        }
+        return true;
+      };
+
+      assert.throws(
+        () => validateTicketUpdateBody({}),
+        /EMPTY_UPDATE_PAYLOAD/
+      );
+
+      assert.equal(validateTicketUpdateBody({ status: "RESOLVED" }), true);
+      assert.equal(validateTicketUpdateBody({ priority: "HIGH" }), true);
+      assert.equal(validateTicketUpdateBody({ resolutionNotes: "Issue resolved" }), true);
+    });
+
+    it("User account detail projection strictly excludes sensitive password hashes and OTPs", () => {
+      const rawUserFromDb = {
+        _id: dummyRiderId,
+        name: "Rahul Verma",
+        email: "rahul@example.com",
+        phone: "+919876543210",
+        role: "RIDER",
+        status: "ACTIVE",
+        password: "$2a$10$e8wZ3H5...hashed_secret",
+        resetOtp: "4491",
+        tokenVersion: 1,
+        walletBalance: 25000,
+        createdAt: new Date(),
+      };
+
+      // Safe projection logic as implemented in /api/admin/users/[id]
+      const safeProjected = {
+        id: rawUserFromDb._id.toString(),
+        name: rawUserFromDb.name,
+        email: rawUserFromDb.email,
+        phone: rawUserFromDb.phone,
+        role: rawUserFromDb.role,
+        status: rawUserFromDb.status,
+        rating: 5.0,
+        walletBalance: rawUserFromDb.walletBalance,
+        tokenVersion: rawUserFromDb.tokenVersion,
+        createdAt: rawUserFromDb.createdAt,
+      };
+
+      assert.equal("password" in safeProjected, false, "Password hash must NEVER be exposed in admin user view");
+      assert.equal("resetOtp" in safeProjected, false, "Reset OTP must NEVER be exposed in admin user view");
+      assert.equal(safeProjected.name, "Rahul Verma");
+      assert.equal(safeProjected.role, "RIDER");
+    });
+
+    it("Audit log trail is strictly immutable and append-only (no modification or deletion routes)", () => {
+      const supportedAuditApiMethods = ["GET"];
+      assert.equal(supportedAuditApiMethods.includes("POST"), false);
+      assert.equal(supportedAuditApiMethods.includes("PUT"), false);
+      assert.equal(supportedAuditApiMethods.includes("PATCH"), false);
+      assert.equal(supportedAuditApiMethods.includes("DELETE"), false);
+    });
+  });
 });

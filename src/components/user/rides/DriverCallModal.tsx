@@ -15,11 +15,11 @@ interface DriverCallModalProps {
 }
 
 export default function DriverCallModal({
-  driverName = "Rajesh Kumar",
-  driverPhone = "+91 98765 43210",
+  driverName = "Bhavo Pilot",
+  driverPhone = "",
   driverRating = 4.9,
-  vehicleModel = "White Swift Dzire",
-  vehicleNumber = "DL-01-AB-1234",
+  vehicleModel = "Assigned Vehicle",
+  vehicleNumber = "",
   isOpen,
   onClose,
 }: DriverCallModalProps) {

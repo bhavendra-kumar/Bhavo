@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ArrowRight, Car, ShieldCheck, Clock, Loader2, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
+import { ArrowRight, Car, ShieldCheck, Clock, Loader2, ChevronLeft, ChevronRight, Search, X, CheckCircle2 } from "lucide-react";
+import { useDriverStore } from "@/hooks/driver/useDriverStore";
+import { useDialog } from "@/components/ui/DialogProvider";
 
 interface IDriverTripRecord {
   id?: string;
@@ -16,10 +18,15 @@ interface IDriverTripRecord {
   date?: string;
   vehicleType?: string;
   paymentMethod?: string;
+  paymentStatus?: string;
   status?: string;
 }
 
 export default function DriverTrips() {
+  const { confirm, alert } = useDialog();
+  const { confirmCashCollection } = useDriverStore();
+  const [collectingId, setCollectingId] = useState<string | null>(null);
+
   const [filter, setFilter] = useState("ALL");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -29,6 +36,42 @@ export default function DriverTrips() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const limit = 5;
+
+  const handleCollectCash = async (tripId: string, fare: number) => {
+    const ok = await confirm({
+      title: `Confirm Cash Collection of ₹${fare}?`,
+      message: `Confirm that you received ₹${fare} in physical cash from the rider for this completed trip.`,
+      confirmText: `Confirm ₹${fare} Collected`,
+      cancelText: "Cancel",
+      variant: "success",
+    });
+    if (ok) {
+      setCollectingId(tripId);
+      try {
+        const success = await confirmCashCollection(tripId);
+        if (success) {
+          setTrips((prev) =>
+            prev.map((t) => (t.id === tripId ? { ...t, paymentStatus: "COLLECTED" } : t))
+          );
+          alert({
+            title: "Cash Collection Confirmed",
+            message: `Recorded collection of ₹${fare} in platform ledger.`,
+            confirmText: "Done",
+            variant: "success",
+          });
+        } else {
+          alert({
+            title: "Collection Failed",
+            message: "Unable to confirm cash collection. Please try again.",
+            confirmText: "OK",
+            variant: "danger",
+          });
+        }
+      } finally {
+        setCollectingId(null);
+      }
+    }
+  };
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -228,9 +271,36 @@ export default function DriverTrips() {
                         </span>
                       )}
                     </div>
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
-                      {trip.paymentMethod || "UPI"}
-                    </span>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        {trip.paymentMethod || "CASH"}
+                      </span>
+                      {trip.paymentStatus === "COLLECTED" && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          Collected
+                        </span>
+                      )}
+                      {trip.paymentStatus === "PENDING_COLLECTION" && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200">
+                          Pending Cash
+                        </span>
+                      )}
+                    </div>
+                    {trip.paymentStatus === "PENDING_COLLECTION" && trip.id && (
+                      <button
+                        onClick={() => handleCollectCash(trip.id!, trip.fare)}
+                        disabled={collectingId === trip.id}
+                        className="mt-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold shadow-xs transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                        title="Confirm physical cash collected from passenger"
+                      >
+                        {collectingId === trip.id ? (
+                          <Loader2 size={11} className="animate-spin" />
+                        ) : (
+                          <CheckCircle2 size={11} />
+                        )}
+                        <span>Collect Cash</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

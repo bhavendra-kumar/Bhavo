@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 import dbConnect from "@/lib/mongoose";
 import User from "@/models/User";
 import { checkDriverVerification, IDriverDoc } from "@/lib/driverCompliance";
@@ -17,17 +18,46 @@ export async function GET(req: Request) {
     const statusFilter = searchParams.get("status") || "ALL";
     const search = searchParams.get("search")?.trim() || "";
 
-    const query: Record<string, unknown> = { role: "DRIVER" };
+    const conditions: Record<string, unknown>[] = [{ role: "DRIVER" }];
 
     if (search) {
-      const regex = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
-      query.$or = [
-        { name: regex },
-        { email: regex },
-        { phone: regex },
-        { "driverVehicle.numberPlate": regex },
-      ];
+      if (mongoose.Types.ObjectId.isValid(search)) {
+        conditions.push({ _id: new mongoose.Types.ObjectId(search) });
+      } else {
+        const regex = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+        conditions.push({
+          $or: [
+            { name: regex },
+            { email: regex },
+            { phone: regex },
+            { "driverVehicle.numberPlate": regex },
+          ],
+        });
+      }
     }
+
+    if (statusFilter === "VERIFIED") {
+      conditions.push({
+        "driverVehicle.documentsVerified": true,
+        "driverDocuments.status": { $nin: ["PENDING", "REJECTED"] },
+      });
+    } else if (statusFilter === "REJECTED") {
+      conditions.push({
+        "driverDocuments.status": "REJECTED",
+      });
+    } else if (statusFilter === "PENDING") {
+      conditions.push({
+        "driverDocuments.status": { $ne: "REJECTED" },
+        $or: [
+          { "driverDocuments.status": "PENDING" },
+          { "driverVehicle.documentsVerified": { $ne: true } },
+          { driverDocuments: { $size: 0 } },
+          { driverDocuments: { $exists: false } },
+        ],
+      });
+    }
+
+    const query = conditions.length === 1 ? conditions[0] : { $and: conditions };
 
     const totalMatching = await User.countDocuments(query);
     const drivers = await User.find(query)
@@ -86,20 +116,10 @@ export async function GET(req: Request) {
       };
     });
 
-    // Apply optional post-aggregation status filter if requested
-    let finalDrivers = mappedDrivers;
-    if (statusFilter === "PENDING") {
-      finalDrivers = mappedDrivers.filter((d) => !d.verification.isVerified && d.verification.rejectedCount === 0);
-    } else if (statusFilter === "REJECTED") {
-      finalDrivers = mappedDrivers.filter((d) => d.verification.rejectedCount > 0);
-    } else if (statusFilter === "VERIFIED") {
-      finalDrivers = mappedDrivers.filter((d) => d.verification.isVerified);
-    }
-
     return NextResponse.json({
       status: "success",
       data: {
-        drivers: finalDrivers,
+        drivers: mappedDrivers,
         pagination: {
           page,
           limit,

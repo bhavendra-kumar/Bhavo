@@ -24,6 +24,7 @@ export default function ActiveTripManager() {
     markArrived,
     verifyOtp,
     completeTrip,
+    confirmCashCollection,
     cancelTrip,
   } = useDriverStore();
   const { confirm } = useDialog();
@@ -35,6 +36,8 @@ export default function ActiveTripManager() {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [riderRating, setRiderRating] = useState(5);
   const [selectedCompliments, setSelectedCompliments] = useState<string[]>([]);
+  const [cashCollected, setCashCollected] = useState(true);
+  const [isSubmittingCompletion, setIsSubmittingCompletion] = useState(false);
 
   if (!activeRide) return null;
 
@@ -70,8 +73,18 @@ export default function ActiveTripManager() {
   };
 
   const handleFinalRatingSubmit = async () => {
-    await completeTrip(riderRating, selectedCompliments);
-    setShowRatingModal(false);
+    if (!activeRide) return;
+    setIsSubmittingCompletion(true);
+    try {
+      const rideId = activeRide._id;
+      await completeTrip(riderRating, selectedCompliments);
+      if (cashCollected) {
+        await confirmCashCollection(rideId);
+      }
+      setShowRatingModal(false);
+    } finally {
+      setIsSubmittingCompletion(false);
+    }
   };
 
   const handleCancelClick = async () => {
@@ -288,17 +301,6 @@ export default function ActiveTripManager() {
                   </p>
                 </div>
               </div>
-
-              {/* Demo auto-fill button (if OTP is available on active ride) */}
-              {activeRide.otp && (
-                <button
-                  onClick={() => setEnteredOtp(activeRide.otp)}
-                  className="text-[11px] font-bold text-teal-700 bg-teal-100/70 hover:bg-teal-200/80 px-2.5 py-1 rounded-lg transition-colors border border-teal-300 shrink-0"
-                  title="Autofill passenger OTP for testing"
-                >
-                  Auto-fill PIN ({activeRide.otp})
-                </button>
-              )}
             </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
@@ -382,13 +384,16 @@ export default function ActiveTripManager() {
               <CheckCircle2 size={32} />
             </div>
 
-            <h3 className="text-2xl font-black text-slate-900">Trip Completed!</h3>
+            <h3 className="text-2xl font-black text-slate-900">Trip Concluded!</h3>
             <p className="text-xs text-slate-500 mt-1 max-w-xs">
-              Fare of <strong>₹{activeRide.fare}</strong> has been credited to your Bhavo Driver Wallet.
+              Cash Fare: <strong className="text-slate-900 font-bold">₹{activeRide.fare}</strong> collected directly from passenger.
+            </p>
+            <p className="text-[11px] text-teal-700 font-medium mt-0.5">
+              Pilot payment: cash collected in hand. Platform wallet balance is unaffected.
             </p>
 
             {/* Star Rating for Passenger */}
-            <div className="my-6">
+            <div className="my-5">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">
                 Rate your experience with {activeRide.rider.name}
               </span>
@@ -413,7 +418,7 @@ export default function ActiveTripManager() {
             </div>
 
             {/* Compliment Badges */}
-            <div className="w-full mb-6">
+            <div className="w-full mb-5">
               <span className="text-[11px] font-bold text-slate-500 block mb-2">
                 Add compliments:
               </span>
@@ -436,11 +441,33 @@ export default function ActiveTripManager() {
               </div>
             </div>
 
+            {/* Cash Collection Confirmation */}
+            <div className="w-full mb-5 p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-left flex items-start gap-3">
+              <input
+                id="cash-collection-confirm"
+                type="checkbox"
+                checked={cashCollected}
+                onChange={(e) => setCashCollected(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded-md border-emerald-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+              />
+              <label htmlFor="cash-collection-confirm" className="text-xs text-emerald-950 font-semibold cursor-pointer">
+                Confirm Cash of <strong className="font-extrabold text-emerald-900">₹{activeRide.fare}</strong> received in hand from passenger
+                <span className="block text-[11px] text-emerald-700 font-normal mt-0.5">
+                  Records idempotent non-monetary collection in platform ledger.
+                </span>
+              </label>
+            </div>
+
             <button
               onClick={handleFinalRatingSubmit}
-              className="w-full py-3.5 px-6 rounded-xl bg-linear-to-r from-teal-700 to-emerald-700 hover:from-teal-600 hover:to-emerald-600 text-white font-extrabold text-[15px] shadow-lg shadow-teal-700/30 transition-all"
+              disabled={isSubmittingCompletion}
+              className="w-full py-3.5 px-6 rounded-xl bg-linear-to-r from-teal-700 to-emerald-700 hover:from-teal-600 hover:to-emerald-600 text-white font-extrabold text-[15px] shadow-lg shadow-teal-700/30 transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
             >
-              Submit & Ready for Next Ride
+              {isSubmittingCompletion ? (
+                <span>Concluding Trip...</span>
+              ) : (
+                <span>Submit Feedback & Conclude Trip</span>
+              )}
             </button>
           </div>
         </div>

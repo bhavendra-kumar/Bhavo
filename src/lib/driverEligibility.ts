@@ -12,6 +12,7 @@ export interface IDriverCandidate {
   status?: string;
   isOnline?: boolean;
   dutyState?: string;
+  activeRideId?: mongoose.Types.ObjectId | string | null;
   driverVehicle?: {
     type?: string;
     model?: string;
@@ -99,7 +100,7 @@ export function calculateHaversineDistanceKm(
       Math.sin(dLon / 2);
 
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return parseFloat((R * c).toFixed(3));
+  return Math.round(R * c * 1000) / 1000;
 }
 
 /**
@@ -258,11 +259,11 @@ export function evaluateDriverEligibility(
     return { isEligible: false, code: "DRIVER_OFFLINE", reason: "DRIVER_OFFLINE" };
   }
 
-  // 4. Duty State
+  // 4. Duty State & Active Ride Exclusivity
   if (driver.dutyState === "OFFLINE") {
     return { isEligible: false, code: "DRIVER_OFFLINE", reason: "DRIVER_OFFLINE" };
   }
-  if (driver.dutyState === "ON_TRIP") {
+  if (driver.dutyState === "ON_TRIP" || driver.activeRideId) {
     return { isEligible: false, code: "DRIVER_OCCUPIED", reason: "DRIVER_OCCUPIED" };
   }
 

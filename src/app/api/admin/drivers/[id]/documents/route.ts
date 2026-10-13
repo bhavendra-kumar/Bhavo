@@ -101,10 +101,16 @@ export async function POST(
       driver.driverVehicle.documentsVerified = verification.isVerified;
     }
 
-    // If driver is no longer verified and was online, force duty state to OFFLINE
-    if (!verification.isVerified && driver.isOnline) {
-      driver.isOnline = false;
-      driver.dutyState = "OFFLINE";
+    // If driver is no longer verified, safely transition duty state
+    if (!verification.isVerified) {
+      if (driver.dutyState === "ON_TRIP" || driver.activeRideId) {
+        // Driver is currently on an active trip: mark offline for future dispatches
+        // while preserving ON_TRIP dutyState until trip lifecycle terminates
+        driver.isOnline = false;
+      } else if (driver.isOnline || driver.dutyState !== "OFFLINE") {
+        driver.isOnline = false;
+        driver.dutyState = "OFFLINE";
+      }
     }
 
     await driver.save();

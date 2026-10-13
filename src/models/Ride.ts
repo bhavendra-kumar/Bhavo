@@ -47,6 +47,10 @@ export interface IRide extends Document {
   paymentStatus: "PENDING" | "PAID" | "PENDING_COLLECTION" | "COLLECTED" | "PENDING_PAYMENT" | "FAILED";
   cashCollectedAt?: Date | null;
   cashCollectedBy?: mongoose.Types.ObjectId | null;
+  razorpayOrderId?: string | null;
+  razorpayPaymentId?: string | null;
+  razorpaySignature?: string | null;
+  paymentConfirmedAt?: Date | null;
   pricingSnapshot?: {
     baseFarePaise: number;
     distanceKm: number;
@@ -189,6 +193,24 @@ const RideSchema = new Schema<IRide>(
     cashCollectedBy: {
       type: Schema.Types.ObjectId,
       ref: "User",
+      default: null,
+    },
+    razorpayOrderId: {
+      type: String,
+      default: null,
+      sparse: true,
+      index: true,
+    },
+    razorpayPaymentId: {
+      type: String,
+      default: null,
+    },
+    razorpaySignature: {
+      type: String,
+      default: null,
+    },
+    paymentConfirmedAt: {
+      type: Date,
       default: null,
     },
     pricingSnapshot: {

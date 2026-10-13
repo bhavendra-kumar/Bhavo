@@ -5,6 +5,7 @@ import {
   User, ShieldCheck, Dog, Camera, Edit2, PhoneCall,
   Plus, Trash2, Check, X
 } from "lucide-react";
+import { useDialog } from "@/components/ui/DialogProvider";
 
 interface EmergencyContact {
   name: string;
@@ -34,6 +35,7 @@ interface UserProfile {
 }
 
 export default function ProfilePage() {
+  const { alert } = useDialog();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -66,7 +68,7 @@ export default function ProfilePage() {
         if (!ignore && json.data) {
           setProfile(json.data);
           setEditName(json.data.name || "");
-          setEditPhone(json.data.phone || "+91 98765 43210");
+          setEditPhone(json.data.phone || "");
         }
         if (!ignore) setLoading(false);
       })
@@ -247,7 +249,13 @@ export default function ProfilePage() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => alert("Photo upload coming soon.")}
+                  onClick={() =>
+                    alert({
+                      title: "Photo Upload",
+                      message: "Custom avatar photo upload is not supported in the pilot phase.",
+                      variant: "info",
+                    })
+                  }
                   className="absolute bottom-0 right-0 w-7 h-7 rounded-full flex items-center justify-center text-white shadow-md bg-teal-700 border-2 border-white transition-transform hover:scale-110 cursor-pointer"
                 >
                   <Camera size={12} />

@@ -149,27 +149,94 @@ export async function POST(req: Request) {
       await driverLocationRateLimiter.recordFailure(String(driverUser._id));
 
       const now = new Date();
-      driverUser.driverCoordinates = [lat, lng];
-      driverUser.driverCoordinatesUpdatedAt = now;
-      await driverUser.save();
+      const rawTimestamp = body.timestamp || body.clientTimestamp;
+      const clientDate = rawTimestamp ? new Date(rawTimestamp) : null;
+      const isClientDateValid = clientDate !== null && !isNaN(clientDate.getTime());
 
       let activeRideVersion: number | null = null;
       if (rideId && mongoose.isValidObjectId(rideId)) {
-        // Update ride coordinates ONLY if the ride is actively assigned to this driver
-        const ride = await Ride.findOne({
-          _id: rideId,
-          driver: driverUser._id,
-          status: { $in: ["ACCEPTED", "ARRIVED", "IN_PROGRESS"] },
-        });
+        const existingRide = await Ride.findById(rideId).select(
+          "status driver driverCoordinatesUpdatedAt trackingVersion"
+        );
 
-        if (ride) {
-          ride.driverCoordinates = [lat, lng];
-          ride.driverCoordinatesUpdatedAt = now;
-          ride.trackingVersion = (ride.trackingVersion || 1) + 1;
-          await ride.save();
-          activeRideVersion = ride.trackingVersion;
+        if (existingRide) {
+          // Reject if caller is not the assigned driver
+          if (existingRide.driver && existingRide.driver.toString() !== driverUser._id.toString()) {
+            return NextResponse.json(
+              {
+                status: "error",
+                code: "FORBIDDEN",
+                message: "You are not the assigned driver for this ride.",
+              },
+              { status: 403 }
+            );
+          }
+
+          // Reject location updates for terminal rides
+          if (["COMPLETED", "CANCELLED"].includes(existingRide.status)) {
+            return NextResponse.json(
+              {
+                status: "error",
+                code: "RIDE_TERMINAL",
+                message: "Location updates are not accepted for terminal rides.",
+              },
+              { status: 409 }
+            );
+          }
+
+          // Guard against out-of-order client telemetry
+          if (isClientDateValid && existingRide.driverCoordinatesUpdatedAt) {
+            if (clientDate.getTime() < new Date(existingRide.driverCoordinatesUpdatedAt).getTime()) {
+              return NextResponse.json(
+                {
+                  status: "error",
+                  code: "OUT_OF_ORDER_LOCATION",
+                  message: "Incoming location update is older than current location state.",
+                  data: {
+                    trackingVersion: existingRide.trackingVersion,
+                    driverCoordinatesUpdatedAt: existingRide.driverCoordinatesUpdatedAt,
+                  },
+                },
+                { status: 409 }
+              );
+            }
+          }
+        }
+
+        // Atomically update active ride coordinates and monotonic tracking version
+        const updatedRide = await Ride.findOneAndUpdate(
+          {
+            _id: rideId,
+            driver: driverUser._id,
+            status: { $in: ["ACCEPTED", "ARRIVED", "IN_PROGRESS"] },
+            ...(isClientDateValid
+              ? {
+                  $or: [
+                    { driverCoordinatesUpdatedAt: null },
+                    { driverCoordinatesUpdatedAt: { $exists: false } },
+                    { driverCoordinatesUpdatedAt: { $lte: clientDate } },
+                  ],
+                }
+              : {}),
+          },
+          {
+            $set: {
+              driverCoordinates: [lat, lng],
+              driverCoordinatesUpdatedAt: now,
+            },
+            $inc: { trackingVersion: 1 },
+          },
+          { new: true }
+        );
+
+        if (updatedRide) {
+          activeRideVersion = updatedRide.trackingVersion ?? null;
         }
       }
+
+      driverUser.driverCoordinates = [lat, lng];
+      driverUser.driverCoordinatesUpdatedAt = now;
+      await driverUser.save();
 
       return NextResponse.json({
         status: "success",

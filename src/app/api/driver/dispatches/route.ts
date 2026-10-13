@@ -41,7 +41,7 @@ export async function GET(req: Request) {
       driver: user._id,
       status: { $in: ["ACCEPTED", "ARRIVED", "IN_PROGRESS"] },
     });
-    if (activeRide || user.dutyState === "ON_TRIP") {
+    if (activeRide || user.activeRideId || user.dutyState === "ON_TRIP") {
       return NextResponse.json({ status: "success", data: null });
     }
 
@@ -134,9 +134,9 @@ export async function GET(req: Request) {
     const dispatch = {
       _id: String(targetedRide._id),
       offerId: targetedRide.currentOffer.offerId,
-      riderName: riderObj.name || "Aarav Sharma",
-      riderPhone: riderObj.phone || "+91 98111 22334",
-      riderRating: riderObj.rating || 4.92,
+      riderName: riderObj.name || "Rider",
+      riderPhone: riderObj.phone || "",
+      riderRating: riderObj.rating || 5.0,
       riderAvatar: riderObj.avatar || null,
       pickup: {
         address: targetedRide.pickup.address,

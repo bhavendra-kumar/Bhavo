@@ -12,10 +12,6 @@ import {
   AlertCircle,
   RefreshCw,
   Upload,
-  Edit3,
-  Check,
-  RotateCcw,
-  Sparkles,
   Lock,
   X,
   Save,
@@ -25,6 +21,7 @@ import {
   Smartphone,
   BadgeCheck,
   Info,
+  Edit3,
 } from "lucide-react";
 import { useDriverStore } from "@/hooks/driver/useDriverStore";
 import { useDialog } from "@/components/ui/DialogProvider";
@@ -52,21 +49,28 @@ interface IDriverDocItem {
 }
 
 export default function DriverVehicle() {
-  const { alert, confirm } = useDialog();
+  const { alert } = useDialog();
   const { fetchDriverData, setVerification } = useDriverStore();
 
   const [vehicle, setVehicle] = useState<IDriverVehicleData>({
-    model: "Tata Tigor EV (White)",
-    numberPlate: "DL-01-EV-4429",
-    type: "Cab Premium (EV)",
+    model: "",
+    numberPlate: "",
+    type: "",
     fuelType: "EV",
-    batteryOrFuelLevel: 82,
-    documentsVerified: true,
-    insuranceValidUntil: "18 Dec 2027",
+    batteryOrFuelLevel: 100,
+    documentsVerified: false,
+    insuranceValidUntil: "",
   });
   const [documents, setDocuments] = useState<IDriverDocItem[]>(() => [...DEFAULT_DRIVER_DOCUMENTS]);
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
+
+  // Edit Vehicle Modal State
+  const [isEditingVehicle, setIsEditingVehicle] = useState(false);
+  const [editVehicleModel, setEditVehicleModel] = useState("");
+  const [editVehicleNumberPlate, setEditVehicleNumberPlate] = useState("");
+  const [editVehicleType, setEditVehicleType] = useState("Cab Economy");
+  const [editVehicleFuelType, setEditVehicleFuelType] = useState("EV");
+  const [editVehicleSaving, setEditVehicleSaving] = useState(false);
 
   // Edit/Upload Modal State
   const [editingDoc, setEditingDoc] = useState<IDriverDocItem | null>(null);
@@ -136,115 +140,78 @@ export default function DriverVehicle() {
   const rejectedCount = documents.filter((d) => d.status === "REJECTED").length;
   const isAllVerified = totalCount > 0 && verifiedCount === totalCount;
 
-  // Toggle single document status between VERIFIED and PENDING
-  const handleToggleSingleDoc = async (doc: IDriverDocItem) => {
-    setActionLoading(true);
+  const openVehicleEditModal = () => {
+    setEditVehicleModel(vehicle.model || "");
+    setEditVehicleNumberPlate(vehicle.numberPlate || "");
+    setEditVehicleType(vehicle.type || "Cab Economy");
+    setEditVehicleFuelType(vehicle.fuelType || "EV");
+    setIsEditingVehicle(true);
+  };
+
+  const handleSaveVehicleDetails = async () => {
+    if (!editVehicleModel.trim()) {
+      alert({
+        title: "Model Required",
+        message: "Please enter your vehicle make and model (e.g. Maruti Swift or Tata Tigor EV).",
+        confirmText: "OK",
+        variant: "warning",
+      });
+      return;
+    }
+    if (!editVehicleNumberPlate.trim()) {
+      alert({
+        title: "Registration Number Required",
+        message: "Please enter your vehicle registration number plate (e.g. DL-01-AB-1234).",
+        confirmText: "OK",
+        variant: "warning",
+      });
+      return;
+    }
+
+    setEditVehicleSaving(true);
     try {
       const res = await fetch("/api/driver/vehicle", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: "TOGGLE_DOC_STATUS",
-          docName: doc.name,
+          vehicle: {
+            model: editVehicleModel.trim(),
+            numberPlate: editVehicleNumberPlate.trim().toUpperCase(),
+            type: editVehicleType,
+            fuelType: editVehicleFuelType,
+          },
         }),
       });
 
       const json = await res.json();
       if (res.ok && json.data) {
         if (json.data.vehicle) setVehicle(json.data.vehicle);
-        if (json.data.documents) setDocuments(json.data.documents);
         if (json.data.verification) setVerification(json.data.verification);
         await fetchDriverData();
-
-        const newStatus = doc.status === "VERIFIED" ? "PENDING" : "VERIFIED";
+        setIsEditingVehicle(false);
         alert({
-          title: `Document Status Changed: ${doc.name}`,
-          message:
-            newStatus === "VERIFIED"
-              ? `"${doc.name}" has been marked as VERIFIED.`
-              : `"${doc.name}" is now PENDING review. The driver will be restricted from coming online until all documents are verified.`,
-          confirmText: "OK",
-          variant: newStatus === "VERIFIED" ? "success" : "warning",
-        });
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // Simulate Admin Approving All Documents
-  const handleVerifyAll = async () => {
-    setActionLoading(true);
-    try {
-      const res = await fetch("/api/driver/vehicle", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "VERIFY_ALL" }),
-      });
-
-      const json = await res.json();
-      if (res.ok && json.data) {
-        if (json.data.vehicle) setVehicle(json.data.vehicle);
-        if (json.data.documents) setDocuments(json.data.documents);
-        if (json.data.verification) setVerification(json.data.verification);
-        await fetchDriverData();
-
-        alert({
-          title: "All Documents Verified!",
-          message:
-            "All driver credentials and vehicle compliance certificates are officially approved. You are now authorized to turn ON your duty switch and accept ride dispatches.",
-          confirmText: "Great, Let's Ride",
+          title: "Vehicle Updated Successfully",
+          message: "Your vehicle details have been saved to your account.",
+          confirmText: "Done",
           variant: "success",
         });
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // Simulate Resetting to Pending to test restricted online flow
-  const handleResetPending = async () => {
-    const ok = await confirm({
-      title: "Simulate Pending Verification?",
-      message:
-        "This will set key driver documents to PENDING review. You will be forced OFFLINE and blocked from coming online or accepting rides until re-verified.",
-      confirmText: "Set to Pending",
-      cancelText: "Cancel",
-      variant: "warning",
-    });
-    if (!ok) return;
-
-    setActionLoading(true);
-    try {
-      const res = await fetch("/api/driver/vehicle", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "RESET_PENDING" }),
-      });
-
-      const json = await res.json();
-      if (res.ok && json.data) {
-        if (json.data.vehicle) setVehicle(json.data.vehicle);
-        if (json.data.documents) setDocuments(json.data.documents);
-        if (json.data.verification) setVerification(json.data.verification);
-        await fetchDriverData();
-
+      } else {
         alert({
-          title: "Verification Required (Offline Forced)",
-          message:
-            "Documents set to PENDING! Duty toggle is now locked, and ride acceptance is disabled until documents are approved.",
-          confirmText: "Got it",
-          variant: "warning",
+          title: "Update Failed",
+          message: json.message || "Failed to update vehicle details.",
+          confirmText: "OK",
+          variant: "danger",
         });
       }
-    } catch (e) {
-      console.error(e);
+    } catch {
+      alert({
+        title: "Network Error",
+        message: "Unable to save vehicle details. Please check connection and try again.",
+        confirmText: "OK",
+        variant: "danger",
+      });
     } finally {
-      setActionLoading(false);
+      setEditVehicleSaving(false);
     }
   };
 
@@ -269,7 +236,7 @@ export default function DriverVehicle() {
             docId: editDocId.trim() || editingDoc.docId,
             expiry: editExpiry.trim() || editingDoc.expiry,
             status: "PENDING", // Submitting an update sets it to PENDING review
-            fileUrl: editFileUploaded ? "https://storage.bhavo.in/docs/uploaded_proof.pdf" : null,
+            fileUrl: editFileUploaded ? (editingDoc.fileUrl || "/documents/uploaded_proof.pdf") : null,
           },
         }),
       });
@@ -346,7 +313,7 @@ export default function DriverVehicle() {
         <div className="flex items-center gap-2">
           <button
             onClick={handleSyncLive}
-            disabled={loading || actionLoading}
+            disabled={loading}
             className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs disabled:opacity-50"
             title="Refresh verification status from MongoDB"
           >
@@ -394,6 +361,8 @@ export default function DriverVehicle() {
                     ? "100% Verified & Compliant"
                     : rejectedCount > 0
                     ? `${rejectedCount} Rejected • Action Required`
+                    : pendingCount > 0
+                    ? `${pendingCount} Under Review • Action Required`
                     : "Verification Incomplete • Action Required"}
                 </span>
 
@@ -416,31 +385,23 @@ export default function DriverVehicle() {
             </div>
           </div>
 
-          {/* Quick Simulation Testing Box */}
-          <div className="bg-black/30 border border-white/10 rounded-2xl p-4 w-full md:w-auto shrink-0 flex flex-col gap-2.5">
+          {/* Admin Verification Status Box */}
+          <div className="bg-black/30 border border-white/10 rounded-2xl p-4 w-full md:w-auto shrink-0 flex flex-col gap-2">
             <span className="text-[10px] font-black uppercase tracking-wider text-teal-200/70 block">
-              Compliance Testing Controls
+              Admin Verification Status
             </span>
-            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
-              <button
-                onClick={handleVerifyAll}
-                disabled={actionLoading || isAllVerified}
-                className="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-slate-950 font-extrabold text-xs transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
-                title="Simulate complete verification approval"
-              >
-                <Sparkles size={14} />
-                <span>Approve All (Test Online)</span>
-              </button>
-
-              <button
-                onClick={handleResetPending}
-                disabled={actionLoading || (!isAllVerified && pendingCount > 0)}
-                className="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 disabled:opacity-40 text-amber-200 border border-amber-400/30 font-extrabold text-xs transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
-                title="Reset documents to pending to test locked duty"
-              >
-                <RotateCcw size={14} />
-                <span>Set Pending (Test Lock)</span>
-              </button>
+            <div className="flex items-center gap-2">
+              {isAllVerified ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-xs font-bold">
+                  <ShieldCheck size={14} className="text-emerald-400" />
+                  <span>Approved by Platform Admin</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-400/30 text-xs font-bold">
+                  <Clock size={14} className="text-amber-400" />
+                  <span>Awaiting Admin Document Review</span>
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -471,7 +432,7 @@ export default function DriverVehicle() {
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200">
-                {vehicle.type}
+                {vehicle.type || "Cab Economy"}
               </span>
               <span
                 className={`text-xs font-bold flex items-center gap-1 ${
@@ -482,10 +443,20 @@ export default function DriverVehicle() {
                 {isAllVerified ? "Fleet Compliant" : "Verification Required"}
               </span>
             </div>
-            <h3 className="text-xl font-black text-slate-900 mt-1">{vehicle.model}</h3>
-            <span className="text-xs font-mono font-bold text-slate-500 mt-0.5 block">
-              Registration Plate: <strong className="text-slate-800">{vehicle.numberPlate}</strong>
-            </span>
+            <h3 className="text-xl font-black text-slate-900 mt-1">{vehicle.model || "Vehicle Details Not Registered"}</h3>
+            <div className="flex items-center gap-3 mt-1 flex-wrap">
+              <span className="text-xs font-mono font-bold text-slate-500">
+                Registration Plate: <strong className="text-slate-800">{vehicle.numberPlate || "Pending Registration"}</strong>
+              </span>
+              <button
+                onClick={openVehicleEditModal}
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                title="Update vehicle model and registration details"
+              >
+                <Edit3 size={12} />
+                <span>Edit Vehicle</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -580,38 +551,11 @@ export default function DriverVehicle() {
               <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                 <button
                   onClick={() => openEditModal(doc)}
-                  className="px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
-                  title="Update Document ID or Expiry"
+                  className="px-3.5 py-1.5 rounded-lg bg-teal-50 hover:bg-teal-100 border border-teal-200 text-teal-800 text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                  title="Submit or update document proof for compliance review"
                 >
-                  <Edit3 size={13} />
-                  <span>Update</span>
-                </button>
-
-                <button
-                  onClick={() => handleToggleSingleDoc(doc)}
-                  disabled={actionLoading}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border ${
-                    doc.status === "VERIFIED"
-                      ? "bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300"
-                      : "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300"
-                  }`}
-                  title={
-                    doc.status === "VERIFIED"
-                      ? "Test: Mark document as pending to test locked duty"
-                      : "Test: Mark document as verified"
-                  }
-                >
-                  {doc.status === "VERIFIED" ? (
-                    <>
-                      <Clock size={13} />
-                      <span>Set Pending</span>
-                    </>
-                  ) : (
-                    <>
-                      <Check size={13} />
-                      <span>Verify Now</span>
-                    </>
-                  )}
+                  <Upload size={13} />
+                  <span>{doc.status === "VERIFIED" ? "Update Proof" : "Submit Proof"}</span>
                 </button>
               </div>
             </div>
@@ -693,38 +637,11 @@ export default function DriverVehicle() {
               <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                 <button
                   onClick={() => openEditModal(doc)}
-                  className="px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
-                  title="Update Document ID or Expiry"
+                  className="px-3.5 py-1.5 rounded-lg bg-teal-50 hover:bg-teal-100 border border-teal-200 text-teal-800 text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                  title="Submit or update vehicle document proof for compliance review"
                 >
-                  <Edit3 size={13} />
-                  <span>Update</span>
-                </button>
-
-                <button
-                  onClick={() => handleToggleSingleDoc(doc)}
-                  disabled={actionLoading}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border ${
-                    doc.status === "VERIFIED"
-                      ? "bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300"
-                      : "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300"
-                  }`}
-                  title={
-                    doc.status === "VERIFIED"
-                      ? "Test: Mark document as pending"
-                      : "Test: Mark document as verified"
-                  }
-                >
-                  {doc.status === "VERIFIED" ? (
-                    <>
-                      <Clock size={13} />
-                      <span>Set Pending</span>
-                    </>
-                  ) : (
-                    <>
-                      <Check size={13} />
-                      <span>Verify Now</span>
-                    </>
-                  )}
+                  <Upload size={13} />
+                  <span>{doc.status === "VERIFIED" ? "Update Proof" : "Submit Proof"}</span>
                 </button>
               </div>
             </div>
@@ -890,6 +807,112 @@ export default function DriverVehicle() {
                 >
                   {editSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                   <span>Submit for Verification</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Vehicle Edit Modal ── */}
+      {isEditingVehicle && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col">
+            <div className="px-6 py-4 bg-teal-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Car size={18} className="text-teal-300" />
+                <h3 className="font-extrabold text-[15px] truncate">Edit Vehicle Details</h3>
+              </div>
+              <button
+                onClick={() => setIsEditingVehicle(false)}
+                className="p-1 rounded-lg text-teal-200 hover:text-white hover:bg-white/10"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-6 flex flex-col gap-4">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Vehicle Make & Model
+                </label>
+                <input
+                  type="text"
+                  value={editVehicleModel}
+                  onChange={(e) => setEditVehicleModel(e.target.value)}
+                  placeholder="e.g. Tata Tigor EV (White) or Maruti Dzire"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 text-xs font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Registration Number Plate
+                </label>
+                <input
+                  type="text"
+                  value={editVehicleNumberPlate}
+                  onChange={(e) => setEditVehicleNumberPlate(e.target.value.toUpperCase())}
+                  placeholder="e.g. DL-01-EV-4429"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 font-mono text-xs uppercase"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                    Vehicle Category
+                  </label>
+                  <select
+                    value={editVehicleType}
+                    onChange={(e) => setEditVehicleType(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 text-xs bg-slate-50 font-semibold"
+                  >
+                    <option value="Bike Taxi">Bike Taxi</option>
+                    <option value="Auto Rickshaw">Auto Rickshaw</option>
+                    <option value="Cab Economy">Cab Economy</option>
+                    <option value="Cab Premium (EV)">Cab Premium (EV)</option>
+                    <option value="Cab XL">Cab XL</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                    Fuel / Energy Type
+                  </label>
+                  <select
+                    value={editVehicleFuelType}
+                    onChange={(e) => setEditVehicleFuelType(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 text-xs bg-slate-50 font-semibold"
+                  >
+                    <option value="EV">EV (Electric)</option>
+                    <option value="CNG">CNG</option>
+                    <option value="PETROL">Petrol</option>
+                    <option value="DIESEL">Diesel</option>
+                  </select>
+                </div>
+              </div>
+
+              <span className="text-[11px] text-slate-500 font-medium bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                ℹ️ Updated vehicle details are submitted to compliance. Documents must match the registered number plate.
+              </span>
+
+              <div className="flex items-center justify-end gap-2 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEditingVehicle(false)}
+                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveVehicleDetails}
+                  disabled={editVehicleSaving}
+                  className="px-5 py-2.5 rounded-xl bg-teal-700 hover:bg-teal-800 text-white text-xs font-extrabold shadow-md transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {editVehicleSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                  <span>Save Vehicle</span>
                 </button>
               </div>
             </div>

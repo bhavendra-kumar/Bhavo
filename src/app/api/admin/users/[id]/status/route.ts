@@ -64,8 +64,9 @@ export async function POST(
         status: { $in: ["ACCEPTED", "ARRIVED", "IN_PROGRESS"] },
       }).select("status");
 
-      if (activeTrip) {
-        if (activeTrip.status === "IN_PROGRESS") {
+      if (activeTrip || targetUser.activeRideId) {
+        const tripStatus = activeTrip?.status || "ASSIGNED";
+        if (tripStatus === "IN_PROGRESS") {
           return NextResponse.json(
             {
               status: "error",
@@ -79,7 +80,7 @@ export async function POST(
             {
               status: "error",
               code: "DRIVER_HAS_ACCEPTED_RIDE",
-              message: `Cannot suspend driver with an assigned ride in status '${activeTrip.status}'. Resolve or reassign the active commitment first.`,
+              message: `Cannot suspend driver with an assigned ride in status '${tripStatus}'. Resolve or reassign the active commitment first.`,
             },
             { status: 409 }
           );

@@ -75,17 +75,18 @@ export async function GET(req: Request) {
       const riderObj = (r.rider as unknown as { name?: string }) || {};
       return {
         id: String(r._id),
-        riderName: riderObj.name || (r.driverDetails?.name ? "Passenger " + String(r._id).slice(-4) : "Aarav Sharma"),
+        riderName: riderObj.name || (r.driverDetails?.name ? "Passenger " + String(r._id).slice(-4) : "Rider"),
         pickup: r.pickup.address,
         dropoff: r.dropoff.address,
         fare: r.fare,
-        tip: r.tip || 20,
+        tip: r.tip || 0,
         distance: r.distance,
         duration: r.duration,
         time: new Date(r.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         date: new Date(r.updatedAt).toLocaleDateString([], { day: "numeric", month: "short" }),
         vehicleType: r.vehicleType,
         paymentMethod: r.paymentMethod,
+        paymentStatus: r.paymentStatus,
         status: r.status,
       };
     });

@@ -16,7 +16,7 @@ export async function GET(req: Request) {
       petFriendly: true,
       maxDistance: "ANY",
       destinationMode: false,
-      destinationAddress: "Block C, Sector 62, Noida",
+      destinationAddress: user.driverSettings?.destinationAddress || "",
     };
 
     return NextResponse.json({

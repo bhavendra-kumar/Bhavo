@@ -33,62 +33,11 @@ export default function RecentCommutesSnapshot({
 
   const handleDownloadTripReceipt = (rideId: string) => {
     alert({
-      title: "Trip Receipt Downloaded",
-      message: `Tax invoice for Ride #${rideId.slice(-6).toUpperCase()} has been saved to your downloads.`,
-      variant: "success",
+      title: "Trip Receipt",
+      message: `Receipt record for Ride #${rideId.slice(-6).toUpperCase()} has been saved to your downloads.`,
+      variant: "info",
     });
   };
-
-  const FALLBACK_RIDES: IRideData[] = [
-    {
-      _id: "ride-demo-1",
-      rider: "demo",
-      pickup: { address: "123 Tech Park Avenue, Block B", coordinates: [0, 0] },
-      dropoff: { address: "Bhavo Headquarters, Sector 44", coordinates: [0, 0] },
-      vehicleType: "Cab Premium EV",
-      fare: 340,
-      distance: "12 km",
-      duration: "24 min",
-      status: "COMPLETED",
-      otp: "0000",
-      driverDetails: {
-        name: "Rajesh Kumar",
-        phone: "+91 98765 43210",
-        rating: 4.9,
-        vehicleModel: "Tata Tigor EV",
-        vehicleNumber: "HR-26-EQ-9120",
-      },
-      paymentMethod: "WALLET",
-      paymentStatus: "PAID",
-      createdAt: "2026-09-08T08:10:00.000Z",
-      updatedAt: "2026-09-08T08:34:00.000Z",
-    },
-    {
-      _id: "ride-demo-2",
-      rider: "demo",
-      pickup: { address: "Bhavo Headquarters, Sector 44", coordinates: [0, 0] },
-      dropoff: { address: "123 Tech Park Avenue, Block B", coordinates: [0, 0] },
-      vehicleType: "Cab Economy",
-      fare: 280,
-      distance: "12 km",
-      duration: "22 min",
-      status: "COMPLETED",
-      otp: "0000",
-      driverDetails: {
-        name: "Amit Sharma",
-        phone: "+91 98765 43211",
-        rating: 4.8,
-        vehicleModel: "Maruti Dzire",
-        vehicleNumber: "DL-01-AX-4412",
-      },
-      paymentMethod: "WALLET",
-      paymentStatus: "PAID",
-      createdAt: "2026-09-07T18:30:00.000Z",
-      updatedAt: "2026-09-07T18:52:00.000Z",
-    },
-  ];
-
-  const displayRides = recentRides.length > 0 ? recentRides : FALLBACK_RIDES;
 
   return (
     <div className="card p-5 sm:p-6 flex flex-col gap-4 border border-slate-200/80 bg-white shadow-xs rounded-3xl">
@@ -114,8 +63,24 @@ export default function RecentCommutesSnapshot({
       </div>
 
       {/* Rides List */}
-      <div className="flex flex-col gap-2.5">
-        {displayRides.map((ride) => {
+      {recentRides.length === 0 ? (
+        <div className="py-8 px-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 flex flex-col items-center justify-center text-center">
+          <Route size={24} className="text-slate-300 mb-2" />
+          <p className="text-[13px] font-bold text-slate-700">No Recent Rides</p>
+          <p className="text-[11px] text-slate-400 mt-0.5 max-w-xs">
+            Your completed rides and receipts will appear here automatically.
+          </p>
+          <button
+            type="button"
+            onClick={() => router.push("/user/book-ride")}
+            className="mt-3 px-3.5 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-[11px] font-bold transition-all shadow-xs cursor-pointer"
+          >
+            Book a Ride
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          {recentRides.map((ride) => {
           const dateStr = new Date(ride.createdAt).toLocaleDateString(
             "en-IN",
             {
@@ -207,7 +172,8 @@ export default function RecentCommutesSnapshot({
             </div>
           );
         })}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -68,8 +68,8 @@ export default function DriverEarnings() {
   const tripsWeek = data?.tripsWeek ?? 0;
   const tipsToday = data?.tipsToday ?? 0;
   const bankAccount = data?.bankAccount || {
-    bankName: "HDFC Bank",
-    accountNumber: "•••• 4921",
+    bankName: "Linked Bank / UPI",
+    accountNumber: "Registered Account",
   };
 
   const handleInstantCashout = async () => {
@@ -98,9 +98,8 @@ export default function DriverEarnings() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ amount: balance }),
         });
-
+        const json = await res.json();
         if (res.ok) {
-          const json = await res.json();
           await refreshEarnings();
           await fetchDriverData();
 
@@ -110,13 +109,22 @@ export default function DriverEarnings() {
             confirmText: "Done",
             variant: "success",
           });
+        } else {
+          alert({
+            title: "Payouts Disabled in Pilot",
+            message:
+              json.message ||
+              "Instant cashout transfers are disabled during the cash-only pilot phase. All trip fares are collected directly in person.",
+            confirmText: "Understood",
+            variant: "info",
+          });
         }
       } catch {
         alert({
-          title: "Transfer Failed",
+          title: "Transfer Unavailable",
           message: "Unable to process payout right now. Please try again.",
           confirmText: "OK",
-          variant: "danger",
+          variant: "warning",
         });
       }
     }

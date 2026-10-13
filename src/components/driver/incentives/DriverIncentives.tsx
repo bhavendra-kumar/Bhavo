@@ -67,8 +67,8 @@ export default function DriverIncentives() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ questId }),
       });
+      const json = await res.json();
       if (res.ok) {
-        const json = await res.json();
         await refreshIncentives();
         await fetchDriverData();
         alert({
@@ -77,13 +77,22 @@ export default function DriverIncentives() {
           confirmText: "Awesome",
           variant: "success",
         });
+      } else {
+        alert({
+          title: "Incentive Claims Paused",
+          message:
+            json.message ||
+            "Incentive claims are paused during the V1 pilot phase until automated escrow funding is activated.",
+          confirmText: "Understood",
+          variant: "info",
+        });
       }
     } catch {
       alert({
-        title: "Claim Failed",
-        message: "Unable to claim bonus right now. Please try again.",
+        title: "Claim Unavailable",
+        message: "Unable to process incentive claim right now. Please try again later.",
         confirmText: "OK",
-        variant: "danger",
+        variant: "warning",
       });
     } finally {
       setClaiming(null);
