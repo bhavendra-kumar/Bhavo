@@ -29,9 +29,9 @@ const QUICK_PROMPTS = [
 
 export default function DriverChatModal({
   rideId,
-  driverName = "Rajesh Kumar",
+  driverName = "Bhavo Pilot",
   driverRating = 4.9,
-  vehicleNumber = "DL-01-AB-1234",
+  vehicleNumber = "",
   isOpen,
   onClose,
   onCallDriver,
@@ -136,7 +136,7 @@ export default function DriverChatModal({
                 </span>
               </div>
               <p className="text-[12px] text-teal-200 mt-1 font-mono">
-                {vehicleNumber} • Driver
+                {vehicleNumber ? `${vehicleNumber} • Bhavo Pilot` : "Bhavo Pilot"}
               </p>
             </div>
           </div>

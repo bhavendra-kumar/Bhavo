@@ -16,30 +16,31 @@ import { useDialog } from "@/components/ui/DialogProvider";
 export default function IncomingDispatchModal() {
   const { incomingDispatch, acceptDispatch, declineDispatch, verification } = useDriverStore();
   const { alert } = useDialog();
-  const [secondsLeft, setSecondsLeft] = useState(15);
+  const [now, setNow] = useState(() => Date.now());
   const [isAccepting, setIsAccepting] = useState(false);
 
   useEffect(() => {
     if (!incomingDispatch) return;
 
     const interval = setInterval(() => {
-      setSecondsLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          declineDispatch();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+      const curNow = Date.now();
+      setNow(curNow);
+      if (incomingDispatch.expiresAt && incomingDispatch.expiresAt <= curNow) {
+        clearInterval(interval);
+        declineDispatch();
+      }
+    }, 500);
 
     return () => {
       clearInterval(interval);
-      setSecondsLeft(15);
     };
   }, [incomingDispatch, declineDispatch]);
 
   if (!incomingDispatch) return null;
+
+  const secondsLeft = incomingDispatch.expiresAt
+    ? Math.max(0, Math.ceil((incomingDispatch.expiresAt - now) / 1000))
+    : 15;
 
   const handleAccept = async () => {
     if (verification && !verification.isVerified) {

@@ -17,13 +17,22 @@ export interface ICreateAuditLogParams {
 
 const SENSITIVE_KEYS = new Set([
   "password",
-  "resetOtp",
+  "resetotp",
   "token",
   "jwt",
   "secret",
   "authorization",
   "cookie",
   "otp",
+  "creditcard",
+  "cardnumber",
+  "cvv",
+  "apikey",
+  "authsecret",
+  "jwtsecret",
+  "cronsecret",
+  "keysecret",
+  "webhooksecret",
 ]);
 
 /**
@@ -40,7 +49,8 @@ function sanitizePayload(obj: unknown, depth = 0): unknown {
   if (typeof obj === "object") {
     const sanitized: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(obj as Record<string, unknown>)) {
-      if (SENSITIVE_KEYS.has(key.toLowerCase())) {
+      const normalizedKey = key.toLowerCase().replace(/[^a-z]/g, "");
+      if (SENSITIVE_KEYS.has(normalizedKey)) {
         sanitized[key] = "[REDACTED]";
       } else {
         sanitized[key] = sanitizePayload(val, depth + 1);

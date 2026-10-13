@@ -138,6 +138,16 @@ export function normalizeWeekday(dayStr: string): number {
   }
 }
 
+export const CANONICAL_WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+
+/**
+ * Returns the canonical 3-letter capitalized weekday name for any supported representation.
+ */
+export function getCanonicalWeekdayName(dayStr: string): string {
+  const index = normalizeWeekday(dayStr);
+  return CANONICAL_WEEKDAY_NAMES[index];
+}
+
 /**
  * Extracts Indian Standard Time (Asia/Kolkata) calendar components from any UTC Date.
  * Pure mathematical offset calculation, immune to host system timezone.
@@ -235,12 +245,12 @@ export function calculateUpcomingOccurrences(
   const windowEnd = new Date(atTime.getTime() + lookaheadMinutes * 60 * 1000);
   const commuteIdStr = commute._id.toString();
 
-  // Evaluate candidate dates: Today, Tomorrow, and Day After Tomorrow (in IST)
-  // to ensure any boundary around midnight is fully covered
+  // Dynamically calculate scanning horizon based on lookahead window (defaults to at least 2 days ahead)
+  const maxDays = Math.max(2, Math.ceil(lookaheadMinutes / (24 * 60)) + 1);
   const candidates: IOccurrenceCandidate[] = [];
 
-  // We scan a 3-day window from the current IST date
-  for (let dayOffset = 0; dayOffset <= 2; dayOffset++) {
+  // Scan across the window horizon in IST calendar dates
+  for (let dayOffset = 0; dayOffset <= maxDays; dayOffset++) {
     const candidateUtc = new Date(atTime.getTime() + dayOffset * 24 * 60 * 60 * 1000);
     const comps = getIstDateComponents(candidateUtc);
 

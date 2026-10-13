@@ -100,12 +100,13 @@ export async function findAndRankCandidatesForRide(
   ride: IRideRequirements & { preferredDriver?: mongoose.Types.ObjectId | string | null },
   context: IEligibilityContext = {}
 ): Promise<IRankedCandidate[]> {
-  // 1. Query online active drivers who have verified vehicle documents
+  // 1. Query online active drivers who have verified vehicle documents and no active ride
   const candidateDrivers = await User.find({
     role: "DRIVER",
     status: "ACTIVE",
     isOnline: true,
     dutyState: "ONLINE_SEARCHING",
+    $or: [{ activeRideId: null }, { activeRideId: { $exists: false } }],
     "driverVehicle.documentsVerified": true,
   });
 
@@ -146,8 +147,8 @@ export async function findAndRankCandidatesForRide(
   for (const driverDoc of candidateDrivers) {
     const driverIdStr = driverDoc._id.toString();
 
-    // Exclusivity gate: driver is on active trip
-    if (occupiedDriverIdSet.has(driverIdStr)) {
+    // Exclusivity gate: driver is on active trip or has activeRideId
+    if (occupiedDriverIdSet.has(driverIdStr) || driverDoc.activeRideId) {
       continue;
     }
 

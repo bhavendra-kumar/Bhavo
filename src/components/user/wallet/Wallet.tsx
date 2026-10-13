@@ -1,22 +1,54 @@
 "use client";
 
-import React, { useState } from "react";
-import { Plus, CreditCard, History, ChevronRight, ArrowUpRight, ArrowDownLeft, Smartphone, Gift, Tag, Download } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Plus, CreditCard, History, Banknote, Clock, CheckCircle2, Download, AlertCircle, Tag, Gift } from "lucide-react";
 import { useDialog } from "@/components/ui/DialogProvider";
+import { IRideData } from "@/hooks/user/useDashboardStore";
 
 const QUICK_AMOUNTS = [200, 500, 1000, 2000];
-
-const TRANSACTIONS = [
-  { id: "TRP-8821A", label: "Ride Payment", sub: "Today · 9:45 AM", amount: "-₹380.00", type: "debit" },
-  { id: "RCH-001", label: "Wallet Recharge", sub: "Oct 20, 2024", amount: "+₹2,000.00", type: "credit" },
-  { id: "TRP-8820B", label: "Ride Payment", sub: "Oct 19, 2024 · 6:30 PM", amount: "-₹240.00", type: "debit" },
-  { id: "RCH-000", label: "Wallet Recharge", sub: "Oct 15, 2024", amount: "+₹1,000.00", type: "credit" },
-];
 
 export default function WalletPage() {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState("Transactions");
+  const [walletBalance, setWalletBalance] = useState<number>(0);
+  const [recentRides, setRecentRides] = useState<IRideData[]>([]);
+  const [loading, setLoading] = useState(true);
   const { alert } = useDialog();
+
+  useEffect(() => {
+    let ignore = false;
+    Promise.all([
+      fetch("/api/user/profile").then((r) => r.json()),
+      fetch("/api/user/rides?status=completed").then((r) => r.json()),
+    ])
+      .then(([profileRes, ridesRes]) => {
+        if (!ignore) {
+          if (profileRes?.data?.walletBalance !== undefined) {
+            setWalletBalance(profileRes.data.walletBalance);
+          }
+          if (Array.isArray(ridesRes?.data)) {
+            setRecentRides(ridesRes.data.slice(0, 10));
+          }
+          setLoading(false);
+        }
+      })
+      .catch((e) => {
+        console.error("Wallet data load error:", e);
+        if (!ignore) setLoading(false);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  const handleRechargeNotice = () => {
+    alert({
+      title: "Cash-Only Pilot Phase",
+      message: "Online wallet recharge is disabled during the controlled pilot phase. All rides operate on direct cash payment collected by your driver upon arrival.",
+      variant: "info",
+    });
+  };
 
   return (
     <div className="flex flex-col gap-5 pb-10">
@@ -24,12 +56,31 @@ export default function WalletPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">Bhavo Wallet</h2>
-          <p className="text-[12px] sm:text-[13px] text-slate-500 font-medium mt-0.5">Manage zero-wait balances, cashback, and commute payment methods.</p>
+          <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">Bhavo Wallet & Payment Ledger</h2>
+          <p className="text-[12px] sm:text-[13px] text-slate-500 font-medium mt-0.5">
+            Transparent view of completed rides, cash payment dues, and platform credits.
+          </p>
         </div>
-        <button className="self-start sm:self-auto h-9 px-4 rounded-full flex items-center justify-center gap-1.5 text-[12px] sm:text-[13px] font-bold text-teal-800 bg-teal-50 border border-teal-200/80 hover:bg-teal-100 active:scale-95 transition-all shrink-0 cursor-pointer shadow-xs">
-          <Download size={13} /> Download Statement
+        <button
+          onClick={() => {
+            alert({
+              title: "Payment Statement",
+              message: "Statements are aggregated at the end of each monthly pilot period.",
+              variant: "info",
+            });
+          }}
+          className="self-start sm:self-auto h-9 px-4 rounded-full flex items-center justify-center gap-1.5 text-[12px] sm:text-[13px] font-bold text-teal-800 bg-teal-50 border border-teal-200/80 hover:bg-teal-100 active:scale-95 transition-all shrink-0 cursor-pointer shadow-xs"
+        >
+          <Download size={13} /> Statement
         </button>
+      </div>
+
+      {/* Pilot Model Notice Banner */}
+      <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-start gap-3">
+        <AlertCircle size={18} className="text-amber-700 shrink-0 mt-0.5" />
+        <div className="text-[12.5px] text-amber-800 leading-relaxed">
+          <strong className="font-bold">Controlled Pilot Financial Model:</strong> Online card processing and direct digital top-ups are paused. All ride fares are payable in cash directly to your assigned driver upon trip completion.
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
@@ -43,20 +94,22 @@ export default function WalletPage() {
             <div className="absolute -top-8 -right-8 w-28 h-28 rounded-full opacity-10 bg-white" />
             <div className="absolute bottom-0 left-0 w-24 h-24 rounded-full opacity-5 bg-white" style={{ transform: "translate(-30%, 30%)" }} />
             
-            <p className="text-teal-200 text-[10.5px] font-bold uppercase tracking-widest mb-1">Available Balance</p>
-            <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-5 text-white">₹1,250.00</h2>
+            <p className="text-teal-200 text-[10.5px] font-bold uppercase tracking-widest mb-1">Available Platform Balance</p>
+            <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-5 text-white">
+              ₹{walletBalance.toFixed(2)}
+            </h2>
             
             <button
-              onClick={() => setSelectedAmount(500)}
+              onClick={handleRechargeNotice}
               className="w-full bg-teal-400 hover:bg-teal-300 text-teal-950 font-black py-2.5 sm:py-3 rounded-xl flex items-center justify-center gap-2 active:scale-98 transition-all text-[13.5px] shadow-sm cursor-pointer"
             >
-              <Plus size={16} /> Add Money
+              <Plus size={16} /> Add Money (Disabled in Pilot)
             </button>
           </div>
 
           {/* Quick add */}
           <div className="card p-5">
-            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-3">Quick Add</p>
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-3">Recharge Amounts</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-2">
               {QUICK_AMOUNTS.map((amt) => (
                 <button
@@ -77,13 +130,7 @@ export default function WalletPage() {
             {selectedAmount !== null && (
               <button
                 type="button"
-                onClick={() => {
-                  alert({
-                    title: `Add ₹${selectedAmount}`,
-                    message: "Connecting to secure payment gateway...",
-                    variant: "info",
-                  });
-                }}
+                onClick={handleRechargeNotice}
                 className="w-full mt-3 py-2.5 rounded-xl text-[13px] font-bold bg-teal-700 text-white hover:bg-teal-800 transition-colors shadow-sm cursor-pointer"
               >
                 Proceed to Pay ₹{selectedAmount}
@@ -94,25 +141,27 @@ export default function WalletPage() {
           {/* Payment methods */}
           <div className="card p-5">
             <div className="flex items-center justify-between mb-4">
-              <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Payment Methods</p>
-              <button className="text-[11px] font-bold text-teal-600 hover:text-teal-700 cursor-pointer">Add New</button>
+              <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Active Payment Mode</p>
             </div>
             <div className="flex flex-col gap-2">
-              {[
-                { Icon: CreditCard, label: "HDFC Debit ····4523", type: "Primary" },
-                { Icon: Smartphone, label: "Google Pay UPI", type: "" },
-              ].map(({ Icon, label, type }, i) => (
-                <div key={i} className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-200">
-                  <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-teal-50 border border-teal-100">
-                    <Icon size={16} className="text-teal-700" />
-                  </div>
-                  <div className="flex-1">
-                    <span className="text-[13px] font-bold text-slate-900">{label}</span>
-                    {type && <p className="text-[11px] font-medium text-slate-500">{type}</p>}
-                  </div>
-                  <ChevronRight size={15} className="text-slate-400" />
+              <div className="flex items-center gap-3 p-3 rounded-lg border border-teal-200 bg-teal-50/50">
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-teal-600 text-white">
+                  <Banknote size={16} />
                 </div>
-              ))}
+                <div className="flex-1">
+                  <span className="text-[13px] font-bold text-slate-900">Physical Cash to Driver</span>
+                  <p className="text-[11px] font-medium text-teal-700">Active · Pilot Policy Standard</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 rounded-lg border border-slate-100 bg-slate-50 opacity-60">
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-slate-200 text-slate-500">
+                  <CreditCard size={16} />
+                </div>
+                <div className="flex-1">
+                  <span className="text-[13px] font-bold text-slate-600">Online Gateway / Card</span>
+                  <p className="text-[11px] font-medium text-slate-400">Disabled during Pilot</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -140,28 +189,55 @@ export default function WalletPage() {
               <div className="flex flex-col">
                 <div className="p-5 flex items-center justify-between border-b border-slate-100">
                   <h3 className="font-bold text-slate-900 text-[15px] flex items-center gap-2">
-                    <History size={16} className="text-teal-600" /> Recent Transactions
+                    <History size={16} className="text-teal-600" /> Completed Ride Payments
                   </h3>
                 </div>
                 <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
-                  {TRANSACTIONS.map((tx) => (
-                    <div key={tx.id} className="flex items-center gap-4 px-5 py-4 hover:bg-slate-50 transition-colors cursor-pointer group">
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-                        style={{ background: tx.type === "credit" ? "rgba(16,185,129,0.1)" : "rgba(244,63,94,0.1)" }}>
-                        {tx.type === "credit"
-                          ? <ArrowDownLeft size={16} className="text-emerald-600" />
-                          : <ArrowUpRight size={16} className="text-rose-500" />
-                        }
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-[14px] font-bold text-slate-900">{tx.label}</p>
-                        <p className="text-[12px] font-medium text-slate-500 mt-0.5">{tx.sub} · {tx.id}</p>
-                      </div>
-                      <span className="text-[15px] font-black" style={{ color: tx.type === "credit" ? "#10b981" : "#0f172a" }}>
-                        {tx.amount}
-                      </span>
+                  {loading ? (
+                    <div className="p-10 text-center text-slate-400 text-xs font-semibold">
+                      Loading ride payment records...
                     </div>
-                  ))}
+                  ) : recentRides.length === 0 ? (
+                    <div className="p-12 text-center text-slate-500 text-xs">
+                      No ride payment transactions recorded yet. Completed trips and cash receipts will appear here.
+                    </div>
+                  ) : (
+                    recentRides.map((ride) => {
+                      const dateStr = new Date(ride.createdAt).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      });
+                      const isCollected = ride.paymentStatus === "COLLECTED" || ride.paymentStatus === "PAID";
+
+                      return (
+                        <div key={ride._id} className="flex items-center gap-4 px-5 py-4 hover:bg-slate-50 transition-colors">
+                          <div
+                            className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                              isCollected ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                            }`}
+                          >
+                            {isCollected ? <CheckCircle2 size={16} /> : <Clock size={16} />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[14px] font-bold text-slate-900 truncate">
+                              Trip #{ride._id.slice(-6).toUpperCase()} · {ride.vehicleType}
+                            </p>
+                            <p className="text-[12px] font-medium text-slate-500 mt-0.5">
+                              {dateStr} · {isCollected ? "Cash Collected by Pilot" : "Cash Payment Due"}
+                            </p>
+                          </div>
+                          <span
+                            className={`text-[15px] font-black shrink-0 ${
+                              isCollected ? "text-emerald-700" : "text-amber-700"
+                            }`}
+                          >
+                            ₹{ride.fare.toFixed(2)}
+                          </span>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             )}

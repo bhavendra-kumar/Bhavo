@@ -153,6 +153,7 @@ interface DriverState {
   markArrived: () => Promise<void>;
   verifyOtp: (enteredOtp: string) => Promise<boolean>;
   completeTrip: (rating?: number, compliments?: string[]) => Promise<void>;
+  confirmCashCollection: (rideId: string) => Promise<boolean>;
   cancelTrip: (reason: string) => Promise<void>;
   simulateIncomingRide: (onBlocked?: (reason?: string) => void) => Promise<boolean>;
   sendMessage: (text: string) => Promise<void>;
@@ -168,8 +169,8 @@ const DEFAULT_SURGE_AREAS: ISurgeArea[] = [
 ];
 
 export const useDriverStore = create<DriverState>((set, get) => ({
-  isOnline: true,
-  dutyState: "ONLINE_SEARCHING",
+  isOnline: false,
+  dutyState: "OFFLINE",
   isSidebarCollapsed: false,
   loading: false,
   driverCoordinates: [28.6139, 77.2090],
@@ -177,14 +178,14 @@ export const useDriverStore = create<DriverState>((set, get) => ({
   driverProfile: null,
 
   verification: {
-    isVerified: true,
-    driverDocsVerified: true,
-    vehicleDocsVerified: true,
+    isVerified: false,
+    driverDocsVerified: false,
+    vehicleDocsVerified: false,
     pendingDocs: [],
     rejectedDocs: [],
     verifiedDocs: [],
     totalDocs: 8,
-    verifiedCount: 8,
+    verifiedCount: 0,
   },
 
   incomingDispatch: null,
@@ -203,13 +204,13 @@ export const useDriverStore = create<DriverState>((set, get) => ({
   },
 
   vehicle: {
-    model: "Tata Tigor EV (White)",
-    numberPlate: "DL-01-EV-4429",
-    type: "Cab Premium (EV)",
+    model: "",
+    numberPlate: "",
+    type: "",
     fuelType: "EV",
-    batteryOrFuelLevel: 82,
-    documentsVerified: true,
-    insuranceValidUntil: "18 Dec 2027",
+    batteryOrFuelLevel: 100,
+    documentsVerified: false,
+    insuranceValidUntil: "",
   },
 
   surgeAreas: DEFAULT_SURGE_AREAS,
@@ -444,10 +445,11 @@ export const useDriverStore = create<DriverState>((set, get) => ({
       });
       const json = await res.json();
       if (!res.ok || json.status === "error") {
+        const isDocError = json.code === "DOCUMENTS_UNVERIFIED";
         set({
           activeRide: null,
-          dutyState: "OFFLINE",
-          isOnline: false,
+          dutyState: isDocError ? "OFFLINE" : get().isOnline ? "ONLINE_SEARCHING" : "OFFLINE",
+          isOnline: isDocError ? false : get().isOnline,
           verification: json.verification || get().verification,
         });
         if (onBlocked) {
@@ -579,6 +581,27 @@ export const useDriverStore = create<DriverState>((set, get) => ({
     } catch {}
   },
 
+  confirmCashCollection: async (rideId: string) => {
+    try {
+      const res = await fetch("/api/driver/rides", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "CONFIRM_CASH_COLLECTED",
+          rideId,
+        }),
+      });
+      if (res.ok) {
+        await get().fetchDriverData();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error("[useDriverStore.confirmCashCollection]", e);
+      return false;
+    }
+  },
+
   cancelTrip: async (reason: string) => {
     const active = get().activeRide;
     if (!active) return;
@@ -637,38 +660,17 @@ export const useDriverStore = create<DriverState>((set, get) => ({
         });
         return true;
       }
-    } catch {}
+    } catch {
+      if (onBlocked) {
+        onBlocked("Network error connecting to dispatch server.");
+      }
+      return false;
+    }
 
-    // Fallback simulation only if verified
-    const simulated: IDriverDispatch = {
-      _id: `ride-${Date.now()}`,
-      riderName: "Ananya Iyer",
-      riderPhone: "+91 98201 55670",
-      riderRating: 4.96,
-      pickup: {
-        address: "Max Hospital Gate 1, Sector 19, Noida",
-        coordinates: [28.5823, 77.3274],
-        distanceText: "1.2 km away",
-        etaMinutes: 3,
-      },
-      dropoff: {
-        address: "DLF Cyber City, Building 10, Gurugram",
-        coordinates: [28.4905, 77.0912],
-        distanceText: "18.4 km",
-        estDurationMinutes: 34,
-      },
-      fare: 420,
-      surgeMultiplier: 1.4,
-      vehicleType: "Cab Premium",
-      paymentMethod: "UPI",
-      expiresAt: Date.now() + 16000,
-    };
-
-    set({
-      incomingDispatch: simulated,
-      dutyState: "DISPATCH_ALERT",
-    });
-    return true;
+    if (onBlocked) {
+      onBlocked("No ride dispatch offers available right now.");
+    }
+    return false;
   },
 
   sendMessage: async (text: string) => {

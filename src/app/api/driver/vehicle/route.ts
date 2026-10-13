@@ -30,13 +30,13 @@ export async function GET(req: Request) {
     }
 
     const vehicle = {
-      model: user.driverVehicle?.model || "Tata Tigor EV (White)",
-      numberPlate: user.driverVehicle?.numberPlate || "DL-01-EV-4429",
-      type: user.driverVehicle?.type || "Cab Premium (EV)",
+      model: user.driverVehicle?.model || "",
+      numberPlate: user.driverVehicle?.numberPlate || "",
+      type: user.driverVehicle?.type || "",
       fuelType: user.driverVehicle?.fuelType || "EV",
-      batteryOrFuelLevel: user.driverVehicle?.batteryOrFuelLevel ?? 82,
+      batteryOrFuelLevel: user.driverVehicle?.batteryOrFuelLevel ?? 100,
       documentsVerified: verification.isVerified,
-      insuranceValidUntil: user.driverVehicle?.insuranceValidUntil || "18 Dec 2027",
+      insuranceValidUntil: user.driverVehicle?.insuranceValidUntil || "",
     };
 
     return NextResponse.json({

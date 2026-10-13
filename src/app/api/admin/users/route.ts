@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 import dbConnect from "@/lib/mongoose";
 import User from "@/models/User";
 import { requireAdmin, isAuthError, handleAuthError } from "@/lib/auth";
@@ -32,8 +33,16 @@ export async function GET(req: Request) {
     }
 
     if (search) {
-      const regex = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
-      query.$or = [{ name: regex }, { email: regex }, { phone: regex }];
+      if (mongoose.Types.ObjectId.isValid(search)) {
+        query.$or = [
+          { _id: new mongoose.Types.ObjectId(search) },
+          { email: search },
+          { phone: search },
+        ];
+      } else {
+        const regex = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+        query.$or = [{ name: regex }, { email: regex }, { phone: regex }];
+      }
     }
 
     const totalMatching = await User.countDocuments(query);

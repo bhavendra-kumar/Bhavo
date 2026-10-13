@@ -32,7 +32,7 @@ export interface IRideData {
   otp: string;
   scheduledFor?: string | null;
   paymentMethod: "WALLET" | "CASH" | "UPI";
-  paymentStatus: "PENDING" | "PAID";
+  paymentStatus: "PENDING" | "PAID" | "PENDING_COLLECTION" | "COLLECTED" | "PENDING_PAYMENT" | "FAILED";
   locationStatus?: "FRESH" | "STALE" | "UNAVAILABLE" | "TERMINAL";
   isLocationFresh?: boolean;
   locationAgeSeconds?: number | null;
@@ -55,11 +55,15 @@ export interface ICommuteData {
 
 export interface IDashboardStats {
   ridesThisMonth: number;
+  ridesCount?: number;
+  totalRides?: number;
   walletBalance: number;
   rating: number;
   timeSavedMinutes: number;
   onTimeRate?: number;
   co2SavedKg?: number;
+  carbonOffsetKg?: number;
+  savedHours?: number;
   corporatePassRemaining?: number;
   monthExpenseTotal?: number;
 }
@@ -100,6 +104,7 @@ interface DashboardState {
 
   fetchDashboard: () => Promise<void>;
   cancelRide: (id: string) => Promise<boolean>;
+  refreshActiveRide: (id: string) => Promise<boolean>;
   advanceRideStatus: (id: string) => Promise<boolean>;
   toggleCommute: (id: string, isActive: boolean) => Promise<void>;
   subscribeToActiveRide: (rideId: string) => void;
@@ -189,27 +194,34 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     }
   },
 
-  advanceRideStatus: async (id: string) => {
+  refreshActiveRide: async (id: string) => {
     try {
-      const res = await fetch(`/api/user/rides/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "advance_status" }),
-      });
+      const res = await fetch(`/api/user/rides/${id}`);
       if (res.ok) {
         const json = await res.json();
         const updatedRide = json.data as IRideData;
         const current = get().data;
         if (current) {
-          set({ data: { ...current, activeRide: updatedRide } });
+          if (
+            updatedRide.status === "COMPLETED" ||
+            updatedRide.status?.startsWith("CANCELLED")
+          ) {
+            get().fetchDashboard();
+          } else {
+            set({ data: { ...current, activeRide: updatedRide } });
+          }
         }
         return true;
       }
       return false;
     } catch (err) {
-      console.error("[useDashboardStore.advanceRideStatus]", err);
+      console.error("[useDashboardStore.refreshActiveRide]", err);
       return false;
     }
+  },
+
+  advanceRideStatus: async (id: string) => {
+    return get().refreshActiveRide(id);
   },
 
   toggleCommute: async (id: string, isActive: boolean) => {
@@ -250,6 +262,17 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         if (newVer < curVer) {
           return;
         }
+      }
+
+      // Monotonic guard: discard out-of-order updates unless ride is terminal
+      if (
+        current.activeRide &&
+        typeof current.activeRide.trackingVersion === "number" &&
+        typeof updatedRide.trackingVersion === "number" &&
+        updatedRide.trackingVersion < current.activeRide.trackingVersion &&
+        !["COMPLETED", "CANCELLED"].includes(updatedRide.status)
+      ) {
+        return;
       }
 
       if (updatedRide.status === "COMPLETED") {
@@ -305,7 +328,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     try {
       const es = new EventSource(`/api/user/rides/${rideId}/stream`);
 
-      es.onmessage = (event) => {
+      const handleSseMessage = (event: MessageEvent) => {
         try {
           const updatedRide = JSON.parse(event.data) as IRideData;
           applyRideUpdate(updatedRide);
@@ -313,6 +336,11 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
           console.error("[SSE parse error]", err);
         }
       };
+
+      es.addEventListener("snapshot", handleSseMessage as EventListener);
+      es.addEventListener("update", handleSseMessage as EventListener);
+      es.addEventListener("terminal", handleSseMessage as EventListener);
+      es.onmessage = handleSseMessage;
 
       es.onerror = () => {
         // Stream failed or closed by server; switch to adaptive fallback polling

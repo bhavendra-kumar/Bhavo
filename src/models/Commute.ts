@@ -66,7 +66,7 @@ const CommuteSchema = new Schema<ICommute>(
     paymentMethod: {
       type: String,
       enum: ["WALLET", "CASH", "UPI", "ONLINE"],
-      default: "WALLET",
+      default: "CASH",
     },
     petFriendly: {
       type: Boolean,

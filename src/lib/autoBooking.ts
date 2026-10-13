@@ -107,7 +107,7 @@ export async function materializeOccurrence(
   }
 
   // 2. Atomic Lease Claim:
-  // Claims if pending/retryable with attempts remaining, OR if lease has expired
+  // Claims if pending/retryable with attempts remaining, OR if lease has expired with attempts remaining
   const claimed = await AutoBookingOccurrence.findOneAndUpdate(
     {
       occurrenceKey,
@@ -119,6 +119,7 @@ export async function materializeOccurrence(
         {
           status: "CLAIMED",
           leaseExpiresAt: { $lt: atTime },
+          attemptCount: { $lt: existingRecord.maxAttempts },
         },
       ],
     },
@@ -162,6 +163,16 @@ export async function materializeOccurrence(
         },
       }
     );
+    // Keep parent commute synchronized with the reconciled ride
+    await Commute.updateOne(
+      { _id: claimed.commuteId },
+      {
+        $set: {
+          lastGeneratedRideId: existingRide._id,
+          lastMaterializedAt: atTime,
+        },
+      }
+    );
     return {
       status: "RECONCILED_EXISTING",
       occurrenceKey,
@@ -184,6 +195,26 @@ export async function materializeOccurrence(
       }
     );
     return { status: "SKIPPED_PAUSED", occurrenceKey };
+  }
+
+  // Strictly reject malformed commute configurations permanently rather than retrying indefinitely
+  if (!commute.pickup?.address || !commute.dropoff?.address) {
+    await AutoBookingOccurrence.updateOne(
+      { _id: claimed._id, leaseId },
+      {
+        $set: {
+          status: "FAILED_PERMANENT",
+          lastError: "Invalid commute configuration: pickup and dropoff addresses are required",
+          leaseId: null,
+          leaseExpiresAt: null,
+        },
+      }
+    );
+    return {
+      status: "FAILED_PERMANENT",
+      occurrenceKey,
+      error: "Invalid commute configuration: pickup and dropoff addresses are required",
+    };
   }
 
   const rider = (await User.findById(claimed.rider).lean()) as { _id: unknown; status?: string } | null;
@@ -288,7 +319,7 @@ export async function materializeOccurrence(
       driverDetails: undefined,
       otp,
       scheduledFor: claimed.scheduledFor,
-      paymentMethod: commute.paymentMethod || "WALLET",
+      paymentMethod: commute.paymentMethod || "CASH",
       paymentStatus: "PENDING",
       petFriendly: isPetFriendly,
       preferredDriver: commute.preferredDriver || null,
@@ -329,6 +360,16 @@ export async function materializeOccurrence(
             },
           }
         );
+        // Keep parent commute synchronized with the reconciled ride
+        await Commute.updateOne(
+          { _id: commute._id },
+          {
+            $set: {
+              lastGeneratedRideId: concurrentRide._id,
+              lastMaterializedAt: atTime,
+            },
+          }
+        );
         return {
           status: "RECONCILED_EXISTING",
           occurrenceKey,
@@ -337,13 +378,22 @@ export async function materializeOccurrence(
       }
     }
 
+    const isValidationError =
+      typeof writeErr === "object" &&
+      writeErr !== null &&
+      "name" in writeErr &&
+      (writeErr as { name?: string }).name === "ValidationError";
+
+    const finalFailStatus: AutoBookingOccurrenceStatus = isValidationError
+      ? "FAILED_PERMANENT"
+      : "FAILED_RETRYABLE";
+
     const writeErrorMessage = writeErr instanceof Error ? writeErr.message : String(writeErr);
-    // Transient write failure
     await AutoBookingOccurrence.updateOne(
       { _id: claimed._id, leaseId },
       {
         $set: {
-          status: "FAILED_RETRYABLE",
+          status: finalFailStatus,
           lastError: `Ride persistence error: ${writeErrorMessage}`,
           leaseId: null,
           leaseExpiresAt: null,
@@ -351,7 +401,7 @@ export async function materializeOccurrence(
       }
     );
     return {
-      status: "FAILED_RETRYABLE",
+      status: finalFailStatus,
       occurrenceKey,
       error: writeErrorMessage,
     };
@@ -419,73 +469,87 @@ export async function processAutoBookingBatch(options?: {
     executedAt: atTime.toISOString(),
   };
 
-  // 1. Fetch active commutes up to the bounded limit
+  // 1. Fetch active commutes up to the bounded limit, prioritized by least-recently materialized
   const activeCommutes = await Commute.find({ isActive: true })
-    .sort({ updatedAt: -1 })
+    .sort({ lastMaterializedAt: 1, updatedAt: -1 })
     .limit(batchLimit);
 
   summary.scannedCommutes = activeCommutes.length;
 
   // 2. Identify candidate occurrences for each active commute
   for (const commute of activeCommutes) {
-    const candidates = calculateUpcomingOccurrences(commute, atTime, lookaheadMinutes);
+    let candidates;
+    try {
+      candidates = calculateUpcomingOccurrences(commute, atTime, lookaheadMinutes);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error(`[AutoBooking Batch] Skipping malformed commute schedule ${commute._id}: ${errMsg}`);
+      summary.permanentFailures++;
+      continue;
+    }
 
     for (const cand of candidates) {
-      // Upsert durable occurrence record with initial PENDING status (if not existing)
-      await AutoBookingOccurrence.updateOne(
-        { occurrenceKey: cand.occurrenceKey },
-        {
-          $setOnInsert: {
-            occurrenceKey: cand.occurrenceKey,
-            commuteId: commute._id,
-            rider: commute.rider,
-            scheduledFor: cand.scheduledFor,
-            status: cand.isPast ? "SKIPPED_PAST" : "PENDING",
-            attemptCount: 0,
-            maxAttempts: DEFAULT_AUTO_BOOKING_MAX_ATTEMPTS,
+      try {
+        // Upsert durable occurrence record with initial PENDING status (if not existing)
+        await AutoBookingOccurrence.updateOne(
+          { occurrenceKey: cand.occurrenceKey },
+          {
+            $setOnInsert: {
+              occurrenceKey: cand.occurrenceKey,
+              commuteId: commute._id,
+              rider: commute.rider,
+              scheduledFor: cand.scheduledFor,
+              status: cand.isPast ? "SKIPPED_PAST" : "PENDING",
+              attemptCount: 0,
+              maxAttempts: DEFAULT_AUTO_BOOKING_MAX_ATTEMPTS,
+            },
           },
-        },
-        { upsert: true }
-      );
+          { upsert: true }
+        );
 
-      // If the occurrence is in the past, skip materialization
-      if (cand.isPast) {
-        summary.skippedPast++;
-        continue;
-      }
-
-      // Materialize the occurrence
-      const result = await materializeOccurrence(cand.occurrenceKey, {
-        forceAtTime: atTime,
-        commute,
-      });
-
-      switch (result.status) {
-        case "MATERIALIZED":
-          summary.materializedRides++;
-          break;
-        case "ALREADY_MATERIALIZED":
-          summary.alreadyMaterialized++;
-          break;
-        case "RECONCILED_EXISTING":
-          summary.reconciledExisting++;
-          break;
-        case "SKIPPED_PAST":
+        // If the occurrence is in the past, skip materialization
+        if (cand.isPast) {
           summary.skippedPast++;
-          break;
-        case "SKIPPED_PAUSED":
-          summary.skippedPaused++;
-          break;
-        case "CURRENTLY_LEASED":
-          summary.currentlyLeased++;
-          break;
-        case "FAILED_RETRYABLE":
-          summary.retryableFailures++;
-          break;
-        case "FAILED_PERMANENT":
-        case "MAX_ATTEMPTS_EXCEEDED":
-          summary.permanentFailures++;
-          break;
+          continue;
+        }
+
+        // Materialize the occurrence
+        const result = await materializeOccurrence(cand.occurrenceKey, {
+          forceAtTime: atTime,
+          commute,
+        });
+
+        switch (result.status) {
+          case "MATERIALIZED":
+            summary.materializedRides++;
+            break;
+          case "ALREADY_MATERIALIZED":
+            summary.alreadyMaterialized++;
+            break;
+          case "RECONCILED_EXISTING":
+            summary.reconciledExisting++;
+            break;
+          case "SKIPPED_PAST":
+            summary.skippedPast++;
+            break;
+          case "SKIPPED_PAUSED":
+            summary.skippedPaused++;
+            break;
+          case "CURRENTLY_LEASED":
+            summary.currentlyLeased++;
+            break;
+          case "FAILED_RETRYABLE":
+            summary.retryableFailures++;
+            break;
+          case "FAILED_PERMANENT":
+          case "MAX_ATTEMPTS_EXCEEDED":
+            summary.permanentFailures++;
+            break;
+        }
+      } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        console.error(`[AutoBooking Batch] Error processing occurrence ${cand.occurrenceKey}: ${errMsg}`);
+        summary.retryableFailures++;
       }
     }
   }

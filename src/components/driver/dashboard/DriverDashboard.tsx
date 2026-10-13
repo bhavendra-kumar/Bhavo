@@ -93,7 +93,8 @@ export default function DriverDashboard() {
     let es: EventSource | null = null;
     try {
       es = new EventSource(`/api/driver/rides/${activeRide._id}/stream`);
-      es.onmessage = (event) => {
+
+      const handleSseMessage = (event: MessageEvent) => {
         try {
           const snapshot = JSON.parse(event.data);
           if (snapshot.status === "CANCELLED") {
@@ -104,9 +105,27 @@ export default function DriverDashboard() {
             fetchDriverData();
           } else if (snapshot.status === "COMPLETED") {
             fetchDriverData();
+          } else if (snapshot.status) {
+            useDriverStore.setState((state) => {
+              if (state.activeRide && state.activeRide._id === snapshot.rideId) {
+                return {
+                  activeRide: {
+                    ...state.activeRide,
+                    status: snapshot.status,
+                    ...(snapshot.driverCoordinates ? { driverCoordinates: snapshot.driverCoordinates } : {}),
+                  },
+                };
+              }
+              return {};
+            });
           }
         } catch {}
       };
+
+      es.addEventListener("snapshot", handleSseMessage as EventListener);
+      es.addEventListener("update", handleSseMessage as EventListener);
+      es.addEventListener("terminal", handleSseMessage as EventListener);
+      es.onmessage = handleSseMessage;
     } catch {}
 
     return () => {

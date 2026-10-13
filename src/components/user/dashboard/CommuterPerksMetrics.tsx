@@ -24,25 +24,27 @@ export default function CommuterPerksMetrics({
 
   const handleDownloadInvoice = () => {
     alert({
-      title: "Corporate Tax Invoice Generated",
+      title: "Consolidated Expense Summary",
       message:
-        "Your consolidated monthly travel invoice (GST compliant) has been prepared and queued for download.",
-      variant: "success",
+        monthExpense > 0
+          ? `Your total expenses for this month are ₹${monthExpense.toLocaleString()} across completed trips.`
+          : "No completed ride expenses recorded for this month yet.",
+      variant: "info",
     });
   };
 
-  const walletBalance = stats?.walletBalance ?? 2450;
-  const onTimeRate = stats?.onTimeRate ?? 99.4;
-  const co2Saved = stats?.co2SavedKg ?? 28.5;
-  const corporatePassRemaining = stats?.corporatePassRemaining ?? 14;
-  const monthExpense = stats?.monthExpenseTotal ?? 3480;
+  const walletBalance = stats?.walletBalance ?? 0;
+  const onTimeRate = stats?.onTimeRate ?? 100;
+  const co2Saved = stats?.carbonOffsetKg ?? stats?.co2SavedKg ?? 0;
+  const ridesCount = stats?.ridesCount ?? stats?.totalRides ?? 0;
+  const monthExpense = stats?.monthExpenseTotal ?? 0;
 
   const metrics = [
     {
       icon: Wallet,
       label: "Wallet",
       value: `₹${walletBalance.toLocaleString()}`,
-      sub: `${corporatePassRemaining} rides left`,
+      sub: "Cash pilot active",
       color: "text-teal-600",
       bgColor: "bg-teal-50",
       href: "/user/wallet",
@@ -51,7 +53,7 @@ export default function CommuterPerksMetrics({
       icon: Clock,
       label: "On-time",
       value: `${onTimeRate}%`,
-      sub: "Punctuality",
+      sub: `${ridesCount} completed`,
       color: "text-emerald-600",
       bgColor: "bg-emerald-50",
       href: "/user/mobility-insights",

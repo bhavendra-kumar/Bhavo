@@ -14,16 +14,19 @@ export async function sendOtpEmail({ to, name, otp }: SendOtpParams): Promise<{ 
   const pass = process.env.SMTP_PASS;
   const from = process.env.EMAIL_FROM || (user ? `"Bhavo Mobility" <${user}>` : '"Bhavo Mobility" <no-reply@bhavo.in>');
 
-  console.log(`\n==============================================`);
-  console.log(`📧 [Bhavo Email Service]`);
-  console.log(`To: ${to}`);
-  const maskedOtp = process.env.NODE_ENV === "production" ? "[REDACTED]" : otp;
-  console.log(`OTP: ${maskedOtp}`);
-  console.log(`SMTP Configured: ${Boolean(user && pass)}`);
-  console.log(`==============================================\n`);
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`\n==============================================`);
+    console.log(`📧 [Bhavo Email Service]`);
+    console.log(`To: ${to}`);
+    console.log(`OTP: ${otp}`);
+    console.log(`SMTP Configured: ${Boolean(user && pass)}`);
+    console.log(`==============================================\n`);
+  }
 
   if (!user || !pass) {
-    console.warn("[Bhavo Email Service] SMTP_USER/SMTP_PASS or GMAIL_USER/GMAIL_APP_PASSWORD not configured in .env. OTP will only be logged to console / UI fallback.");
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[Bhavo Email Service] SMTP_USER/SMTP_PASS not configured. Running in local development mode.");
+    }
     return {
       sent: false,
       error: "SMTP credentials not configured in .env",

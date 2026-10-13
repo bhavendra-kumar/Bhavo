@@ -262,17 +262,17 @@ export default function MobileBookRide(props: MobileBookRideProps) {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-11 h-11 rounded-full bg-teal-600 text-white font-bold text-base flex items-center justify-center shrink-0">
-                    {activeRide.driverDetails?.name ? activeRide.driverDetails.name[0] : "R"}
+                    {activeRide.driverDetails?.name ? activeRide.driverDetails.name[0] : "B"}
                   </div>
                   <div>
                     <p className="font-bold text-[14.5px] text-slate-900 leading-tight">
-                      {activeRide.driverDetails?.name || "Rajesh Kumar (Captain)"}
+                      {activeRide.driverDetails?.name || "Bhavo Pilot"}
                     </p>
                     <div className="flex items-center gap-1.5 text-[11.5px] text-slate-500 font-medium mt-0.5">
                       <Star size={11} className="text-amber-400 fill-amber-400" />
                       <span>{activeRide.driverDetails?.rating || 4.94}</span>
                       <span>•</span>
-                      <span>{activeRide.driverDetails?.vehicleModel || "Tata Tigor EV"}</span>
+                      <span>{activeRide.driverDetails?.vehicleModel || activeRide.vehicleType}</span>
                     </div>
                   </div>
                 </div>
@@ -357,14 +357,14 @@ export default function MobileBookRide(props: MobileBookRideProps) {
             </div>
           </div>
 
-          {/* Action Simulation & Cancel */}
+          {/* Status Refresh & Cancel */}
           <div className="flex items-center gap-2 pt-1">
             <button
               type="button"
               onClick={() => handleAdvanceStatus("advance_status")}
               className="flex-1 py-2.5 rounded-xl bg-teal-100 active:bg-teal-200 text-teal-900 text-[12px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
-              <RefreshCw size={13} /> Simulate Progress
+              <RefreshCw size={13} /> Refresh Status
             </button>
             <button
               type="button"

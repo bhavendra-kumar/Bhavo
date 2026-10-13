@@ -22,8 +22,8 @@ export async function GET(req: Request) {
     return NextResponse.json({
       status: "success",
       data: {
-        isOnline: verification.isVerified ? (user.isOnline ?? true) : false,
-        dutyState: verification.isVerified ? (user.dutyState || "ONLINE_SEARCHING") : "OFFLINE",
+        isOnline: verification.isVerified ? (user.isOnline ?? false) : false,
+        dutyState: verification.isVerified && user.isOnline ? (user.dutyState || "ONLINE_SEARCHING") : "OFFLINE",
         driverCoordinates: user.driverCoordinates || [28.6139, 77.2090],
         verification,
       },

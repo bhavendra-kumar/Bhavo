@@ -23,7 +23,7 @@ export async function GET(req: Request) {
       id: user._id,
       name: user.name,
       email: user.email,
-      phone: user.phone || "+91 98765 43210",
+      phone: user.phone || "",
       avatar: user.avatar || null,
       role: user.role,
       rating: user.rating,

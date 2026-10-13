@@ -55,8 +55,8 @@ export interface NotificationItem {
 const INITIAL_NOTIFICATIONS: NotificationItem[] = [
   {
     id: "notif-1",
-    title: "Wallet Cashback Credited",
-    message: "₹50 promotional cashback has been credited to your Bhavo Wallet!",
+    title: "Pilot Direct Cash Settlements",
+    message: "Bhavo pilot operates on direct cash payment settled with your verified captain upon trip drop-off.",
     time: "5m ago",
     read: false,
     type: "wallet",

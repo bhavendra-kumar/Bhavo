@@ -124,7 +124,7 @@ export default function CommuteCommandHero({
                 You&apos;re working from home today. Rides are paused until
                 tomorrow.
               </span>
-            ) : (
+            ) : activeLeg ? (
               <span>
                 Your next ride departs at{" "}
                 <span className="text-teal-700 font-bold text-[15px]">
@@ -133,6 +133,10 @@ export default function CommuteCommandHero({
                     ` (${timeShift > 0 ? `+${timeShift}m` : `${timeShift}m`})`}
                 </span>{" "}
                 — driver will be matched 10 mins prior.
+              </span>
+            ) : (
+              <span>
+                No active commute scheduled. Set up your recurring route to enable automated dispatches.
               </span>
             )}
           </p>
@@ -196,68 +200,86 @@ export default function CommuteCommandHero({
 
         {/* Right: Next Ride Mini Card */}
         {!isWfhToday && (
-          <div className="w-full lg:w-72 shrink-0 rounded-2xl bg-slate-50 border border-slate-200 p-5 flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                <Navigation size={11} className="text-teal-600" />
-                Your Next Ride
-              </span>
-              <span className="text-[11px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-100">
-                {legLabel}
-              </span>
-            </div>
+          activeLeg ? (
+            <div className="w-full lg:w-72 shrink-0 rounded-2xl bg-slate-50 border border-slate-200 p-5 flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                  <Navigation size={11} className="text-teal-600" />
+                  Your Next Ride
+                </span>
+                <span className="text-[11px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-100">
+                  {legLabel}
+                </span>
+              </div>
 
-            {/* Route line */}
-            <div className="relative pl-5 flex flex-col gap-3.5">
-              <div className="absolute left-1.5 top-2 bottom-2 w-0.5 bg-linear-to-b from-teal-400 to-teal-200" />
+              {/* Route line */}
+              <div className="relative pl-5 flex flex-col gap-3.5">
+                <div className="absolute left-1.5 top-2 bottom-2 w-0.5 bg-linear-to-b from-teal-400 to-teal-200" />
 
-              {/* Pickup */}
-              <div className="relative flex items-start gap-2.5">
-                <div className="absolute -left-5 top-0.5 w-3.5 h-3.5 rounded-full border-2 border-teal-500 bg-white" />
-                <div className="min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center gap-1">
-                    <Home size={9} /> Pickup ·{" "}
-                    <span className="text-teal-600">
-                      {displayTime}
-                    </span>
-                  </p>
-                  <p className="text-[13px] font-bold text-slate-800 truncate max-w-52">
-                    {activeLeg?.pickup?.address ||
-                      "123 Tech Park Avenue, Block B"}
-                  </p>
+                {/* Pickup */}
+                <div className="relative flex items-start gap-2.5">
+                  <div className="absolute -left-5 top-0.5 w-3.5 h-3.5 rounded-full border-2 border-teal-500 bg-white" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center gap-1">
+                      <Home size={9} /> Pickup ·{" "}
+                      <span className="text-teal-600">
+                        {displayTime}
+                      </span>
+                    </p>
+                    <p className="text-[13px] font-bold text-slate-800 truncate max-w-52">
+                      {activeLeg.pickup.address}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Dropoff */}
+                <div className="relative flex items-start gap-2.5">
+                  <div className="absolute -left-5 top-0.5 w-3.5 h-3.5 rounded-full bg-teal-500 flex items-center justify-center">
+                    <MapPin size={8} className="text-white" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center gap-1">
+                      <Building2 size={9} /> Drop-off
+                    </p>
+                    <p className="text-[13px] font-bold text-slate-800 truncate max-w-52">
+                      {activeLeg.dropoff.address}
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              {/* Dropoff */}
-              <div className="relative flex items-start gap-2.5">
-                <div className="absolute -left-5 top-0.5 w-3.5 h-3.5 rounded-full bg-teal-500 flex items-center justify-center">
-                  <MapPin size={8} className="text-white" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center gap-1">
-                    <Building2 size={9} /> Drop-off
-                  </p>
-                  <p className="text-[13px] font-bold text-slate-800 truncate max-w-52">
-                    {activeLeg?.dropoff?.address ||
-                      "Bhavo Headquarters, Sector 44"}
-                  </p>
-                </div>
+              {/* Footer */}
+              <div className="pt-3 border-t border-slate-200 flex items-center justify-between text-[11px]">
+                <span className="text-slate-400 font-medium flex items-center gap-1">
+                  <Clock size={10} /> {activeLeg.vehicleType || "Cab Premium"}
+                </span>
+                <Link
+                  href="/user/my-commute"
+                  className="text-teal-700 hover:text-teal-800 font-bold transition-colors"
+                >
+                  View Route →
+                </Link>
               </div>
             </div>
-
-            {/* Footer */}
-            <div className="pt-3 border-t border-slate-200 flex items-center justify-between text-[11px]">
-              <span className="text-slate-400 font-medium flex items-center gap-1">
-                <Clock size={10} /> {activeLeg?.vehicleType || "Cab Premium"}
-              </span>
+          ) : (
+            <div className="w-full lg:w-72 shrink-0 rounded-2xl bg-slate-50 border border-slate-200 p-5 flex flex-col items-center justify-center text-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center text-teal-600">
+                <Navigation size={18} />
+              </div>
+              <div>
+                <p className="text-[13px] font-bold text-slate-800">No Commute Configured</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Schedule your home & office route for automatic daily dispatch.
+                </p>
+              </div>
               <Link
                 href="/user/my-commute"
-                className="text-teal-700 hover:text-teal-800 font-bold transition-colors"
+                className="mt-1 px-3.5 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-[11px] font-bold shadow-xs transition-colors"
               >
-                View Route →
+                Set Up Commute →
               </Link>
             </div>
-          </div>
+          )
         )}
       </div>
     </div>

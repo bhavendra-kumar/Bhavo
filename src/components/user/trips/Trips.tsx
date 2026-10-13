@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from "react";
 import {
   Clock, MapPin, Star, TrendingUp, Phone, MessageSquare, ShieldAlert,
-  ChevronDown, ChevronUp, ArrowRight, CarFront, Plus, RefreshCw, XCircle, CheckCircle2
+  ChevronDown, ChevronUp, ArrowRight, CarFront, Plus, RefreshCw, XCircle, CheckCircle2,
+  CreditCard, Loader2
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useRouter } from "next/navigation";
@@ -12,6 +13,44 @@ import { IRideData } from "@/hooks/user/useDashboardStore";
 import DriverChatModal from "@/components/user/rides/DriverChatModal";
 import DriverCallModal from "@/components/user/rides/DriverCallModal";
 import { useDialog } from "@/components/ui/DialogProvider";
+
+interface RazorpayResponse {
+  razorpay_payment_id: string;
+  razorpay_order_id: string;
+  razorpay_signature: string;
+}
+
+interface RazorpayOptions {
+  key: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+  handler: (response: RazorpayResponse) => void;
+  modal?: {
+    ondismiss?: () => void;
+  };
+  theme?: {
+    color?: string;
+  };
+  prefill?: {
+    name?: string;
+    email?: string;
+    contact?: string;
+  };
+}
+
+interface RazorpayInstance {
+  open: () => void;
+  on: (event: string, callback: (res: { error?: { description?: string } }) => void) => void;
+}
+
+declare global {
+  interface Window {
+    Razorpay?: new (options: RazorpayOptions) => RazorpayInstance;
+  }
+}
 
 const LeafletMap = dynamic(() => import("@/components/user/book-ride/LeafletMap"), { ssr: false });
 
@@ -28,6 +67,147 @@ export default function TripsPage() {
   // Modals for Call and Chat
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isCallOpen, setIsCallOpen] = useState(false);
+
+  // Online Payment state
+  const [payingTripId, setPayingTripId] = useState<string | null>(null);
+  const [verifyingTripId, setVerifyingTripId] = useState<string | null>(null);
+
+  const loadRazorpayScript = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if (typeof window !== "undefined" && window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      const existing = document.getElementById("razorpay-checkout-script");
+      if (existing) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement("script");
+      script.id = "razorpay-checkout-script";
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handleOnlinePayment = async (trip: IRideData) => {
+    if (payingTripId || verifyingTripId) return;
+
+    setPayingTripId(trip._id);
+    try {
+      const orderRes = await fetch(`/api/user/rides/${trip._id}/payment/order`, {
+        method: "POST",
+      });
+      const orderJson = await orderRes.json();
+
+      if (!orderRes.ok || orderJson.status !== "success") {
+        alert({
+          title: "Payment Unavailable",
+          message:
+            orderJson.message ||
+            "Online payment could not be initiated. Please ensure the payment gateway is configured.",
+          variant: "danger",
+        });
+        setPayingTripId(null);
+        return;
+      }
+
+      const orderData = orderJson.data;
+      const scriptLoaded = await loadRazorpayScript();
+
+      if (!scriptLoaded || !window.Razorpay) {
+        alert({
+          title: "Checkout Load Error",
+          message: "Unable to load Razorpay Checkout. Please check your internet connection and try again.",
+          variant: "danger",
+        });
+        setPayingTripId(null);
+        return;
+      }
+
+      const options: RazorpayOptions = {
+        key: orderData.keyId,
+        amount: orderData.amountInPaise,
+        currency: orderData.currency || "INR",
+        name: "Bhavo Mobility",
+        description: `Ride Payment #${trip._id.slice(-6).toUpperCase()}`,
+        order_id: orderData.orderId,
+        handler: async (response: RazorpayResponse) => {
+          setPayingTripId(null);
+          setVerifyingTripId(trip._id);
+          try {
+            const verifyRes = await fetch(`/api/user/rides/${trip._id}/payment/verify`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+              }),
+            });
+            const verifyJson = await verifyRes.json();
+
+            if (verifyRes.ok && verifyJson.status === "success") {
+              alert({
+                title: "Payment Confirmed",
+                message: `Payment of ₹${trip.fare} verified and settled successfully.`,
+                variant: "success",
+              });
+            } else {
+              alert({
+                title: "Payment Verification Failed",
+                message:
+                  verifyJson.message ||
+                  "Server could not verify payment. If your account was debited, it will be automatically reconciled.",
+                variant: "danger",
+              });
+            }
+            fetchRides();
+          } catch (verifyErr) {
+            console.error("Payment verification error:", verifyErr);
+            alert({
+              title: "Network Verification Error",
+              message: "Network interrupted while confirming payment. Refreshing trip status...",
+              variant: "danger",
+            });
+            fetchRides();
+          } finally {
+            setVerifyingTripId(null);
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setPayingTripId(null);
+          },
+        },
+        theme: {
+          color: "#0f766e",
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on("payment.failed", (failRes) => {
+        setPayingTripId(null);
+        alert({
+          title: "Payment Failed",
+          message: failRes.error?.description || "Payment failed or was cancelled.",
+          variant: "danger",
+        });
+        fetchRides();
+      });
+      rzp.open();
+    } catch (err) {
+      console.error("Payment initiation error:", err);
+      alert({
+        title: "Payment Initiation Error",
+        message: "An unexpected error occurred while initiating payment.",
+        variant: "danger",
+      });
+      setPayingTripId(null);
+    }
+  };
 
   const fetchRides = () => {
     fetch("/api/user/rides")
@@ -111,19 +291,8 @@ export default function TripsPage() {
     }
   };
 
-  const handleAdvance = async (id: string) => {
-    try {
-      const res = await fetch(`/api/user/rides/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "advance_status" }),
-      });
-      if (res.ok) {
-        fetchRides();
-      }
-    } catch (e) {
-      console.error(e);
-    }
+  const handleRefresh = async () => {
+    fetchRides();
   };
 
   return (
@@ -300,10 +469,10 @@ export default function TripsPage() {
               {/* Progress and Cancel */}
               <div className="flex items-center gap-2 pt-1">
                 <button
-                  onClick={() => handleAdvance(activeRide._id)}
+                  onClick={handleRefresh}
                   className="flex-1 py-2 rounded-lg bg-teal-100 hover:bg-teal-200 text-teal-900 text-[12px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                 >
-                  <RefreshCw size={12} /> Advance Status
+                  <RefreshCw size={12} /> Refresh Status
                 </button>
                 <button
                   onClick={() => handleCancel(activeRide._id)}
@@ -474,8 +643,53 @@ export default function TripsPage() {
                       )}
 
                       {activeTab === "Completed" && (
-                        <div className="flex items-center justify-end gap-1.5 text-[11px] font-semibold text-emerald-600">
-                          <CheckCircle2 size={13} /> Paid via {trip.paymentMethod || "WALLET"}
+                        <div className="flex items-center justify-end gap-1.5 text-[11px] font-semibold">
+                          {trip.paymentStatus === "COLLECTED" ? (
+                            <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-md flex items-center gap-1 font-bold">
+                              <CheckCircle2 size={12} /> Cash Collected (₹{trip.fare})
+                            </span>
+                          ) : trip.paymentStatus === "PAID" ? (
+                            <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-md flex items-center gap-1 font-bold">
+                              <CheckCircle2 size={12} /> Paid Online (₹{trip.fare})
+                            </span>
+                          ) : trip.paymentStatus === "PENDING_COLLECTION" ? (
+                            <span className="text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-md flex items-center gap-1 font-bold">
+                              <Clock size={12} /> Cash Payment Due (₹{trip.fare})
+                            </span>
+                          ) : trip.paymentStatus === "PENDING_PAYMENT" || trip.paymentStatus === "FAILED" ? (
+                            <div className="flex flex-col items-end gap-1">
+                              {verifyingTripId === trip._id ? (
+                                <span className="text-teal-700 bg-teal-50 border border-teal-200 px-3 py-1 rounded-lg flex items-center gap-1.5 font-bold text-[11px]">
+                                  <Loader2 size={12} className="animate-spin text-teal-600" /> Verifying Payment...
+                                </span>
+                              ) : payingTripId === trip._id ? (
+                                <span className="text-teal-700 bg-teal-50 border border-teal-200 px-3 py-1 rounded-lg flex items-center gap-1.5 font-bold text-[11px]">
+                                  <Loader2 size={12} className="animate-spin text-teal-600" /> Opening Checkout...
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOnlinePayment(trip);
+                                  }}
+                                  disabled={Boolean(payingTripId || verifyingTripId)}
+                                  className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-teal-600 hover:bg-teal-700 text-white flex items-center gap-1.5 shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                                >
+                                  <CreditCard size={12} /> Pay Online (₹{trip.fare})
+                                </button>
+                              )}
+                              {trip.paymentStatus === "FAILED" && (
+                                <span className="text-rose-600 text-[10px] font-semibold">
+                                  Previous attempt failed. Click to retry.
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-md flex items-center gap-1 font-medium">
+                              Payment {trip.paymentStatus || "Pending"} (₹{trip.fare})
+                            </span>
+                          )}
                         </div>
                       )}
                     </div>
