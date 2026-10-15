@@ -44,7 +44,7 @@ export default function StatCard({
         <h3 className="text-3xl font-bold text-slate-900 tracking-tight mb-2">
           {value}
         </h3>
-        
+
         <div className="flex items-center gap-2">
           {trend && (
             <div className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold ${

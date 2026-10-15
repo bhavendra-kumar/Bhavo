@@ -31,7 +31,6 @@ export default function DriverCallModal({
   useEffect(() => {
     if (!isOpen) return;
 
-    // Progression: calling -> ringing (1.5s) -> connected (3.5s)
     const t1 = setTimeout(() => setCallState("ringing"), 1500);
     const t2 = setTimeout(() => setCallState("connected"), 3500);
 
@@ -71,12 +70,10 @@ export default function DriverCallModal({
       style={{ zIndex: 9999 }}
     >
       <div className="bg-slate-900 text-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl border border-slate-800 flex flex-col items-center p-6 text-center relative">
-        {/* Top security badge */}
         <div className="flex items-center gap-1 text-[11px] font-semibold text-teal-400 bg-teal-950/70 border border-teal-800/60 px-3 py-1 rounded-full mb-6">
           <ShieldCheck size={12} /> Bhavo Number Masking Active
         </div>
 
-        {/* Driver Avatar & Wave Animation */}
         <div className="relative my-4 flex items-center justify-center">
           {callState === "connected" && (
             <div className="absolute -inset-4 rounded-full bg-teal-500/20 animate-ping opacity-75" />
@@ -91,7 +88,6 @@ export default function DriverCallModal({
           </Avatar>
         </div>
 
-        {/* Driver Name & Info */}
         <h2 className="text-xl font-black tracking-tight mt-2 text-white">{driverName}</h2>
         <div className="flex items-center gap-2 mt-1 text-slate-400 text-[13px]">
           <span className="flex items-center gap-1 text-amber-400 font-semibold">
@@ -102,7 +98,6 @@ export default function DriverCallModal({
         </div>
         <span className="mt-1 text-[12px] font-mono text-slate-500">{vehicleNumber}</span>
 
-        {/* Status / Duration */}
         <div className="my-6">
           {callState === "calling" && (
             <p className="text-teal-400 font-medium text-sm animate-pulse">
@@ -123,7 +118,6 @@ export default function DriverCallModal({
                 Connected · HD Voice
               </span>
 
-              {/* Simulated Audio Bars */}
               <div className="flex items-center gap-1 mt-2 h-4">
                 {[4, 12, 8, 16, 10, 6, 14, 8].map((h, i) => (
                   <span
@@ -137,7 +131,6 @@ export default function DriverCallModal({
           )}
         </div>
 
-        {/* Controls */}
         <div className="grid grid-cols-3 gap-6 w-full mt-4 max-w-60">
           <button
             onClick={() => setIsMuted(!isMuted)}

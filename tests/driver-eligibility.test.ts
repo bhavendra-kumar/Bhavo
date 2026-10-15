@@ -18,7 +18,7 @@ describe("Phase 1D: Centralized Driver Eligibility Service Tests", () => {
     isOnline: true,
     dutyState: "ONLINE_SEARCHING",
     driverCoordinates: [28.6139, 77.209],
-    driverCoordinatesUpdatedAt: new Date("2026-10-09T11:59:30.000Z"), // 30s ago
+    driverCoordinatesUpdatedAt: new Date("2026-10-09T11:59:30.000Z"),
     driverVehicle: {
       type: "Cab Premium",
       documentsVerified: true,
@@ -33,13 +33,12 @@ describe("Phase 1D: Centralized Driver Eligibility Service Tests", () => {
     vehicleType: "Cab Premium",
     pickup: {
       address: "India Gate, New Delhi",
-      coordinates: [28.6129, 77.2295], // ~2 km away
+      coordinates: [28.6129, 77.2295],
     },
     petFriendly: false,
     rejectedDrivers: [],
   };
 
-  // --- Vehicle Compatibility Tests ---
   describe("Vehicle Compatibility Mapping", () => {
     it("Exact match vehicle types are compatible", () => {
       assert.equal(isVehicleCompatible("Cab Economy", "Cab Economy"), true);
@@ -76,7 +75,6 @@ describe("Phase 1D: Centralized Driver Eligibility Service Tests", () => {
     });
   });
 
-  // --- Pet Compatibility Tests ---
   describe("Pet Compatibility", () => {
     it("Pet-friendly ride requires explicit pet-friendly driver setting", () => {
       assert.equal(isPetCompatible({ petFriendly: true }, true), true);
@@ -92,7 +90,6 @@ describe("Phase 1D: Centralized Driver Eligibility Service Tests", () => {
     });
   });
 
-  // --- Comprehensive Driver Eligibility Evaluation ---
   describe("evaluateDriverEligibility()", () => {
     it("Fully compliant driver is eligible for ride within radius", () => {
       const result = evaluateDriverEligibility(validDriver, standardRide, { atTime: baseTime });
@@ -158,7 +155,7 @@ describe("Phase 1D: Centralized Driver Eligibility Service Tests", () => {
     it("Driver with stale location (> 120s) is rejected", () => {
       const staleDriver = {
         ...validDriver,
-        driverCoordinatesUpdatedAt: new Date("2026-10-09T11:55:00.000Z"), // 5 mins ago
+        driverCoordinatesUpdatedAt: new Date("2026-10-09T11:55:00.000Z"),
       };
       const result = evaluateDriverEligibility(staleDriver, standardRide, { atTime: baseTime });
       assert.equal(result.isEligible, false);
@@ -176,7 +173,6 @@ describe("Phase 1D: Centralized Driver Eligibility Service Tests", () => {
     });
 
     it("Driver located outside maximum matching radius (> 10 km) is rejected", () => {
-      // Greater Noida Pari Chowk is ~35 km from India Gate
       const distantDriver = {
         ...validDriver,
         driverCoordinates: [28.468, 77.509] as [number, number],

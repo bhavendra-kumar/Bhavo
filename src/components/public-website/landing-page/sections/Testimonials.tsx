@@ -52,10 +52,10 @@ export default function Testimonials() {
             transition: "all 0.7s 0.1s ease",
           }}
         >
-          Loved by 50,000+ Commuters
+          {"Loved by 50,000+ Commuters & Drivers"}
         </h2>
 
-        {/* Testimonial card — key forces remount animation on change */}
+        {/* Testimonial card */}
         <div
           key={active}
           style={{

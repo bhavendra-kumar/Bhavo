@@ -1,12 +1,3 @@
-/**
- * MongoDB Index Deployment & Verification Service (Phase 1I)
- *
- * Rules:
- * - Idempotently syncs and builds all model indexes across collections.
- * - Distinguishes unique indexes from performance indexes.
- * - Safe to run during application boot, release phase, or CI verification.
- * - Never drops collections or executes destructive schema modifications.
- */
 
 import dbConnect from "@/lib/mongoose";
 import User from "@/models/User";
@@ -27,9 +18,6 @@ export interface IndexDeploymentReport {
   error?: string;
 }
 
-/**
- * Idempotently creates and synchronizes all indexes across Bhavo Mongoose models.
- */
 export async function ensureAllIndexes(): Promise<IndexDeploymentReport> {
   await dbConnect();
 

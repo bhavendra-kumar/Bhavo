@@ -38,7 +38,6 @@ export async function GET(req: Request) {
     const tripsWeekCount = weekRides.length;
     const todayTips = todayTipsDb;
 
-    // Build 7-day trend directly from MongoDB week rides
     const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const dailyTrend = [];
 
@@ -115,14 +114,11 @@ export async function GET(req: Request) {
   }
 }
 
-// POST /api/driver/earnings - Instant cashout / bank transfer
 export async function POST(req: Request) {
   try {
     await dbConnect();
-    // Validate driver authentication
     await getDriverUser(req);
 
-    // Phase 1C: Disable mock cashout until banking/payout gateway integration is active
     return NextResponse.json(
       {
         status: "error",

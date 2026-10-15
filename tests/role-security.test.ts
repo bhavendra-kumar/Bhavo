@@ -4,7 +4,6 @@ import { registerSchema } from "../src/lib/validations/auth";
 import { AuthError } from "../src/lib/auth";
 
 describe("Phase 1A: Role Security & Privilege Escalation Tests", () => {
-  // 9. Public signup cannot create ADMIN
   it("Scenario 9: Public registration logic strictly enforces RIDER role even if ADMIN is requested", () => {
     const maliciousPayload = {
       name: "Attacker User",
@@ -16,14 +15,11 @@ describe("Phase 1A: Role Security & Privilege Escalation Tests", () => {
     const parsed = registerSchema.safeParse(maliciousPayload);
     assert.equal(parsed.success, true);
 
-    // Simulated registration business logic as implemented in src/app/api/auth/register/route.ts
-    // The server ignores parsed.data.role and strictly assigns "RIDER"
     const assignedRole = "RIDER";
     assert.equal(assignedRole, "RIDER", "Public registration must assign RIDER and ignore client role");
     assert.notEqual(assignedRole, "ADMIN", "Public signup must NEVER grant ADMIN");
   });
 
-  // 10. Public signup cannot directly create DRIVER
   it("Scenario 10: Public registration logic strictly enforces RIDER role even if DRIVER is requested", () => {
     const driverSignupPayload = {
       name: "Driver Candidate",
@@ -35,13 +31,11 @@ describe("Phase 1A: Role Security & Privilege Escalation Tests", () => {
     const parsed = registerSchema.safeParse(driverSignupPayload);
     assert.equal(parsed.success, true);
 
-    // Server-side assignment:
     const assignedRole = "RIDER";
     assert.equal(assignedRole, "RIDER");
     assert.notEqual(assignedRole, "DRIVER", "Public signup must not directly grant DRIVER privileges");
   });
 
-  // 11. Login cannot change a user's stored role
   it("Scenario 11: Login request containing different role does not alter stored user role", () => {
     const storedUser = {
       _id: "67041a9b4f1234567890abcd",
@@ -52,18 +46,15 @@ describe("Phase 1A: Role Security & Privilege Escalation Tests", () => {
     const loginRequestBody = {
       email: "legitimate.rider@bhavo.in",
       password: "ValidPassword123!",
-      role: "DRIVER", // Malicious or mistaken role parameter in login request
+      role: "DRIVER",
     };
 
-    // As hardened in src/app/api/auth/login/route.ts:
-    // Stored role is never mutated by loginRequestBody.role
-    const activeRole = storedUser.role; // Derives strictly from database record
+    const activeRole = storedUser.role;
     assert.equal(activeRole, "RIDER");
     assert.equal(storedUser.role, "RIDER", "User's role in database remains untouched");
     assert.notEqual(storedUser.role, loginRequestBody.role, "Request body role was ignored");
   });
 
-  // 12. RIDER cannot access DRIVER endpoints
   it("Scenario 12: RIDER role is forbidden from accessing DRIVER-only resources", () => {
     const riderUser = {
       _id: "67041a9b4f1234567890abcd",
@@ -88,7 +79,6 @@ describe("Phase 1A: Role Security & Privilege Escalation Tests", () => {
     );
   });
 
-  // 13. DRIVER cannot access ADMIN functionality
   it("Scenario 13: DRIVER role is forbidden from accessing ADMIN-only resources", () => {
     const driverUser = {
       _id: "67041a9b4f1234567890abcd",
@@ -113,7 +103,6 @@ describe("Phase 1A: Role Security & Privilege Escalation Tests", () => {
     );
   });
 
-  // 14. Anonymous user cannot access DRIVER endpoints
   it("Scenario 14: Unauthenticated/anonymous request to DRIVER endpoint returns 401 Unauthorized", () => {
     const token: string | undefined = undefined;
 
@@ -134,7 +123,6 @@ describe("Phase 1A: Role Security & Privilege Escalation Tests", () => {
     );
   });
 
-  // 15. Anonymous user cannot access RIDER protected APIs
   it("Scenario 15: Unauthenticated/anonymous request to RIDER protected endpoint returns 401 Unauthorized", () => {
     const token: string | undefined = undefined;
 

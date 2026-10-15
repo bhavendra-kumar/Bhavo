@@ -43,7 +43,7 @@ export async function GET(req: Request) {
         completed: todayCount >= 10,
         canClaim: todayCount >= 10,
       },
-      
+
       {
         id: "quest-peak",
         title: "Peak Hour Surge Hunter",
@@ -95,10 +95,8 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     await dbConnect();
-    // Validate driver authentication
     await getDriverUser(req);
 
-    // Phase 1C: Disable unverified monetary incentive claims until automated settlement is activated
     return NextResponse.json(
       {
         status: "error",

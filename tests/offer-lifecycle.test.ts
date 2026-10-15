@@ -1,13 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import crypto from "crypto";
 import { RideTransitionError } from "../src/lib/rideStateMachine";
 
-/**
- * In-Memory Atomic Simulation Engine for Phase 1D Targeted Dispatch:
- * Accurately models single-document atomic update semantics for both Ride and User collections.
- */
 class AtomicDispatchEngine {
   private rides = new Map<string, any>();
   private users = new Map<string, any>();
@@ -84,9 +79,6 @@ class AtomicDispatchEngine {
     }
   }
 
-  /**
-   * Simulates atomic targeted offer assignment
-   */
   public async assignOffer(rideId: string, driverId: string, now: Date, ttlSeconds: number = 25) {
     const offerId = crypto.randomUUID();
     const expiresAt = new Date(now.getTime() + ttlSeconds * 1000);
@@ -108,9 +100,6 @@ class AtomicDispatchEngine {
     );
   }
 
-  /**
-   * Simulates atomic offer acceptance with atomic driver reservation
-   */
   public async acceptOffer(
     rideId: string,
     driverId: string,
@@ -132,7 +121,6 @@ class AtomicDispatchEngine {
       }
     }
 
-    // Step 1: Atomic driver reservation
     const reservedDriver = await this.atomicFindOneAndUpdateUser(
       driverId,
       (u) => u.isOnline === true && (u.dutyState === "ONLINE_SEARCHING" || u.dutyState === "DISPATCH_ALERT"),
@@ -141,11 +129,10 @@ class AtomicDispatchEngine {
 
     if (!reservedDriver) {
       const isAlreadyOnThisRide = ride.driver === driverId && ride.status === "ACCEPTED";
-      if (isAlreadyOnThisRide) return ride; // idempotent
+      if (isAlreadyOnThisRide) return ride;
       throw new RideTransitionError("Driver already has an active ride in progress", 409, "DRIVER_OCCUPIED");
     }
 
-    // Step 2: Atomic ride assignment
     const updatedRide = await this.atomicFindOneAndUpdateRide(
       rideId,
       (r) =>
@@ -166,7 +153,6 @@ class AtomicDispatchEngine {
       return updatedRide;
     }
 
-    // Rollback driver reservation if ride assignment was lost
     await this.atomicFindOneAndUpdateUser(
       driverId,
       (u) => u.dutyState === "ON_TRIP",
@@ -176,9 +162,6 @@ class AtomicDispatchEngine {
     throw new RideTransitionError("Ride has already been accepted by another driver", 409, "RIDE_ALREADY_ACCEPTED");
   }
 
-  /**
-   * Simulates atomic offer rejection and candidate advancement
-   */
   public async rejectOffer(rideId: string, driverId: string, offerId?: string, maxAttempts: number = 8) {
     const ride = this.rides.get(rideId);
     if (!ride) throw new RideTransitionError("Ride not found", 404, "RIDE_NOT_FOUND");
@@ -214,9 +197,6 @@ class AtomicDispatchEngine {
     return { rejected: true, ride: updated || ride };
   }
 
-  /**
-   * Simulates sweep of expired offers
-   */
   public async sweepExpired(now: Date, maxAttempts: number = 8) {
     let sweptCount = 0;
     for (const [rideId, ride] of this.rides.entries()) {
@@ -284,7 +264,6 @@ describe("Phase 1D: Targeted Offer Lifecycle, Exclusivity & Expiration Tests", (
       engine.assignOffer("ride_1", "driver_B", baseTime, 25),
     ]);
 
-    // Exactly one assignment succeeds; the second gets null
     const successCount = [resA, resB].filter((r) => r !== null).length;
     assert.equal(successCount, 1);
   });
@@ -316,7 +295,7 @@ describe("Phase 1D: Targeted Offer Lifecycle, Exclusivity & Expiration Tests", (
 
   it("Acceptance fails if the offer has expired according to server time", async () => {
     await engine.assignOffer("ride_1", "driver_A", baseTime, 25);
-    const expiredTime = new Date(baseTime.getTime() + 26 * 1000); // 26s later (TTL is 25s)
+    const expiredTime = new Date(baseTime.getTime() + 26 * 1000);
 
     await assert.rejects(
       () => engine.acceptOffer("ride_1", "driver_A", undefined, expiredTime),
@@ -353,7 +332,6 @@ describe("Phase 1D: Targeted Offer Lifecycle, Exclusivity & Expiration Tests", (
     await engine.assignOffer("ride_1", "driver_A", baseTime, 25);
     await engine.assignOffer("ride_2", "driver_A", baseTime, 25);
 
-    // Simultaneous acceptance attempts for ride_1 and ride_2 by driver_A
     const results = await Promise.allSettled([
       engine.acceptOffer("ride_1", "driver_A", undefined, baseTime),
       engine.acceptOffer("ride_2", "driver_A", undefined, baseTime),
@@ -377,7 +355,6 @@ describe("Phase 1D: Targeted Offer Lifecycle, Exclusivity & Expiration Tests", (
     assert.deepEqual(res.ride.rejectedDrivers, ["driver_A"]);
     assert.equal(res.ride.dispatchStatus, "DISPATCHING");
 
-    // Next candidate driver_B can now receive the offer!
     const nextAssigned = await engine.assignOffer("ride_1", "driver_B", baseTime, 25);
     assert.ok(nextAssigned);
     assert.equal(nextAssigned.currentOffer.driverId, "driver_B");
@@ -417,7 +394,6 @@ describe("Phase 1D: Targeted Offer Lifecycle, Exclusivity & Expiration Tests", (
       engine.sweepExpired(sweptTime),
     ]);
 
-    // Exactly one sweep operation processes the expired ride
     assert.equal(sweep1 + sweep2, 1);
     const ride = engine.getRide("ride_1");
     assert.equal(ride.rejectedDrivers.length, 1);
@@ -429,10 +405,9 @@ describe("Phase 1D: Targeted Offer Lifecycle, Exclusivity & Expiration Tests", (
     engine.setRide("ride_1", currentRide);
 
     await engine.assignOffer("ride_1", "driver_A", baseTime, 25);
-    // 8th attempt offered. Now driver rejects:
     const res = await engine.rejectOffer("ride_1", "driver_A", undefined, 8);
 
     assert.equal(res.ride.dispatchStatus, "EXHAUSTED");
-    assert.equal(res.ride.status, "SEARCHING"); // Core status preserved!
+    assert.equal(res.ride.status, "SEARCHING");
   });
 });

@@ -26,7 +26,7 @@ export interface IDriverDispatch {
   paymentMethod: "CASH" | "UPI" | "WALLET";
   otp?: string;
   offerId?: string;
-  expiresAt: number; // timestamp
+  expiresAt: number;
 }
 
 export interface IDriverActiveRide {
@@ -86,7 +86,7 @@ export interface ISurgeArea {
   name: string;
   multiplier: number;
   coordinates: [number, number];
-  radius: number; // meters
+  radius: number;
 }
 
 export interface IDriverVerificationState {
@@ -120,7 +120,7 @@ interface DriverState {
   isSidebarCollapsed: boolean;
   loading: boolean;
   driverCoordinates: [number, number];
-  
+
   driverProfile: {
     id: string;
     name: string;
@@ -140,7 +140,6 @@ interface DriverState {
   vehicle: IDriverVehicle;
   surgeAreas: ISurgeArea[];
 
-  // Actions
   toggleSidebar: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
   setVerification: (v: IDriverVerificationState) => void;
@@ -160,7 +159,6 @@ interface DriverState {
   updateLocation: (coords: [number, number]) => Promise<void>;
 }
 
-// Surge hot spots in Delhi NCR
 const DEFAULT_SURGE_AREAS: ISurgeArea[] = [
   { id: "surge-1", name: "Cyber City & DLF Hub", multiplier: 1.6, coordinates: [28.4900, 77.0900], radius: 1800 },
   { id: "surge-2", name: "Sector 62 IT Tech Zone", multiplier: 1.4, coordinates: [28.6250, 77.3750], radius: 1500 },
@@ -262,7 +260,6 @@ export const useDriverStore = create<DriverState>((set, get) => ({
     const nextOnline = !current;
     const { verification, activeRide } = get();
 
-    // STRICT CHECK: Driver cannot go online if documents are unverified
     if (nextOnline && !verification.isVerified) {
       if (onBlocked) {
         onBlocked(
@@ -358,7 +355,6 @@ export const useDriverStore = create<DriverState>((set, get) => ({
 
   pollDispatches: async () => {
     const { isOnline, activeRide, incomingDispatch, verification } = get();
-    // Do not poll if offline, trip active, or unverified
     if (!isOnline || activeRide || incomingDispatch || !verification.isVerified) return;
 
     try {
@@ -380,7 +376,6 @@ export const useDriverStore = create<DriverState>((set, get) => ({
     if (!dispatch) return false;
 
     const { verification } = get();
-    // STRICT: Unverified drivers cannot accept rides
     if (!verification.isVerified) {
       if (onBlocked) {
         onBlocked(
@@ -392,7 +387,6 @@ export const useDriverStore = create<DriverState>((set, get) => ({
       return false;
     }
 
-    // Transition to Active Ride
     const newActiveRide: IDriverActiveRide = {
       _id: dispatch._id || `ride-${Date.now()}`,
       rider: {
@@ -576,7 +570,6 @@ export const useDriverStore = create<DriverState>((set, get) => ({
           riderCompliments: compliments,
         }),
       });
-      // Refresh to ensure full db sync
       get().fetchDriverData();
     } catch {}
   },

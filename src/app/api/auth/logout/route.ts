@@ -7,7 +7,6 @@ export async function POST() {
     { status: 200 }
   );
 
-  // Clear the auth cookie using centralized secure configuration
   response.cookies.set(getClearAuthCookieOptions());
 
   return response;

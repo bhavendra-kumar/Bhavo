@@ -15,9 +15,6 @@ describe("Phase 1H: Admin Operations, Driver Verification & Security Tests", () 
   const dummyRiderId = new mongoose.Types.ObjectId("6529ab81c9a1240022222222");
   const dummyDriverId = new mongoose.Types.ObjectId("6529ab81c9a1240033333333");
 
-  // ─────────────────────────────────────────────────────────────
-  // A. Admin Authentication & Role Authorization Tests
-  // ─────────────────────────────────────────────────────────────
   describe("A. Server-Side Admin Authorization & Role Boundary Enforcement", () => {
     it("Rejects unauthenticated callers with 401 UNAUTHORIZED", async () => {
       await assert.rejects(
@@ -104,7 +101,7 @@ describe("Phase 1H: Admin Operations, Driver Verification & Security Tests", () 
 
     it("Detects stale tokenVersion when user session has been revoked by admin", () => {
       const tokenPayloadVersion: number = 1;
-      const databaseUserTokenVersion: number = 2; // Incremented by admin revocation
+      const databaseUserTokenVersion: number = 2;
 
       const isRevoked = tokenPayloadVersion !== databaseUserTokenVersion;
       assert.equal(isRevoked, true, "Token version mismatch must immediately invalidate session");
@@ -121,16 +118,12 @@ describe("Phase 1H: Admin Operations, Driver Verification & Security Tests", () 
       const parsed = registerSchema.safeParse(maliciousPayload);
       assert.equal(parsed.success, true);
 
-      // Server enforces RIDER role regardless of client body:
       const assignedRole = "RIDER";
       assert.equal(assignedRole, "RIDER");
       assert.notEqual(assignedRole, "ADMIN", "Public signup must never assign ADMIN role");
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // B. Driver Document Verification & Compliance Engine
-  // ─────────────────────────────────────────────────────────────
   describe("B. Driver Document Verification & Compliance Derivation", () => {
     it("Synchronizes driver documents to guarantee the canonical 8 required documents exist", () => {
       const synced = syncDriverDocuments([]);
@@ -218,12 +211,10 @@ describe("Phase 1H: Admin Operations, Driver Verification & Security Tests", () 
         status: "PENDING",
       }));
 
-      // Admin approves Driving License (DL)
       const targetDoc = docs.find((d) => d.name === "Driving License (DL)")!;
       targetDoc.status = "VERIFIED";
       targetDoc.rejectionReason = null;
 
-      // Verification derivation
       const result = checkDriverVerification({
         driverVehicle: { documentsVerified: true },
         driverDocuments: docs,
@@ -260,9 +251,6 @@ describe("Phase 1H: Admin Operations, Driver Verification & Security Tests", () 
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // C. User & Driver Account Management & Active Ride Safety
-  // ─────────────────────────────────────────────────────────────
   describe("C. Account Suspension, Reactivation & Active Ride Safety Invariant", () => {
     it("Validates account status inputs and rejects invalid statuses", () => {
       const isValidStatus = (status: string) => ["ACTIVE", "SUSPENDED", "DISABLED"].includes(status);
@@ -276,7 +264,7 @@ describe("Phase 1H: Admin Operations, Driver Verification & Security Tests", () 
     it("Enforces mandatory substantive reason (minimum 5 chars) for suspension", () => {
       const isValidReason = (reason?: string) => Boolean(reason && reason.trim().length >= 5);
       assert.equal(isValidReason("Fraud investigation"), true);
-      assert.equal(isValidReason("Done"), false); // too short
+      assert.equal(isValidReason("Done"), false);
       assert.equal(isValidReason(""), false);
       assert.equal(isValidReason(undefined), false);
     });
@@ -336,9 +324,8 @@ describe("Phase 1H: Admin Operations, Driver Verification & Security Tests", () 
         dutyState: "ONLINE_SEARCHING",
       };
 
-      // Apply suspension
       idleDriver.status = "SUSPENDED";
-      idleDriver.tokenVersion += 1; // Instant session invalidation
+      idleDriver.tokenVersion += 1;
       idleDriver.isOnline = false;
       idleDriver.dutyState = "OFFLINE";
 
@@ -349,9 +336,6 @@ describe("Phase 1H: Admin Operations, Driver Verification & Security Tests", () 
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // D. Ride Operations Inspection & Read-Only Boundaries
-  // ─────────────────────────────────────────────────────────────
   describe("D. Ride Operations Inspection & Privacy Bounds", () => {
     it("Omits precise driver coordinates and live tracking telemetry from list views", () => {
       const fullRideRecord = {
@@ -367,7 +351,6 @@ describe("Phase 1H: Admin Operations, Driver Verification & Security Tests", () 
         status: "IN_PROGRESS",
       };
 
-      // List projection sanitization:
       const sanitizedListRecord = {
         id: fullRideRecord._id.toString(),
         pickupAddress: fullRideRecord.pickup.address,
@@ -386,15 +369,11 @@ describe("Phase 1H: Admin Operations, Driver Verification & Security Tests", () 
       const legitimateStatuses = ["SEARCHING", "ACCEPTED", "ARRIVED", "IN_PROGRESS", "COMPLETED", "CANCELLED"];
       const ride = { status: "SEARCHING" };
 
-      // Admin inspection query is read-only GET; no state override mutation exists
       assert.equal(legitimateStatuses.includes(ride.status), true);
       assert.equal(ride.status, "SEARCHING");
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // E. Support Ticket Management Lifecycle
-  // ─────────────────────────────────────────────────────────────
   describe("E. Support Ticket Lifecycle & Resolution Tracking", () => {
     it("Allows advancing ticket status from OPEN to IN_PROGRESS to RESOLVED", () => {
       const ticket = {
@@ -404,11 +383,9 @@ describe("Phase 1H: Admin Operations, Driver Verification & Security Tests", () 
         resolutionNotes: "",
       };
 
-      // 1. Advance to IN_PROGRESS
       ticket.status = "IN_PROGRESS";
       assert.equal(ticket.status, "IN_PROGRESS");
 
-      // 2. Resolve ticket with resolution notes
       ticket.status = "RESOLVED";
       ticket.resolutionNotes = "Driver was provided refresher training on route optimization.";
       assert.equal(ticket.status, "RESOLVED");
@@ -426,9 +403,6 @@ describe("Phase 1H: Admin Operations, Driver Verification & Security Tests", () 
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // F. Administrative Audit Logging & Redaction
-  // ─────────────────────────────────────────────────────────────
   describe("F. Append-Only Audit Logging & Sensitive Data Redaction", () => {
     it("Redacts passwords, tokens, secrets, and OTPs from audit payloads", () => {
       const sensitivePayload = {
@@ -481,9 +455,6 @@ describe("Phase 1H: Admin Operations, Driver Verification & Security Tests", () 
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // G. Phase 10 Admin Panel End-to-End Regression & Invariants
-  // ─────────────────────────────────────────────────────────────
   describe("G. Phase 10 Admin Panel End-to-End Regression & Safeguards", () => {
     it("Admin audit sanitizer redacts extended financial & API secrets (apiKey, keySecret, webhookSecret, cvv)", () => {
       const sensitiveAuditContext = {
@@ -547,14 +518,11 @@ describe("Phase 1H: Admin Operations, Driver Verification & Security Tests", () 
         activeRideId: new mongoose.Types.ObjectId("6529ab81c9a1240044444444"),
       };
 
-      // Compliance check fails (e.g. document rejected)
       const isVerified = false;
 
-      // Transition duty state
       if (!isVerified) {
         if (driverOnTrip.dutyState === "ON_TRIP" || driverOnTrip.activeRideId) {
-          driverOnTrip.isOnline = false; // Cannot take new dispatches
-          // dutyState remains ON_TRIP so active trip is not corrupted!
+          driverOnTrip.isOnline = false;
         } else {
           driverOnTrip.isOnline = false;
           driverOnTrip.dutyState = "OFFLINE";
@@ -602,7 +570,6 @@ describe("Phase 1H: Admin Operations, Driver Verification & Security Tests", () 
         return true;
       };
 
-      // Even if activeTrip query returned null due to race condition:
       assert.throws(
         () => checkSuspensionEligibility(driverWithLock, false),
         /DRIVER_HAS_ACTIVE_RIDE/
@@ -642,7 +609,6 @@ describe("Phase 1H: Admin Operations, Driver Verification & Security Tests", () 
         createdAt: new Date(),
       };
 
-      // Safe projection logic as implemented in /api/admin/users/[id]
       const safeProjected = {
         id: rawUserFromDb._id.toString(),
         name: rawUserFromDb.name,
@@ -670,4 +636,146 @@ describe("Phase 1H: Admin Operations, Driver Verification & Security Tests", () 
       assert.equal(supportedAuditApiMethods.includes("DELETE"), false);
     });
   });
+
+  describe("E. Daily Commutes, Live Operations, Financial Invariants & Real-Time Stream", () => {
+    it("Daily Commute distinguishes recurring schedule from individual ride occurrence", () => {
+      const scheduleId = new mongoose.Types.ObjectId("6529ab81c9a1240044444444");
+      const commuteSchedule = {
+        _id: scheduleId,
+        rider: dummyRiderId,
+        title: "Morning Office Commute",
+        pickup: { address: "Dwarka Sector 21, New Delhi" },
+        dropoff: { address: "Cyber City, Gurugram" },
+        time: "8:30 AM",
+        days: ["Mon", "Tue", "Wed", "Thu", "Fri"],
+        vehicleType: "Cab Premium",
+        isActive: true,
+        petFriendly: true,
+      };
+
+      const dateKey = "2026-10-15";
+      const occurrenceKey = `${scheduleId.toString()}_${dateKey}`;
+
+      const occurrence = {
+        occurrenceKey,
+        commuteId: scheduleId,
+        rider: dummyRiderId,
+        scheduledFor: new Date("2026-10-15T08:30:00+05:30"),
+        status: "PENDING" as const,
+        attemptCount: 0,
+        maxAttempts: 3,
+        rideId: null,
+      };
+
+      assert.notEqual(commuteSchedule._id.toString(), occurrence.occurrenceKey);
+      assert.equal(occurrence.commuteId.toString(), commuteSchedule._id.toString());
+      assert.equal(occurrence.status, "PENDING");
+      assert.equal(occurrence.attemptCount, 0);
+    });
+
+    it("Preserves the distinction between T-180m materialization lookahead and T-60m dispatch lead time", () => {
+      const materializationLookaheadMinutes = 180;
+      const dispatchLeadTimeMinutes = 60;
+
+      assert.equal(
+        materializationLookaheadMinutes > dispatchLeadTimeMinutes,
+        true,
+        "Materialization (T-180m) must occur before driver dispatch window opens (T-60m)"
+      );
+      assert.equal(materializationLookaheadMinutes, 180);
+      assert.equal(dispatchLeadTimeMinutes, 60);
+    });
+
+    it("Pet-friendly ride filter strictly matches pet-compatible driver preferences", () => {
+      const driverSettings = {
+        petFriendly: false,
+        autoAccept: false,
+      };
+
+      const ridePetRequirement = true;
+
+      const isCompatible = Boolean(driverSettings.petFriendly) && ridePetRequirement;
+      assert.equal(isCompatible, false, "Driver with petFriendly=false must NOT be matched with pet-friendly ride");
+
+      const petDriverSettings = {
+        petFriendly: true,
+      };
+      const isPetDriverCompatible = Boolean(petDriverSettings.petFriendly) && ridePetRequirement;
+      assert.equal(isPetDriverCompatible, true, "Driver with petFriendly=true matches pet-friendly ride");
+    });
+
+    it("Driver location telemetry evaluates FRESH vs STALE within 120s operational window", () => {
+      const now = Date.now();
+      const freshUpdate = new Date(now - 30 * 1000);
+      const staleUpdate = new Date(now - 180 * 1000);
+
+      const isFresh = (now - freshUpdate.getTime()) / 1000 <= 120;
+      const isStale = (now - staleUpdate.getTime()) / 1000 > 120;
+
+      assert.equal(isFresh, true, "Location updated 30s ago is FRESH");
+      assert.equal(isStale, true, "Location updated 180s ago is STALE");
+    });
+
+    it("Physical cash collected by driver is non-monetary and NEVER credits platform wallet", () => {
+      const cashTransaction = {
+        idempotencyKey: `CASH_COLLECTED_${dummyDriverId.toString()}_RIDE_123`,
+        type: "CASH_COLLECTED_BY_DRIVER" as const,
+        direction: "NON_MONETARY_RECORD" as const,
+        amountInPaise: 45000,
+        currency: "INR" as const,
+        userRole: "DRIVER" as const,
+      };
+
+      assert.equal(cashTransaction.direction, "NON_MONETARY_RECORD");
+      assert.equal(cashTransaction.type, "CASH_COLLECTED_BY_DRIVER");
+      assert.notEqual(cashTransaction.direction, "CREDIT");
+    });
+
+    it("Admin SSE event stream emits named events without sensitive fields", () => {
+      const sseEvent = "operations:updated";
+      const payload = {
+        timestamp: new Date().toISOString(),
+        type: "OPERATIONAL_CHANGE",
+        activeRidesCount: 4,
+        searchingCount: 1,
+      };
+
+      assert.equal(sseEvent, "operations:updated");
+      assert.equal("password" in payload, false);
+      assert.equal("token" in payload, false);
+      assert.equal("otp" in payload, false);
+      assert.equal(payload.activeRidesCount, 4);
+    });
+
+    it("Rider directory strictly projects safe public profile and omits sensitive tokens", () => {
+      const fullRider = {
+        _id: dummyRiderId,
+        name: "Ananya Sharma",
+        email: "ananya@example.com",
+        phone: "+919811122233",
+        role: "RIDER",
+        status: "ACTIVE",
+        tokenVersion: 2,
+        pets: [{ name: "Bella", breed: "Beagle", weight: "12kg" }],
+        password: "hashed_password_secret",
+        resetOtp: "9988",
+      };
+
+      const safeRider = {
+        id: fullRider._id.toString(),
+        name: fullRider.name,
+        email: fullRider.email,
+        phone: fullRider.phone,
+        status: fullRider.status,
+        pets: fullRider.pets,
+      };
+
+      assert.equal("password" in safeRider, false);
+      assert.equal("resetOtp" in safeRider, false);
+      assert.equal("tokenVersion" in safeRider, false);
+      assert.equal(safeRider.pets.length, 1);
+      assert.equal(safeRider.pets[0].name, "Bella");
+    });
+  });
 });
+

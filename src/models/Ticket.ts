@@ -62,7 +62,6 @@ const TicketSchema = new Schema<ITicket>(
   }
 );
 
-// Indexes supporting Phase 1H support queue and user ticket lookups
 TicketSchema.index({ status: 1, priority: 1, createdAt: -1 });
 TicketSchema.index({ user: 1, createdAt: -1 });
 

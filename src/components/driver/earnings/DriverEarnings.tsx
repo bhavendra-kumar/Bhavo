@@ -133,9 +133,7 @@ export default function DriverEarnings() {
   return (
     <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full pb-10">
 
-      {/* Top Banner Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Available Wallet Balance */}
         <div className="p-6 rounded-3xl bg-linear-to-br from-[#042f2e] via-[#064e3b] to-[#022c22] text-white shadow-lg flex flex-col justify-between border border-teal-500/20">
           <div>
             <div className="flex items-center justify-between">
@@ -164,7 +162,6 @@ export default function DriverEarnings() {
           </button>
         </div>
 
-        {/* Today's Total */}
         <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-sm flex flex-col justify-between">
           <div>
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
@@ -191,7 +188,6 @@ export default function DriverEarnings() {
           </div>
         </div>
 
-        {/* Weekly Total */}
         <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-sm flex flex-col justify-between">
           <div>
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
@@ -217,7 +213,6 @@ export default function DriverEarnings() {
         </div>
       </div>
 
-      {/* Weekly Earnings Chart Visualization */}
       <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div>

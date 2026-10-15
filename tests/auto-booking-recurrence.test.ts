@@ -20,16 +20,13 @@ import { calculateAuthoritativeFare } from "../src/lib/pricingEngine";
 describe("Phase 1F: Auto Booking, Recurrence Engine & Background Execution Tests", () => {
   const dummyCommuteId = new mongoose.Types.ObjectId("6529ab81c9a1240012345678");
 
-  // ─────────────────────────────────────────────────────────────
-  // A. Time Parsing & Recurrence Calculation Tests
-  // ─────────────────────────────────────────────────────────────
   describe("A. Recurrence Time Parsing & Weekday Normalization", () => {
     it("Parses 12-hour AM/PM formats accurately into 24-hour hours and minutes", () => {
       assert.deepEqual(parseCommuteTime("8:45 AM"), { hours: 8, minutes: 45 });
       assert.deepEqual(parseCommuteTime("08:45 AM"), { hours: 8, minutes: 45 });
-      assert.deepEqual(parseCommuteTime("12:00 AM"), { hours: 0, minutes: 0 }); // Midnight
+      assert.deepEqual(parseCommuteTime("12:00 AM"), { hours: 0, minutes: 0 });
       assert.deepEqual(parseCommuteTime("12:30 AM"), { hours: 0, minutes: 30 });
-      assert.deepEqual(parseCommuteTime("12:00 PM"), { hours: 12, minutes: 0 }); // Noon
+      assert.deepEqual(parseCommuteTime("12:00 PM"), { hours: 12, minutes: 0 });
       assert.deepEqual(parseCommuteTime("12:45 PM"), { hours: 12, minutes: 45 });
       assert.deepEqual(parseCommuteTime("6:15 PM"), { hours: 18, minutes: 15 });
       assert.deepEqual(parseCommuteTime("11:59 PM"), { hours: 23, minutes: 59 });
@@ -63,37 +60,30 @@ describe("Phase 1F: Auto Booking, Recurrence Engine & Background Execution Tests
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // B. Timezone Invariance (Asia/Kolkata UTC+05:30)
-  // ─────────────────────────────────────────────────────────────
   describe("B. Timezone Correctness & Boundary Independence", () => {
     it("Extracts correct IST calendar components regardless of UTC timestamp", () => {
-      // 2026-10-12 03:15:00 UTC corresponds to 2026-10-12 08:45:00 IST (+05:30)
       const testUtc = new Date(Date.UTC(2026, 9, 12, 3, 15, 0));
       const comps = getIstDateComponents(testUtc);
 
       assert.equal(comps.year, 2026);
-      assert.equal(comps.month, 9); // October (0-indexed)
+      assert.equal(comps.month, 9);
       assert.equal(comps.day, 12);
-      assert.equal(comps.weekday, 1); // Monday
+      assert.equal(comps.weekday, 1);
       assert.equal(comps.formattedDate, "2026-10-12");
     });
 
     it("Crosses midnight in IST accurately when UTC date is previous calendar day", () => {
-      // 2026-10-11 20:30:00 UTC corresponds to 2026-10-12 02:00:00 IST (+05:30)
       const lateUtc = new Date(Date.UTC(2026, 9, 11, 20, 30, 0));
       const comps = getIstDateComponents(lateUtc);
 
       assert.equal(comps.year, 2026);
       assert.equal(comps.month, 9);
-      assert.equal(comps.day, 12); // Already Monday in India!
+      assert.equal(comps.day, 12);
       assert.equal(comps.weekday, 1);
     });
 
     it("buildIstTimestamp constructs exact UTC instant matching local IST time", () => {
-      // Construct 8:45 AM on October 12, 2026 in IST
       const ts = buildIstTimestamp(2026, 9, 12, 8, 45);
-      // In UTC, this must equal 03:15 AM
       assert.equal(ts.toISOString(), "2026-10-12T03:15:00.000Z");
     });
 
@@ -105,16 +95,12 @@ describe("Phase 1F: Auto Booking, Recurrence Engine & Background Execution Tests
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // C. Recurrence Candidate Generation & Lookahead Filtering
-  // ─────────────────────────────────────────────────────────────
   describe("C. Lookahead Window Occurrence Filtering", () => {
     it("Identifies eligible upcoming occurrence when within 180-minute window", () => {
-      // Current time: 2026-10-12 06:15 IST (00:45 UTC)
       const now = buildIstTimestamp(2026, 9, 12, 6, 15);
       const commute = {
         _id: dummyCommuteId,
-        time: "08:45 AM", // 2.5 hours away (within 180m window)
+        time: "08:45 AM",
         days: ["Mon", "Tue", "Wed", "Thu", "Fri"],
         isActive: true,
       };
@@ -127,23 +113,20 @@ describe("Phase 1F: Auto Booking, Recurrence Engine & Background Execution Tests
     });
 
     it("Excludes future occurrence when beyond the lookahead window", () => {
-      // Current time: 2026-10-12 04:00 IST (22:30 UTC previous day)
       const now = buildIstTimestamp(2026, 9, 12, 4, 0);
       const commute = {
         _id: dummyCommuteId,
-        time: "08:45 AM", // 4 hours and 45 mins away (> 180m window)
+        time: "08:45 AM",
         days: ["Mon", "Tue", "Wed", "Thu", "Fri"],
         isActive: true,
       };
 
       const candidates = calculateUpcomingOccurrences(commute, now, 180);
-      // Beyond 180 mins window, so not materialized yet
       const upcoming = candidates.filter((c) => !c.isPast);
       assert.equal(upcoming.length, 0);
     });
 
     it("Flags past occurrences truthfully and does not schedule them as upcoming", () => {
-      // Current time: 2026-10-12 10:00 IST (already past 8:45 AM)
       const now = buildIstTimestamp(2026, 9, 12, 10, 0);
       const commute = {
         _id: dummyCommuteId,
@@ -159,12 +142,11 @@ describe("Phase 1F: Auto Booking, Recurrence Engine & Background Execution Tests
     });
 
     it("Excludes days not specified in commute schedule", () => {
-      // 2026-10-10 is a Saturday in IST
       const saturdayNow = buildIstTimestamp(2026, 9, 10, 7, 0);
       const weekdayOnlyCommute = {
         _id: dummyCommuteId,
         time: "08:45 AM",
-        days: ["Mon", "Tue", "Wed", "Thu", "Fri"], // No Sat or Sun
+        days: ["Mon", "Tue", "Wed", "Thu", "Fri"],
         isActive: true,
       };
 
@@ -186,9 +168,6 @@ describe("Phase 1F: Auto Booking, Recurrence Engine & Background Execution Tests
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // D. Operational Configuration Validation
-  // ─────────────────────────────────────────────────────────────
   describe("D. Configuration Validation & Lead Time Relationship", () => {
     it("Validates AUTO_BOOKING_LOOKAHEAD_MINUTES defaults to 180", () => {
       assert.equal(getAutoBookingLookaheadMinutes(undefined), 180);
@@ -218,9 +197,6 @@ describe("Phase 1F: Auto Booking, Recurrence Engine & Background Execution Tests
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // E. Cron Worker Security & Timing-Safe Verification
-  // ─────────────────────────────────────────────────────────────
   describe("E. Cron Authentication & Security Invariants", () => {
     const originalSecret = process.env.CRON_SECRET;
 
@@ -237,7 +213,6 @@ describe("Phase 1F: Auto Booking, Recurrence Engine & Background Execution Tests
       process.env.CRON_SECRET = "   ";
       assert.equal(verifyCronSecret(req), false);
 
-      // Restore
       if (originalSecret) process.env.CRON_SECRET = originalSecret;
     });
 
@@ -275,14 +250,11 @@ describe("Phase 1F: Auto Booking, Recurrence Engine & Background Execution Tests
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // F. Financial Integrity & Authoritative Pricing Integration
-  // ─────────────────────────────────────────────────────────────
   describe("F. Pricing & Financial Integrity Invariants", () => {
     it("Calculates integer paise fare authoritatively using Phase 1C rules", () => {
       const fareResult = calculateAuthoritativeFare({
-        pickupCoordinates: [28.6139, 77.209], // Delhi
-        dropoffCoordinates: [28.5355, 77.391], // Noida (~19km)
+        pickupCoordinates: [28.6139, 77.209],
+        dropoffCoordinates: [28.5355, 77.391],
         vehicleType: "Cab Premium",
         petFriendly: false,
       });
@@ -298,7 +270,7 @@ describe("Phase 1F: Auto Booking, Recurrence Engine & Background Execution Tests
       assert.throws(
         () =>
           calculateAuthoritativeFare({
-            pickupCoordinates: [120, 77.209], // Latitude > 90
+            pickupCoordinates: [120, 77.209],
             dropoffCoordinates: [28.5355, 77.391],
             vehicleType: "Cab Premium",
           }),
@@ -319,33 +291,24 @@ describe("Phase 1F: Auto Booking, Recurrence Engine & Background Execution Tests
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // G. Phase 1D Scheduled Dispatch Compatibility
-  // ─────────────────────────────────────────────────────────────
   describe("G. Dispatch Boundary Compatibility (T-60 Window)", () => {
     it("Rides materialized at T-180m remain ineligible for driver offers until T-60m", () => {
-      const dispatchLeadTimeMs = 60 * 60 * 1000; // 60 minutes
+      const dispatchLeadTimeMs = 60 * 60 * 1000;
       const now = new Date("2026-10-12T05:00:00.000Z");
 
-      // Ride scheduled for pickup at 08:00:00 UTC (180 minutes in the future)
       const scheduledPickupTime = new Date("2026-10-12T08:00:00.000Z");
-      const maxDispatchScheduledFor = new Date(now.getTime() + dispatchLeadTimeMs); // 06:00:00 UTC
+      const maxDispatchScheduledFor = new Date(now.getTime() + dispatchLeadTimeMs);
 
-      // At T-180m: scheduledPickupTime (08:00) > maxDispatchScheduledFor (06:00)
       const isEligibleForDispatchAtT180 = scheduledPickupTime.getTime() <= maxDispatchScheduledFor.getTime();
       assert.equal(isEligibleForDispatchAtT180, false, "Ride must NOT be offered at T-180 minutes");
 
-      // Fast forward time to T-55m: now = 07:05:00 UTC
       const laterNow = new Date("2026-10-12T07:05:00.000Z");
-      const laterMaxDispatch = new Date(laterNow.getTime() + dispatchLeadTimeMs); // 08:05:00 UTC
+      const laterMaxDispatch = new Date(laterNow.getTime() + dispatchLeadTimeMs);
       const isEligibleForDispatchAtT55 = scheduledPickupTime.getTime() <= laterMaxDispatch.getTime();
       assert.equal(isEligibleForDispatchAtT55, true, "Ride becomes eligible for dispatch inside T-60 window");
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // H. Durable Lease & Idempotency Simulation
-  // ─────────────────────────────────────────────────────────────
   describe("H. Occurrence Idempotency & Concurrency Simulation", () => {
     it("Simulates atomic claim ensuring exactly one winner under concurrent processors", () => {
       class MockOccurrenceStore {
@@ -363,7 +326,6 @@ describe("Phase 1F: Auto Booking, Recurrence Engine & Background Execution Tests
             return true;
           }
 
-          // Can only claim if pending or expired lease
           if (record.status === "PENDING" || (record.status === "CLAIMED" && record.leaseExpiresAt < nowMs)) {
             record.status = "CLAIMED";
             record.leaseId = leaseId;
@@ -380,7 +342,6 @@ describe("Phase 1F: Auto Booking, Recurrence Engine & Background Execution Tests
       const now = Date.now();
       const occurrenceKey = "commute_001:2026-10-12_0845";
 
-      // Worker 1 and Worker 2 race to claim the same occurrence
       const worker1Claim = store.tryClaim(occurrenceKey, "lease_worker_1", now, 60000);
       const worker2Claim = store.tryClaim(occurrenceKey, "lease_worker_2", now, 60000);
 
@@ -388,7 +349,6 @@ describe("Phase 1F: Auto Booking, Recurrence Engine & Background Execution Tests
       assert.equal(worker2Claim, false, "Second concurrent worker is rejected by atomic lease");
       assert.equal(store.claims.get(occurrenceKey)?.leaseId, "lease_worker_1");
 
-      // Lease expires after 61 seconds
       const expiredTime = now + 61000;
       const worker3Claim = store.tryClaim(occurrenceKey, "lease_worker_3", expiredTime, 60000);
       assert.equal(worker3Claim, true, "Worker 3 successfully recovers the expired lease");

@@ -2,10 +2,6 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-/**
- * Liveness Probe: Verifies the Next.js Node process is running and responding to HTTP requests.
- * Instantaneous, bounded response. Does not query external dependencies or database.
- */
 export async function GET() {
   return NextResponse.json(
     {

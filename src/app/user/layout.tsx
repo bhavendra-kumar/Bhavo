@@ -40,7 +40,6 @@ export default function UserLayout({
 
   return (
     <>
-      {/* ── Desktop Layout (100% Untouched at lg: 1024px+) ── */}
       <div className="hidden lg:flex h-screen w-full overflow-hidden" style={{ background: "#f0fdfa" }}>
         <Sidebar />
         <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
@@ -57,7 +56,6 @@ export default function UserLayout({
         </div>
       </div>
 
-      {/* ── Mobile Layout (Dedicated Native-App Shell for < 1024px) ── */}
       <div className="flex lg:hidden flex-col h-dvh w-full overflow-hidden bg-[#f0fdfa]">
         <MobileHeader onOpenMenu={() => setIsMenuOpen(true)} />
         <main className="flex-1 overflow-y-auto no-scrollbar overscroll-y-contain flex flex-col px-3.5 pt-3 pb-32">

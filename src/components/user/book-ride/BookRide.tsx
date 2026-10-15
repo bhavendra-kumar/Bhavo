@@ -36,7 +36,6 @@ export default function BookRidePage() {
   const [petFriendly, setPetFriendly] = useState(false);
   const [prefDriver, setPrefDriver] = useState(false);
 
-  // Locations & Coordinates (empty by default - no demo mock data)
   const [pickupCoords, setPickupCoords] = useState<[number, number] | null>(() => {
     const lat = searchParams.get("pickupLat");
     const lng = searchParams.get("pickupLng");
@@ -60,13 +59,11 @@ export default function BookRidePage() {
     () => searchParams.get("dropoff") || searchParams.get("dest") || searchParams.get("to") || searchParams.get("dropoffAddress") || ""
   );
 
-  // Route calculation (clean until user enters places)
   const [routeCoords, setRouteCoords] = useState<[number, number][]>([]);
   const [routeDistanceKm, setRouteDistanceKm] = useState<number>(0);
   const [routeDurationMins, setRouteDurationMins] = useState<number>(0);
   const [routeLoading, setRouteLoading] = useState<boolean>(false);
 
-  // Trip selection status
   const hasTrip = Boolean(
     pickupCoords &&
     dropoffCoords &&
@@ -74,26 +71,21 @@ export default function BookRidePage() {
     dropoffAddress.trim()
   );
 
-  // Backend Saved Places
   const [savedPlaces, setSavedPlaces] = useState<SavedPlace[]>([]);
   const [walletBalance, setWalletBalance] = useState<number>(0);
 
-  // Scheduling
   const [scheduleDate, setScheduleDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [scheduleTime, setScheduleTime] = useState("09:00");
 
-  // Booking & Live Active Ride State
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState("");
   const [activeRide, setActiveRide] = useState<ActiveRide | null>(null);
   const [completedModalRide, setCompletedModalRide] = useState<ActiveRide | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Modals for Driver Call & Chat
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isCallOpen, setIsCallOpen] = useState(false);
 
-  // Real-Time GPS Tracking & Exact Pinpoint State
   const [userCoords, setUserCoords] = useState<[number, number] | null>(null);
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
   const [isLiveTracking, setIsLiveTracking] = useState(true);
@@ -118,7 +110,6 @@ export default function BookRidePage() {
     setDropoffAddress(name);
   };
 
-  // Helper: Reverse Geocoding via /api/places
   const fetchAddressFromCoords = async (lat: number, lon: number) => {
     try {
       const res = await fetch(`/api/places?lat=${lat}&lon=${lon}`);
@@ -132,7 +123,6 @@ export default function BookRidePage() {
     return `Location (${lat.toFixed(4)}, ${lon.toFixed(4)})`;
   };
 
-  // One-time locate exact user location
   const handleUseCurrentLocation = (syncAsPickup = true) => {
     if (typeof window === "undefined" || !navigator.geolocation) {
       setGpsNotice("Geolocation is not supported by your browser.");
@@ -168,7 +158,6 @@ export default function BookRidePage() {
     );
   };
 
-  // Real-time continuous user tracking toggle
   const handleToggleLiveTracking = () => {
     if (typeof window === "undefined" || !navigator.geolocation) {
       setGpsNotice("Geolocation not supported by your browser.");
@@ -201,7 +190,6 @@ export default function BookRidePage() {
       setUserCoords([lat, lon]);
       setGpsAccuracy(Math.round(pos.coords.accuracy));
 
-      // On initial fix: if pickup is not yet selected, set pickup and reverse geocode ONCE
       if ((isInitial || !hasInitializedLocationRef.current) && !hasTrip) {
         setPickupCoords((prev) => prev || [lat, lon]);
         if (!hasInitializedLocationRef.current && !isFetchingAddressRef.current) {
@@ -217,14 +205,12 @@ export default function BookRidePage() {
       }
     };
 
-    // Fast initial fix
     navigator.geolocation.getCurrentPosition(
       (pos) => onLocationReceived(pos, true),
       (err) => console.warn("Initial location notice:", err.message),
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 5000 }
     );
 
-    // Continuous real-time location stream
     const watchId = navigator.geolocation.watchPosition(
       (pos) => onLocationReceived(pos, false),
       (err) => console.warn("Watch position notice:", err.message),
@@ -240,7 +226,6 @@ export default function BookRidePage() {
     };
   }, [isLiveTracking, hasTrip]);
 
-  // Handle map click
   const handleMapClick = async (coords: [number, number]) => {
     if (mapSelectionMode === "pickup") {
       setPickupCoords(coords);
@@ -255,7 +240,6 @@ export default function BookRidePage() {
     }
   };
 
-  // Handle draggable pin adjustments
   const handlePickupDrag = async (coords: [number, number]) => {
     setPickupCoords(coords);
     const addr = await fetchAddressFromCoords(coords[0], coords[1]);
@@ -268,7 +252,6 @@ export default function BookRidePage() {
     setDropoffAddress(addr);
   };
 
-  // Fetch Saved Places & Check Active Ride from Backend
   useEffect(() => {
     fetch("/api/user/places")
       .then((res) => res.json())
@@ -291,7 +274,6 @@ export default function BookRidePage() {
       })
       .catch(() => { });
 
-    // Initial live nearby transit hubs & hotspots query
     fetch("/api/places?nearby=true")
       .then((res) => res.json())
       .then((data) => {
@@ -311,7 +293,6 @@ export default function BookRidePage() {
       .catch(() => { });
   }, []);
 
-  // Real-time live nearby transit hubs & pickup hotspots around active coordinates
   useEffect(() => {
     const centerCoords = pickupCoords || userCoords;
     if (!centerCoords) return;
@@ -351,7 +332,6 @@ export default function BookRidePage() {
     };
   }, [pickupCoords, userCoords]);
 
-  // Fallback geocoding if address was supplied via URL searchParams without coordinates
   useEffect(() => {
     if (pickupAddress && !pickupCoords) {
       fetch(`/api/places?q=${encodeURIComponent(pickupAddress)}`)
@@ -386,7 +366,6 @@ export default function BookRidePage() {
     }
   }, [dropoffAddress, dropoffCoords]);
 
-  // Fetch real road routing from OSRM
   useEffect(() => {
     if (!pickupCoords || !dropoffCoords) return;
 
@@ -428,7 +407,6 @@ export default function BookRidePage() {
     };
   }, [pickupCoords, dropoffCoords]);
 
-  // Dynamic Vehicles with live distance-calculated pricing
   const dynamicVehicles = BASE_VEHICLES.map((v) => {
     const rawPrice = Math.round(v.baseRate + v.perKm * routeDistanceKm);
     const finalPrice = petFriendly ? Math.round(rawPrice * 1.15) : rawPrice;
@@ -443,7 +421,6 @@ export default function BookRidePage() {
 
   const selectedVehicle = dynamicVehicles.find((v) => v.id === selected) || dynamicVehicles[2];
 
-  // Book Ride
   const handleBookRide = async () => {
     if (!pickupAddress || !pickupCoords) {
       setBookingError("Please specify a pickup location.");
@@ -499,7 +476,6 @@ export default function BookRidePage() {
     }
   };
 
-  // Refresh Active Ride from server or Cancel Active Ride
   const handleRefreshStatus = async () => {
     if (!activeRide?._id || isRefreshing) return;
     setIsRefreshing(true);
@@ -562,7 +538,6 @@ export default function BookRidePage() {
     }
   };
 
-  // Restore active ride from MongoDB on mount if rider reloads or returns
   useEffect(() => {
     let isMounted = true;
     const checkActiveRide = async () => {
@@ -591,7 +566,6 @@ export default function BookRidePage() {
     };
   }, []);
 
-  // Real-time bidirectional synchronizer: updates via SSE with adaptive fallback polling
   useEffect(() => {
     if (!activeRide?._id) return;
     if (activeRide.status === "COMPLETED" || activeRide.status === "CANCELLED") return;
@@ -608,7 +582,6 @@ export default function BookRidePage() {
         const curVer = current.trackingVersion ?? 0;
         const newVer = updated.trackingVersion ?? 0;
         if (newVer < curVer) {
-          // Monotonic guard: discard out-of-order updates
           return current;
         }
         return updated;
@@ -700,7 +673,6 @@ export default function BookRidePage() {
     };
   }, [activeRide?._id, activeRide?.status]);
 
-  // Real-time driver vehicle coordinates on user's map (strictly authentic, no fake offsets)
   const driverPosition: [number, number] | null =
     activeRide?.driverCoordinates && Array.isArray(activeRide.driverCoordinates) && activeRide.driverCoordinates.length === 2
       ? activeRide.driverCoordinates
@@ -708,7 +680,6 @@ export default function BookRidePage() {
 
   return (
     <div className="flex flex-col gap-4 flex-1">
-      {/* ── Dedicated Native Mobile Ride Experience (< 1024px) ── */}
       <div className="flex lg:hidden flex-col flex-1">
         <MobileBookRide
           selected={selected}
@@ -769,12 +740,9 @@ export default function BookRidePage() {
         />
       </div>
 
-      {/* ── Desktop View (>= 1024px) — 100% Preserved Exactly As Original ── */}
       <div className="hidden lg:flex flex-col gap-4 flex-1">
-        {/* ── Active Ride Live Tracker Overlay Screen (Like Rapido/Uber) ── */}
         {activeRide && (
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 flex-1 min-h-0">
-            {/* Left Live Status Card */}
             <div className="lg:col-span-2 flex flex-col gap-4">
               <DesktopActiveRideCard
                 activeRide={activeRide}
@@ -795,7 +763,6 @@ export default function BookRidePage() {
               />
             </div>
 
-            {/* Right Live Map */}
             <div className="lg:col-span-3 rounded-2xl overflow-hidden relative min-h-100 lg:h-[calc(100vh-140px)] border border-slate-200 shadow-sm">
               <LeafletMap
                 pickupCoords={activeRide.pickup.coordinates}
@@ -806,7 +773,6 @@ export default function BookRidePage() {
                 vehicleType={activeRide.vehicleType}
               />
 
-              {/* Live tracking badge */}
               <div className="absolute top-4 left-4 z-10 bg-white/95 backdrop-blur px-3.5 py-2 rounded-xl border border-slate-200 shadow-md flex items-center gap-2">
                 <span
                   className={`w-2.5 h-2.5 rounded-full ${
@@ -833,12 +799,9 @@ export default function BookRidePage() {
           </div>
         )}
 
-        {/* ── Booking Form (When no active ride) ── */}
         {!activeRide && (
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 flex-1 min-h-0">
-            {/* Left Panel */}
             <div className="lg:col-span-2 flex flex-col gap-4 lg:pr-2 no-scrollbar pb-2">
-              {/* Mode Toggle */}
               <div className="flex p-1 rounded-xl bg-slate-100 border border-slate-200">
                 <button
                   onClick={() => setRideMode("instant")}
@@ -864,7 +827,6 @@ export default function BookRidePage() {
                 </button>
               </div>
 
-              {/* Location Selection */}
               <div className="card p-4 flex flex-col gap-4">
                 <div className="flex items-center justify-between">
                   <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
@@ -964,7 +926,6 @@ export default function BookRidePage() {
                   </div>
                 </div>
 
-                {/* Dynamic Saved Places from Backend (if user has saved any) */}
                 {savedPlaces.length > 0 && (
                   <div className="flex items-center gap-2 mt-1 overflow-x-auto no-scrollbar">
                     <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
@@ -996,7 +957,6 @@ export default function BookRidePage() {
                 )}
               </div>
 
-              {/* If locations are not yet selected, show Rapido/Ola style dynamic recommended destinations */}
               {!hasTrip ? (
                 <RecommendedDestinationsSection
                   recsLoading={recsLoading}
@@ -1010,7 +970,6 @@ export default function BookRidePage() {
                 />
               ) : (
                 <>
-                  {/* Vehicle Selection with dynamic rates */}
                   <VehicleSelector
                     dynamicVehicles={dynamicVehicles}
                     selected={selected}
@@ -1019,7 +978,6 @@ export default function BookRidePage() {
                     routeDistanceKm={routeDistanceKm}
                   />
 
-                  {/* Ride Preferences */}
                   <div className="card p-4 flex flex-col gap-1">
                     <p className="text-[11px] font-bold uppercase tracking-widest mb-2 text-slate-500">
                       Preferences & Payment
@@ -1091,7 +1049,6 @@ export default function BookRidePage() {
                     </div>
                   )}
 
-                  {/* Confirm Ride CTA */}
                   <button
                     type="button"
                     onClick={handleBookRide}
@@ -1116,7 +1073,6 @@ export default function BookRidePage() {
               )}
             </div>
 
-            {/* Right Map Panel */}
             <div className="lg:col-span-3 rounded-2xl overflow-hidden relative min-h-100 lg:h-[calc(100vh-130px)] lg:sticky lg:top-8 self-start bg-slate-50 border border-slate-200 shadow-sm">
               <LeafletMap
                 pickupCoords={pickupCoords}
@@ -1134,7 +1090,6 @@ export default function BookRidePage() {
                 selectionMode={mapSelectionMode}
               />
 
-              {/* Interactive Pinpoint Active Banner */}
               {mapSelectionMode !== "none" && (
                 <div className="absolute top-4 left-4 right-4 z-20 bg-teal-900/95 text-white backdrop-blur px-4 py-3 rounded-xl shadow-xl flex items-center justify-between animate-in fade-in slide-in-from-top-2 border border-teal-700">
                   <div className="flex items-center gap-2.5">
@@ -1158,7 +1113,6 @@ export default function BookRidePage() {
                 </div>
               )}
 
-              {/* Road route overlay badge & Live GPS status */}
               <div className="absolute top-4 left-4 flex items-center gap-2">
                 {hasTrip && routeDistanceKm > 0 ? (
                   <div className="flex items-center gap-2 px-3 py-2 rounded-xl z-10 bg-white/95 backdrop-blur border border-slate-200 shadow-md">
@@ -1188,7 +1142,6 @@ export default function BookRidePage() {
                 )}
               </div>
 
-              {/* Drag pin tip banner (Only when route is active) */}
               {hasTrip && (
                 <div className="absolute bottom-24 left-4 right-4 flex justify-center z-10 pointer-events-none">
                   <span className="bg-slate-900/80 backdrop-blur text-white text-[11px] font-medium px-3.5 py-1.5 rounded-full shadow-md">
@@ -1197,7 +1150,6 @@ export default function BookRidePage() {
                 </div>
               )}
 
-              {/* Selected Vehicle Float Preview (Only when route is active) */}
               {hasTrip && (
                 <div className="absolute bottom-4 left-4 right-4 flex items-center gap-3 p-3.5 rounded-xl z-10 bg-white/95 backdrop-blur border border-slate-200 shadow-lg animate-in fade-in slide-in-from-bottom-2">
                   <div className="w-13 h-11 rounded-xl flex items-center justify-center shrink-0 bg-teal-50 border border-teal-200">
@@ -1225,7 +1177,6 @@ export default function BookRidePage() {
         )}
       </div>
 
-      {/* Driver Chat Modal */}
       {activeRide && (
         <DriverChatModal
           rideId={activeRide._id}
@@ -1241,7 +1192,6 @@ export default function BookRidePage() {
         />
       )}
 
-      {/* Driver Call Modal */}
       {activeRide && (
         <DriverCallModal
           driverName={activeRide.driverDetails?.name || "Bhavo Pilot"}
@@ -1254,7 +1204,6 @@ export default function BookRidePage() {
         />
       )}
 
-      {/* Celebratory Ride Completed & Payment Receipt Modal */}
       {completedModalRide && (
         <CompletedRideModal
           ride={completedModalRide}

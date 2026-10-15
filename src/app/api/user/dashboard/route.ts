@@ -11,13 +11,11 @@ export async function GET(req: Request) {
 
     await dbConnect();
 
-    // 1. Fetch active ride (searching, accepted, arrived, in_progress)
     const activeRide = await Ride.findOne({
       rider: user._id,
       status: { $in: ["SEARCHING", "ACCEPTED", "ARRIVED", "IN_PROGRESS"] },
     }).sort({ createdAt: -1 });
 
-    // 2. Fetch upcoming scheduled rides (if any scheduled for future)
     const upcomingRides = await Ride.find({
       rider: user._id,
       status: { $nin: ["CANCELLED", "COMPLETED"] },
@@ -26,10 +24,8 @@ export async function GET(req: Request) {
       .sort({ scheduledFor: 1 })
       .limit(5);
 
-    // 3. Fetch smart commute schedules
     const commutes = await Commute.find({ rider: user._id }).sort({ createdAt: 1 });
 
-    // 4. Fetch recent past rides
     const recentRides = await Ride.find({
       rider: user._id,
       status: { $in: ["COMPLETED", "CANCELLED"] },
@@ -37,7 +33,6 @@ export async function GET(req: Request) {
       .sort({ createdAt: -1 })
       .limit(4);
 
-    // 5. Fetch saved places
     let savedPlaces = await Place.find({ rider: user._id })
       .sort({ isFavorite: -1, createdAt: -1 })
       .limit(4);
@@ -46,7 +41,6 @@ export async function GET(req: Request) {
       savedPlaces = [];
     }
 
-    // 6. Quick stats & Commuter Metrics
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const completedThisMonth = await Ride.countDocuments({

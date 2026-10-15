@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import mongoose from "mongoose";
@@ -40,7 +39,7 @@ describe("Phase 7: Realtime Dispatch & Live-Tracking Verification Suite", () => 
     isOnline: true,
     dutyState: "ONLINE_SEARCHING",
     driverCoordinates: [28.6139, 77.209],
-    driverCoordinatesUpdatedAt: new Date("2026-10-13T11:59:30.000Z"), // 30s ago
+    driverCoordinatesUpdatedAt: new Date("2026-10-13T11:59:30.000Z"),
     driverVehicle: {
       type: "Cab Premium",
       documentsVerified: true,
@@ -56,15 +55,12 @@ describe("Phase 7: Realtime Dispatch & Live-Tracking Verification Suite", () => 
     vehicleType: "Cab Premium",
     pickup: {
       address: "Connaught Place, New Delhi",
-      coordinates: [28.6304, 77.2177], // ~2 km away
+      coordinates: [28.6304, 77.2177],
     },
     petFriendly: false,
     rejectedDrivers: [],
   };
 
-  // ─────────────────────────────────────────────────────────────
-  // 1. Driver Eligibility Gates & Exclusivity Verification
-  // ─────────────────────────────────────────────────────────────
   describe("1. Driver Eligibility & Exclusivity Gates", () => {
     it("Valid unencumbered driver passes all eligibility gates", () => {
       const result = evaluateDriverEligibility(validDriverTemplate, validRideTemplate, { atTime: baseTime });
@@ -151,7 +147,6 @@ describe("Phase 7: Realtime Dispatch & Live-Tracking Verification Suite", () => 
           documentsVerified: true,
         },
       };
-      // Ride requires Cab Premium
       const res = evaluateDriverEligibility(ecoDriver, validRideTemplate, { atTime: baseTime });
       assert.equal(res.isEligible, false);
       assert.equal(res.code, "VEHICLE_INCOMPATIBLE");
@@ -174,7 +169,7 @@ describe("Phase 7: Realtime Dispatch & Live-Tracking Verification Suite", () => 
     it("Driver with stale location (> 120s) is strictly disqualified (LOCATION_STALE)", () => {
       const staleDriver: IDriverCandidate = {
         ...validDriverTemplate,
-        driverCoordinatesUpdatedAt: new Date("2026-10-13T11:57:00.000Z"), // 180s ago (> 120s TTL)
+        driverCoordinatesUpdatedAt: new Date("2026-10-13T11:57:00.000Z"),
       };
       const res = evaluateDriverEligibility(staleDriver, validRideTemplate, { atTime: baseTime });
       assert.equal(res.isEligible, false);
@@ -202,7 +197,7 @@ describe("Phase 7: Realtime Dispatch & Live-Tracking Verification Suite", () => 
     it("Driver outside configured max dispatch radius is disqualified (OUTSIDE_RADIUS)", () => {
       const farDriver: IDriverCandidate = {
         ...validDriverTemplate,
-        driverCoordinates: [28.4595, 77.0266], // Gurgaon (~25 km away)
+        driverCoordinates: [28.4595, 77.0266],
       };
       const res = evaluateDriverEligibility(farDriver, validRideTemplate, { atTime: baseTime, maxRadiusKm: 10 });
       assert.equal(res.isEligible, false);
@@ -225,9 +220,6 @@ describe("Phase 7: Realtime Dispatch & Live-Tracking Verification Suite", () => 
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // 2. Deterministic Candidate Ranking Rules
-  // ─────────────────────────────────────────────────────────────
   describe("2. Deterministic Candidate Ranking", () => {
     it("Preferred driver is prioritized first when eligible", () => {
       const candidate1: IDriverCandidate = { ...validDriverTemplate, _id: "driver_1", rating: 4.8 };
@@ -238,7 +230,7 @@ describe("Phase 7: Realtime Dispatch & Live-Tracking Verification Suite", () => 
           { driver: candidate1, distanceKm: 3.5 },
           { driver: candidate2, distanceKm: 1.2 },
         ],
-        "driver_1" // preferred
+        "driver_1"
       );
 
       assert.equal(ranked.length, 2);
@@ -249,9 +241,6 @@ describe("Phase 7: Realtime Dispatch & Live-Tracking Verification Suite", () => 
     });
 
     it("Ranks non-preferred candidates deterministically by proximity bucket (500m bands), rating, and ID", () => {
-      // Driver A: 1.1 km (bucket Math.floor(1.1*2) = 2), rating 4.9, id 'A'
-      // Driver B: 1.3 km (bucket Math.floor(1.3*2) = 2), rating 5.0, id 'B' -> Higher rating in same 500m bucket
-      // Driver C: 2.1 km (bucket Math.floor(2.1*2) = 4), rating 5.0, id 'C' -> Later bucket
       const driverA: IDriverCandidate = { ...validDriverTemplate, _id: "driver_A", rating: 4.9 };
       const driverB: IDriverCandidate = { ...validDriverTemplate, _id: "driver_B", rating: 5.0 };
       const driverC: IDriverCandidate = { ...validDriverTemplate, _id: "driver_C", rating: 5.0 };
@@ -263,10 +252,8 @@ describe("Phase 7: Realtime Dispatch & Live-Tracking Verification Suite", () => 
       ]);
 
       assert.equal(ranked.length, 3);
-      // In bucket 2 (1.0 - 1.5 km), driverB has rating 5.0 vs driverA rating 4.9 -> driverB wins
       assert.equal(ranked[0].driver._id, "driver_B");
       assert.equal(ranked[1].driver._id, "driver_A");
-      // Bucket 4 comes after bucket 2
       assert.equal(ranked[2].driver._id, "driver_C");
     });
 
@@ -285,33 +272,25 @@ describe("Phase 7: Realtime Dispatch & Live-Tracking Verification Suite", () => 
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // 3. Targeted Offers, Rejection, Expiry & Fallback Progression
-  // ─────────────────────────────────────────────────────────────
   describe("3. Targeted Offers, Expiry & Fallback Progression", () => {
     it("Validates offer expiration authoritatively against server time", () => {
-      const offerExpiry = new Date(baseTime.getTime() + 15000); // 15s in future
-      const pastTime = new Date(baseTime.getTime() + 16000); // 16s in future (expired)
+      const offerExpiry = new Date(baseTime.getTime() + 15000);
+      const pastTime = new Date(baseTime.getTime() + 16000);
 
       assert.ok(offerExpiry.getTime() > baseTime.getTime(), "Offer is initially active");
       assert.ok(offerExpiry.getTime() < pastTime.getTime(), "Offer is expired at pastTime");
     });
 
     it("Calculates Haversine straight-line distance truthfully without fabrication", () => {
-      // Delhi: Connaught Place [28.6304, 77.2177] to India Gate [28.6129, 77.2295]
       const dist = calculateHaversineDistanceKm([28.6304, 77.2177], [28.6129, 77.2295]);
       assert.ok(!isNaN(dist));
       assert.ok(dist >= 2.0 && dist <= 2.5, `Expected ~2.2 km, got ${dist} km`);
 
-      // Null or invalid coordinates return NaN
       assert.ok(isNaN(calculateHaversineDistanceKm([NaN, 0], [0, 0])));
       assert.ok(isNaN(calculateHaversineDistanceKm([0, 0] as any, undefined as any)));
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // 4. Atomic Ride State Machine & Concurrency Invariants
-  // ─────────────────────────────────────────────────────────────
   describe("4. Ride State Machine & Concurrency Invariants", () => {
     it("Validates canonical lifecycle transitions strictly", () => {
       assert.equal(canTransition("SEARCHING", "ACCEPTED"), true);
@@ -319,21 +298,17 @@ describe("Phase 7: Realtime Dispatch & Live-Tracking Verification Suite", () => 
       assert.equal(canTransition("ARRIVED", "IN_PROGRESS"), true);
       assert.equal(canTransition("IN_PROGRESS", "COMPLETED"), true);
 
-      // Cancellations
       assert.equal(canTransition("SEARCHING", "CANCELLED"), true);
       assert.equal(canTransition("ACCEPTED", "CANCELLED"), true);
       assert.equal(canTransition("ARRIVED", "CANCELLED"), true);
 
-      // Terminal states have zero allowed transitions
       assert.equal(canTransition("COMPLETED", "ACCEPTED"), false);
       assert.equal(canTransition("COMPLETED", "IN_PROGRESS"), false);
       assert.equal(canTransition("CANCELLED", "ACCEPTED"), false);
       assert.equal(canTransition("CANCELLED", "SEARCHING"), false);
 
-      // IN_PROGRESS cannot be cancelled
       assert.equal(canTransition("IN_PROGRESS", "CANCELLED"), false);
 
-      // Skips are disallowed
       assert.equal(canTransition("SEARCHING", "ARRIVED"), false);
       assert.equal(canTransition("SEARCHING", "IN_PROGRESS"), false);
       assert.equal(canTransition("SEARCHING", "COMPLETED"), false);
@@ -342,37 +317,32 @@ describe("Phase 7: Realtime Dispatch & Live-Tracking Verification Suite", () => 
 
     it("Scheduled rides strictly respect configured T-60 lead time dispatch window", () => {
       const now = new Date("2026-10-13T12:00:00.000Z");
-      const leadTimeMs = getDispatchLeadTimeMs(); // 60 mins = 3600000ms
+      const leadTimeMs = getDispatchLeadTimeMs();
 
-      // Scheduled for T+75 mins (outside window) -> Not dispatchable
       const futureRide = {
         status: "SEARCHING",
         scheduledFor: new Date("2026-10-13T13:15:00.000Z"),
       };
       assert.equal(isRideDispatchable(futureRide, now, leadTimeMs), false);
 
-      // Scheduled for exactly T+60 mins (boundary) -> Dispatchable
       const boundaryRide = {
         status: "SEARCHING",
         scheduledFor: new Date("2026-10-13T13:00:00.000Z"),
       };
       assert.equal(isRideDispatchable(boundaryRide, now, leadTimeMs), true);
 
-      // Scheduled for T+45 mins (inside window) -> Dispatchable
       const insideRide = {
         status: "SEARCHING",
         scheduledFor: new Date("2026-10-13T12:45:00.000Z"),
       };
       assert.equal(isRideDispatchable(insideRide, now, leadTimeMs), true);
 
-      // Instant rides (no scheduledFor) are always dispatchable
       const instantRide = {
         status: "SEARCHING",
         scheduledFor: null,
       };
       assert.equal(isRideDispatchable(instantRide, now, leadTimeMs), true);
 
-      // Already assigned or non-SEARCHING rides are never dispatchable
       assert.equal(
         isRideDispatchable({ status: "ACCEPTED", scheduledFor: null, driver: "d1" }, now, leadTimeMs),
         false
@@ -380,34 +350,29 @@ describe("Phase 7: Realtime Dispatch & Live-Tracking Verification Suite", () => 
     });
 
     it("Simulates atomic mutual exclusion for driver acceptance", async () => {
-      // Simulating atomic database findOneAndUpdate with condition { status: "SEARCHING", driver: null }
       let assignedDriver: string | null = null;
       let rideStatus = "SEARCHING";
 
       const acceptRideAtomic = async (driverId: string): Promise<boolean> => {
-        // Atomic compare-and-swap
         if (rideStatus === "SEARCHING" && assignedDriver === null) {
           rideStatus = "ACCEPTED";
           assignedDriver = driverId;
-          return true; // Won the assignment
+          return true;
         }
-        return false; // Lost CAS conflict
+        return false;
       };
 
-      // Two concurrent accept requests
       const [res1, res2] = await Promise.all([
         acceptRideAtomic("driver_A"),
         acceptRideAtomic("driver_B"),
       ]);
 
-      // Exactly one must win and one must lose
       assert.ok((res1 && !res2) || (!res1 && res2), "Exactly one concurrent driver must win");
       assert.equal(rideStatus, "ACCEPTED");
       assert.ok(assignedDriver === "driver_A" || assignedDriver === "driver_B");
     });
 
     it("Simulates driver exclusivity: single driver cannot accept two different active rides", async () => {
-      // Driver state in database with activeRideId guard
       let driverActiveRideId: string | null = null;
 
       const reserveDriverForRide = async (driverId: string, rideId: string): Promise<boolean> => {
@@ -415,7 +380,7 @@ describe("Phase 7: Realtime Dispatch & Live-Tracking Verification Suite", () => 
           driverActiveRideId = rideId;
           return true;
         }
-        return false; // Driver already occupied
+        return false;
       };
 
       const [res1, res2] = await Promise.all([
@@ -423,15 +388,11 @@ describe("Phase 7: Realtime Dispatch & Live-Tracking Verification Suite", () => 
         reserveDriverForRide("driver_1", "ride_BBB"),
       ]);
 
-      // Exactly one reservation must succeed
       assert.ok((res1 && !res2) || (!res1 && res2), "Driver cannot be assigned to two rides simultaneously");
       assert.ok(driverActiveRideId !== null);
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // 5. Real-Time Tracking, SSE Framing & Privacy Protection
-  // ─────────────────────────────────────────────────────────────
   describe("5. Live Tracking, SSE & Privacy Invariants", () => {
     const mockRideDoc: Partial<IRide> = {
       _id: new mongoose.Types.ObjectId(),
@@ -450,7 +411,7 @@ describe("Phase 7: Realtime Dispatch & Live-Tracking Verification Suite", () => 
         vehicleModel: "Tata Tigor EV",
       },
       driverCoordinates: [28.62, 77.215],
-      driverCoordinatesUpdatedAt: new Date("2026-10-13T11:59:45.000Z"), // 15s ago
+      driverCoordinatesUpdatedAt: new Date("2026-10-13T11:59:45.000Z"),
       trackingVersion: 4,
     };
 
@@ -478,24 +439,20 @@ describe("Phase 7: Realtime Dispatch & Live-Tracking Verification Suite", () => 
     it("Evaluates location freshness states accurately: FRESH, STALE, UNAVAILABLE, TERMINAL", () => {
       const coords: [number, number] = [28.62, 77.215];
 
-      // Fresh: updated 30s ago
       const fresh = evaluateLocationFreshness(coords, new Date("2026-10-13T11:59:30.000Z"), 120, baseTime);
       assert.equal(fresh.status, "FRESH");
       assert.equal(fresh.isFresh, true);
       assert.equal(fresh.ageSeconds, 30);
 
-      // Stale: updated 150s ago (> 120s)
       const stale = evaluateLocationFreshness(coords, new Date("2026-10-13T11:57:30.000Z"), 120, baseTime);
       assert.equal(stale.status, "STALE");
       assert.equal(stale.isFresh, false);
       assert.equal(stale.ageSeconds, 150);
 
-      // Unavailable: null updatedAt
       const unavail = evaluateLocationFreshness(coords, null, 120, baseTime);
       assert.equal(unavail.status, "UNAVAILABLE");
       assert.equal(unavail.isFresh, false);
 
-      // Terminal ride snapshot always marks location status TERMINAL
       const completedRide = { ...mockRideDoc, status: "COMPLETED" } as IRide;
       const termSnapshot = formatTrackingSnapshot(completedRide, "RIDER", baseTime);
       assert.equal(termSnapshot.locationStatus, "TERMINAL");
@@ -539,14 +496,13 @@ describe("Phase 7: Realtime Dispatch & Live-Tracking Verification Suite", () => 
       const outOfOrderUpdate = {
         _id: "ride_1",
         status: "ACCEPTED",
-        trackingVersion: 3, // older version received out of order
+        trackingVersion: 3,
         driverCoordinates: [28.61, 77.20] as [number, number],
       };
 
-      // Client updater monotonic guard logic
       const shouldApply = (cur: typeof currentRideState, incoming: typeof outOfOrderUpdate): boolean => {
         if (incoming.trackingVersion < cur.trackingVersion && !["COMPLETED", "CANCELLED"].includes(incoming.status)) {
-          return false; // Discard out-of-order update
+          return false;
         }
         return true;
       };
@@ -559,7 +515,6 @@ describe("Phase 7: Realtime Dispatch & Live-Tracking Verification Suite", () => 
       };
       assert.equal(shouldApply(currentRideState, newerUpdate), true);
 
-      // Terminal updates always apply regardless of version
       const terminalUpdate = {
         ...outOfOrderUpdate,
         status: "CANCELLED",
@@ -575,10 +530,10 @@ describe("Phase 7: Realtime Dispatch & Live-Tracking Verification Suite", () => 
         return incomingClientTime.getTime() < existingTime.getTime();
       };
 
-      const olderTime = new Date("2026-10-13T11:59:15.000Z"); // 15s older
+      const olderTime = new Date("2026-10-13T11:59:15.000Z");
       assert.equal(isOutOfOrder(olderTime, existingCoordinatesUpdatedAt), true);
 
-      const newerTime = new Date("2026-10-13T11:59:45.000Z"); // 15s newer
+      const newerTime = new Date("2026-10-13T11:59:45.000Z");
       assert.equal(isOutOfOrder(newerTime, existingCoordinatesUpdatedAt), false);
     });
   });

@@ -35,10 +35,6 @@ const SENSITIVE_KEYS = new Set([
   "webhooksecret",
 ]);
 
-/**
- * Recursively sanitizes payloads to ensure sensitive credentials, tokens,
- * and secrets are never persisted in the administrative audit log.
- */
 function sanitizePayload(obj: unknown, depth = 0): unknown {
   if (depth > 5 || obj === null || obj === undefined) {
     return obj;
@@ -61,9 +57,6 @@ function sanitizePayload(obj: unknown, depth = 0): unknown {
   return obj;
 }
 
-/**
- * Creates an append-only audit log entry for administrative actions.
- */
 export async function recordAdminAudit(params: ICreateAuditLogParams): Promise<IAdminAuditLog> {
   await dbConnect();
 

@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, CarFront, CalendarClock, Map,
@@ -40,15 +41,14 @@ const NAV_ITEMS = [
   },
 ];
 
-/* ── Dark Premium Sidebar Colors ─────────────────────────────────────── */
 const BG = "#042f2e";
 const BG_HOVER = "rgba(255, 255, 255, 0.08)";
 const BG_ACTIVE = "rgba(20, 184, 166, 0.16)";
 const BORDER = "rgba(255, 255, 255, 0.08)";
 const ACCENT = "#2dd4bf";
-const SECTION_LABEL = "#94a3b8"; // Clean readable neutral slate
-const TEXT_INACTIVE = "#cbd5e1"; // Crisp light slate text (not green)
-const TEXT_ACTIVE = "#ffffff";   // High-contrast pure white
+const SECTION_LABEL = "#94a3b8";
+const TEXT_INACTIVE = "#cbd5e1";
+const TEXT_ACTIVE = "#ffffff";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -78,7 +78,6 @@ export default function Sidebar() {
       className="relative h-screen flex flex-col shrink-0 transition-all duration-300 ease-in-out"
       style={{ width: collapsed ? "60px" : "250px", background: BG, borderRight: `1px solid ${BORDER}` }}
     >
-      {/* ── Collapse Toggle ─────────────── */}
       <button
         onClick={toggleSidebar}
         aria-label="Toggle sidebar"
@@ -106,25 +105,21 @@ export default function Sidebar() {
       >
         {collapsed ? <PanelLeftOpen size={13} /> : <PanelLeftClose size={13} />}
       </button>
-      {/* ── Logo ─────────────────────── */}
       <div
         className="flex items-center gap-3.5 h-20 px-5 shrink-0 overflow-hidden relative"
         style={{ borderBottom: `1px solid ${BORDER}` }}
       >
-        {/* Icon */}
         <div
           className="flex items-center justify-center shrink-0 rounded-xl overflow-hidden bg-white shadow-sm"
           style={{ width: 44, height: 44 }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/trimmed-logo.png" alt="Bhavo Logo" className="w-full h-full object-contain p-1" />
+          <Image src="/bhavo-logo.png" alt="Bhavo Logo" width={44} height={44} className="w-full h-full object-contain p-1" />
         </div>
 
         {!collapsed && (
           <div className="flex flex-col leading-none overflow-hidden group cursor-default">
             <span className="text-[26px] font-black tracking-tight flex items-center gap-1 relative bg-linear-to-r from-[#5eead4] via-[#ffffff] to-[#5eead4] bg-size-[200%_auto] bg-clip-text text-transparent animate-shine drop-shadow-[0_0_10px_rgba(45,212,191,0.6)]">
               BHAVO
-              {/* Vehicle Animation */}
               <CarFront size={18} className="text-[#2dd4bf] opacity-0 group-hover:opacity-100 transition-opacity absolute left-28 animate-drive" />
             </span>
             <span className="text-[11px] font-bold tracking-widest uppercase mt-1.5 text-slate-300">
@@ -134,11 +129,9 @@ export default function Sidebar() {
         )}
       </div>
 
-      {/* ── Nav ──────────────────────── */}
       <nav className="flex-1 overflow-y-auto no-scrollbar py-3">
         {NAV_ITEMS.map(({ section, links }) => (
           <div key={section} className="mb-1">
-            {/* Section Label */}
             {!collapsed && (
               <p
                 className="text-[10px] font-semibold uppercase tracking-widest px-4 pt-3 pb-1"
@@ -149,7 +142,6 @@ export default function Sidebar() {
             )}
             {collapsed && <div className="h-3" />}
 
-            {/* Links */}
             {links.map(({ name, href, icon: Icon }) => {
               const isActive = pathname.startsWith(href);
               return (
@@ -180,7 +172,6 @@ export default function Sidebar() {
                     <span className="text-[13px] font-medium flex-1">{name}</span>
                   )}
 
-                  {/* Active dot indicator */}
                   {isActive && !collapsed && (
                     <span
                       className="w-1.5 h-1.5 rounded-full shrink-0"
@@ -194,13 +185,11 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* ── User / Log Out Footer ─────── */}
       <div
         className="shrink-0 px-3 py-3"
         style={{ borderTop: `1px solid ${BORDER}` }}
       >
         {collapsed ? (
-          /* Collapsed: just avatar */
           <div className="flex justify-center">
             <Avatar className="w-8 h-8">
               <AvatarImage src={user?.avatar || undefined} alt={user?.name} />
@@ -210,9 +199,7 @@ export default function Sidebar() {
             </Avatar>
           </div>
         ) : (
-          /* Expanded: avatar row + Log Out below */
           <div className="flex flex-col gap-1.5">
-            {/* User row */}
             <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl" style={{ background: BG_HOVER, border: `1px solid ${BORDER}` }}>
               <Avatar className="w-8 h-8 shrink-0">
                 <AvatarImage src={user?.avatar || undefined} alt={user?.name} />
@@ -226,7 +213,6 @@ export default function Sidebar() {
               </div>
             </div>
 
-            {/* Log Out */}
             <button
               onClick={handleLogout}
               className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg w-full text-left transition-colors"

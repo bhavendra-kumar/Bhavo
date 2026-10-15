@@ -12,17 +12,6 @@ import {
 
 export const dynamic = "force-dynamic";
 
-/**
- * GET /api/driver/rides/[id]/stream
- *
- * Hardened Server-Sent Events (SSE) Stream for Assigned Driver Live Trip Sync (Phase 1E)
- * - Requires authenticated DRIVER session.
- * - Strict assignment verification (driver can stream only rides assigned to them).
- * - Emits immediate authoritative snapshot on connection.
- * - OTP is strictly excluded from driver stream payloads.
- * - Periodic keepalive comments to prevent proxy dropouts.
- * - Closes cleanly on client disconnect, completion, or cancellation.
- */
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -36,7 +25,6 @@ export async function GET(
       return new Response("Ride not found", { status: 404 });
     }
 
-    // Verify driver assignment immediately before establishing stream
     const initialRide = await Ride.findOne({ _id: id, driver: driverUser._id });
     if (!initialRide) {
       return new Response("Ride not found or not assigned to driver", { status: 404 });
@@ -65,7 +53,6 @@ export async function GET(
           cleanup();
         });
 
-        // 1. Send immediate authoritative snapshot upon connection
         try {
           controller.enqueue(
             encoder.encode(
@@ -77,13 +64,11 @@ export async function GET(
           return;
         }
 
-        // If ride is already terminal, close stream immediately
         if (isRideTerminal(initialRide.status)) {
           cleanup();
           return;
         }
 
-        // 2. Periodic sync interval (every 2000ms)
         const interval = setInterval(async () => {
           if (isClosed || req.signal.aborted) {
             clearInterval(interval);
@@ -132,7 +117,6 @@ export async function GET(
               controller.enqueue(encoder.encode(buildSseKeepalive()));
             }
 
-            // Cleanly close stream when ride reaches a terminal state
             if (snapshot.isTerminal) {
               clearInterval(interval);
               if (!isClosed) {

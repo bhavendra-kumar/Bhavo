@@ -16,13 +16,11 @@ export async function GET(req: Request) {
     await dbConnect();
     const user = await getDriverUser(req);
 
-    // Ensure documents exist and are strictly the 8 canonical documents
     user.driverDocuments = syncDriverDocuments(user.driverDocuments);
     await user.save();
 
     const verification = checkDriverVerification(user);
 
-    // If documents are not verified, enforce offline
     if (!verification.isVerified && user.isOnline) {
       user.isOnline = false;
       user.dutyState = "OFFLINE";
@@ -68,7 +66,6 @@ export async function PATCH(req: Request) {
 
     user.driverDocuments = syncDriverDocuments(user.driverDocuments);
 
-    // 1. Action: Reject driver self-verification bypass attempts
     if (action === "VERIFY_ALL") {
       return NextResponse.json(
         {
@@ -79,19 +76,16 @@ export async function PATCH(req: Request) {
         { status: 403 }
       );
     }
-    // 2. Action: Reset to Pending (Simulation of unverified state for testing)
     else if (action === "RESET_PENDING") {
       user.driverDocuments = user.driverDocuments.map((doc: IDriverDoc, idx: number) => ({
         name: doc.name,
         category: getDocCategory(doc.name, doc.category),
-        // Make DL and Helmets pending to demonstrate unverified duty lock
         status: (idx === 0 || idx === 7 ? "PENDING" : doc.status === "VERIFIED" ? "VERIFIED" : "PENDING") as "PENDING" | "VERIFIED",
         expiry: doc.expiry,
         docId: doc.docId,
         rejectionReason: null,
       }));
     }
-    // 3. Action: Toggle single document status (Drivers can only request re-verification, NEVER self-verify)
     else if (action === "TOGGLE_DOC_STATUS" && docName) {
       return NextResponse.json(
         {
@@ -102,7 +96,6 @@ export async function PATCH(req: Request) {
         { status: 403 }
       );
     }
-    // 4. Action: Update / Submit a single document (Always forces status to PENDING review)
     else if (action === "UPDATE_DOC" && docName && docData) {
       let found = false;
       user.driverDocuments = user.driverDocuments.map((doc: IDriverDoc) => {
@@ -112,7 +105,7 @@ export async function PATCH(req: Request) {
             ...doc,
             ...docData,
             category: getDocCategory(doc.name, docData.category || doc.category),
-            status: "PENDING" as const, // Strict: Driver submissions are ALWAYS pending compliance review
+            status: "PENDING" as const,
             updatedAt: new Date(),
           };
         }
@@ -130,7 +123,6 @@ export async function PATCH(req: Request) {
         });
       }
     }
-    // 5. Direct documents array replacement (Sanitize: force PENDING on any non-existing verified docs)
     else if (Array.isArray(documents)) {
       const existingDocStatusMap = new Map(
         user.driverDocuments.map((d: IDriverDoc) => [d.name, d.status])
@@ -138,15 +130,13 @@ export async function PATCH(req: Request) {
       user.driverDocuments = documents.map((doc: IDriverDoc) => ({
         ...doc,
         category: getDocCategory(doc.name, doc.category),
-        // A driver cannot elevate a document to VERIFIED if it wasn't already VERIFIED
         status: existingDocStatusMap.get(doc.name) === "VERIFIED" ? "VERIFIED" : "PENDING",
       }));
     }
 
-    // 6. Direct vehicle details update (strip any client-supplied documentsVerified)
     if (vehicleUpdate && typeof vehicleUpdate === "object") {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { documentsVerified: _ignored, ...safeVehicleUpdate } = vehicleUpdate;
+      const safeVehicleUpdate = { ...vehicleUpdate } as Record<string, unknown>;
+      delete safeVehicleUpdate.documentsVerified;
       user.driverVehicle = {
         ...user.driverVehicle,
         ...safeVehicleUpdate,
@@ -164,12 +154,10 @@ export async function PATCH(req: Request) {
       };
     }
 
-    // Always recalculate verification status after any change
     const verification = checkDriverVerification(user);
     if (!user.driverVehicle) user.driverVehicle = {};
     user.driverVehicle.documentsVerified = verification.isVerified;
 
-    // STRICT: If documents are now unverified, immediately force offline
     if (!verification.isVerified && user.isOnline) {
       user.isOnline = false;
       user.dutyState = "OFFLINE";

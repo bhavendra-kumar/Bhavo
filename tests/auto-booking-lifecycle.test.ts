@@ -21,9 +21,6 @@ import Commute from "../src/models/Commute";
 describe("Phase 6: Auto Booking Engine & Lifecycle Verification Tests", () => {
   const dummyCommuteId = new mongoose.Types.ObjectId("6529ab81c9a1240012345678");
 
-  // ─────────────────────────────────────────────────────────────
-  // 1. Recurrence Calculation & Schedule Correctness
-  // ─────────────────────────────────────────────────────────────
   describe("1. Canonical Weekday & Recurrence Correctness", () => {
     it("Resolves all valid representations to canonical 3-letter capitalized weekday names", () => {
       assert.equal(getCanonicalWeekdayName("monday"), "Mon");
@@ -48,23 +45,19 @@ describe("Phase 6: Auto Booking Engine & Lifecycle Verification Tests", () => {
     });
 
     it("Supports both 12-hour and 24-hour inputs for morning and evening schedules", () => {
-      // Morning schedules
       assert.deepEqual(parseCommuteTime("8:30 AM"), { hours: 8, minutes: 30 });
       assert.deepEqual(parseCommuteTime("08:30 AM"), { hours: 8, minutes: 30 });
       assert.deepEqual(parseCommuteTime("08:30"), { hours: 8, minutes: 30 });
 
-      // Evening schedules
       assert.deepEqual(parseCommuteTime("6:45 PM"), { hours: 18, minutes: 45 });
       assert.deepEqual(parseCommuteTime("06:45 PM"), { hours: 18, minutes: 45 });
       assert.deepEqual(parseCommuteTime("18:45"), { hours: 18, minutes: 45 });
 
-      // Midnight & Noon boundaries
       assert.deepEqual(parseCommuteTime("12:00 AM"), { hours: 0, minutes: 0 });
       assert.deepEqual(parseCommuteTime("00:00"), { hours: 0, minutes: 0 });
       assert.deepEqual(parseCommuteTime("12:00 PM"), { hours: 12, minutes: 0 });
       assert.deepEqual(parseCommuteTime("12:00"), { hours: 12, minutes: 0 });
 
-      // End of day boundary
       assert.deepEqual(parseCommuteTime("11:59 PM"), { hours: 23, minutes: 59 });
       assert.deepEqual(parseCommuteTime("23:59"), { hours: 23, minutes: 59 });
     });
@@ -79,24 +72,19 @@ describe("Phase 6: Auto Booking Engine & Lifecycle Verification Tests", () => {
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // 2. IST Boundaries, Date Changes & Month Transitions
-  // ─────────────────────────────────────────────────────────────
   describe("2. IST Timezone Invariance & Boundary Transitions", () => {
     it("Calculates correct IST calendar components across month and year boundaries", () => {
-      // Month transition: March 31 23:45 IST (18:15 UTC)
       const endOfMarchUtc = new Date(Date.UTC(2026, 2, 31, 18, 15, 0));
       const marchComps = getIstDateComponents(endOfMarchUtc);
       assert.equal(marchComps.year, 2026);
-      assert.equal(marchComps.month, 2); // March (0-indexed 2)
+      assert.equal(marchComps.month, 2);
       assert.equal(marchComps.day, 31);
       assert.equal(marchComps.formattedDate, "2026-03-31");
 
-      // 45 minutes later: April 1 00:30 IST (19:00 UTC)
       const startOfAprilUtc = new Date(endOfMarchUtc.getTime() + 45 * 60 * 1000);
       const aprilComps = getIstDateComponents(startOfAprilUtc);
       assert.equal(aprilComps.year, 2026);
-      assert.equal(aprilComps.month, 3); // April (0-indexed 3)
+      assert.equal(aprilComps.month, 3);
       assert.equal(aprilComps.day, 1);
       assert.equal(aprilComps.formattedDate, "2026-04-01");
     });
@@ -113,12 +101,10 @@ describe("Phase 6: Auto Booking Engine & Lifecycle Verification Tests", () => {
     });
 
     it("Handles week transition accurately: Sunday evening into Monday morning", () => {
-      // Sunday 11:30 PM IST (18:00 UTC Sunday)
       const sundayNight = buildIstTimestamp(2026, 9, 11, 23, 30);
       const sundayComps = getIstDateComponents(sundayNight);
-      assert.equal(sundayComps.weekday, 0); // Sunday
+      assert.equal(sundayComps.weekday, 0);
 
-      // Commute is scheduled for Monday at 08:30 AM
       const commute = {
         _id: dummyCommuteId,
         time: "08:30 AM",
@@ -126,7 +112,6 @@ describe("Phase 6: Auto Booking Engine & Lifecycle Verification Tests", () => {
         isActive: true,
       };
 
-      // With 12-hour lookahead (720m), Monday 8:30 AM (9 hours away) must be detected
       const candidates = calculateUpcomingOccurrences(commute, sundayNight, 720);
       assert.equal(candidates.length, 1);
       assert.equal(candidates[0].dateKey, "2026-10-12");
@@ -134,15 +119,10 @@ describe("Phase 6: Auto Booking Engine & Lifecycle Verification Tests", () => {
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // 3. Dynamic Horizon Lookahead & Boundary Precision
-  // ─────────────────────────────────────────────────────────────
   describe("3. Lookahead Window Boundary Precision", () => {
     it("Dynamically scans beyond 2 days when lookahead is configured up to 7 days", () => {
-      // Base time: Monday 9:00 AM IST
       const now = buildIstTimestamp(2026, 9, 12, 9, 0);
 
-      // Commute scheduled ONLY for Friday at 9:00 AM (4 days later = 96 hours)
       const fridayCommute = {
         _id: dummyCommuteId,
         time: "09:00 AM",
@@ -150,22 +130,18 @@ describe("Phase 6: Auto Booking Engine & Lifecycle Verification Tests", () => {
         isActive: true,
       };
 
-      // With default 180m window, Friday is far outside
       const shortCandidates = calculateUpcomingOccurrences(fridayCommute, now, 180);
       assert.equal(shortCandidates.length, 0);
 
-      // With 5-day lookahead window (7200 minutes = 120 hours), Friday occurrence is discovered!
       const extendedCandidates = calculateUpcomingOccurrences(fridayCommute, now, 7200);
       assert.equal(extendedCandidates.length, 1);
-      assert.equal(extendedCandidates[0].dateKey, "2026-10-16"); // Friday
+      assert.equal(extendedCandidates[0].dateKey, "2026-10-16");
       assert.equal(extendedCandidates[0].isPast, false);
     });
 
     it("Respects exact lookahead boundary: inclusion at T <= now + lookahead, exclusion at T > now + lookahead", () => {
-      // Current time: 10:00 AM IST
       const now = buildIstTimestamp(2026, 9, 12, 10, 0);
 
-      // Occurrence at exactly 1:00 PM IST (180 minutes away)
       const exactly180Commute = {
         _id: dummyCommuteId,
         time: "01:00 PM",
@@ -175,7 +151,6 @@ describe("Phase 6: Auto Booking Engine & Lifecycle Verification Tests", () => {
       const exactly180Candidates = calculateUpcomingOccurrences(exactly180Commute, now, 180);
       assert.equal(exactly180Candidates.length, 1, "Exactly on 180m boundary must be included");
 
-      // Occurrence at 1:01 PM IST (181 minutes away)
       const beyond180Commute = {
         _id: dummyCommuteId,
         time: "01:01 PM",
@@ -187,13 +162,9 @@ describe("Phase 6: Auto Booking Engine & Lifecycle Verification Tests", () => {
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // 4. Separation between T-180 Materialization and T-60 Dispatch
-  // ─────────────────────────────────────────────────────────────
   describe("4. T-180 Materialization vs T-60 Dispatch Separation", () => {
     it("Verifies scheduled ride state machine prevents driver dispatch until T-60 minutes", () => {
       const now = new Date("2026-10-12T06:00:00.000Z");
-      // Ride materialized 180 minutes before departure (09:00:00 UTC)
       const scheduledPickup = new Date("2026-10-12T09:00:00.000Z");
 
       const mockRide = {
@@ -201,19 +172,15 @@ describe("Phase 6: Auto Booking Engine & Lifecycle Verification Tests", () => {
         scheduledFor: scheduledPickup,
       };
 
-      // At T-180m (06:00 UTC): NOT eligible for driver dispatch
       const eligibleAtT180 = isRideDispatchable(mockRide, now);
       assert.equal(eligibleAtT180, false, "Materialized ride at T-180m must not be offered to drivers");
 
-      // At T-120m (07:00 UTC): Still NOT eligible
       const atT120 = new Date("2026-10-12T07:00:00.000Z");
       assert.equal(isRideDispatchable(mockRide, atT120), false);
 
-      // At T-60m boundary (08:00 UTC): BECOMES eligible for dispatch!
       const atT60 = new Date("2026-10-12T08:00:00.000Z");
       assert.equal(isRideDispatchable(mockRide, atT60), true, "Ride becomes dispatch-eligible at T-60 boundary");
 
-      // Inside dispatch window at T-30m (08:30 UTC): remains eligible
       const atT30 = new Date("2026-10-12T08:30:00.000Z");
       assert.equal(isRideDispatchable(mockRide, atT30), true);
     });
@@ -225,9 +192,6 @@ describe("Phase 6: Auto Booking Engine & Lifecycle Verification Tests", () => {
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // 5. Idempotency, Lease Safety & Worker Crash Recovery
-  // ─────────────────────────────────────────────────────────────
   describe("5. Idempotency, Atomic Leases & Crash Recovery Invariants", () => {
     it("Simulates atomic lease claiming preventing double generation under concurrent workers", () => {
       interface MockOccurrence {
@@ -253,7 +217,6 @@ describe("Phase 6: Auto Booking Engine & Lifecycle Verification Tests", () => {
         rideId: null,
       });
 
-      // Atomic claim simulation matching AutoBookingOccurrence.findOneAndUpdate logic
       function tryClaim(occKey: string, leaseId: string, nowMs: number, ttlMs: number) {
         const record = store.get(occKey);
         if (!record) return null;
@@ -278,7 +241,6 @@ describe("Phase 6: Auto Booking Engine & Lifecycle Verification Tests", () => {
       }
 
       const now = 1000000;
-      // Worker 1 and Worker 2 race
       const w1 = tryClaim(key, "worker-1", now, 60000);
       const w2 = tryClaim(key, "worker-2", now, 60000);
 
@@ -286,7 +248,6 @@ describe("Phase 6: Auto Booking Engine & Lifecycle Verification Tests", () => {
       assert.equal(w2, null, "Worker 2 cannot claim active lease");
       assert.equal(store.get(key)?.attemptCount, 1);
 
-      // Lease expires after 61s without completion (Worker 1 crash simulation)
       const afterCrash = now + 61000;
       const w3 = tryClaim(key, "worker-3", afterCrash, 60000);
       assert.ok(w3 !== null, "Worker 3 successfully reclaims expired lease");
@@ -309,7 +270,7 @@ describe("Phase 6: Auto Booking Engine & Lifecycle Verification Tests", () => {
         maxAttempts: 3,
       };
 
-      const now = 2000; // Lease expired
+      const now = 2000;
       const canReclaim =
         occ.status === "CLAIMED" &&
         occ.leaseExpiresAt < now &&
@@ -319,7 +280,6 @@ describe("Phase 6: Auto Booking Engine & Lifecycle Verification Tests", () => {
     });
 
     it("Reconciliation handles worker crash after Ride.create before AutoBookingOccurrence finalize", () => {
-      // Scenario: Ride document exists in DB, but AutoBookingOccurrence has rideId: null
       const existingRide = {
         _id: new mongoose.Types.ObjectId("6529ab81c9a1240012347777"),
         autoBookingOccurrenceKey: "commute_99:2026-10-12_0845",
@@ -335,11 +295,9 @@ describe("Phase 6: Auto Booking Engine & Lifecycle Verification Tests", () => {
         rideId: null,
       };
 
-      // Recovery step checks Ride.findOne({ autoBookingOccurrenceKey })
       const reconciled = existingRide.autoBookingOccurrenceKey === occurrenceRecord.occurrenceKey;
       assert.ok(reconciled);
 
-      // Updates occurrence to MATERIALIZED and links rideId
       occurrenceRecord.status = "MATERIALIZED";
       occurrenceRecord.rideId = existingRide._id.toString();
 
@@ -348,9 +306,6 @@ describe("Phase 6: Auto Booking Engine & Lifecycle Verification Tests", () => {
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // 6. Commute Lifecycle, Pausing & Inactive State
-  // ─────────────────────────────────────────────────────────────
   describe("6. Commute Lifecycle & Rider Changes", () => {
     it("Inactive/paused commute produces zero candidate occurrences", () => {
       const now = buildIstTimestamp(2026, 9, 12, 8, 0);
@@ -378,7 +333,6 @@ describe("Phase 6: Auto Booking Engine & Lifecycle Verification Tests", () => {
         status: "SEARCHING",
       };
 
-      // Rider later changes departure time on commute to 09:30 AM
       const updatedCommute = {
         _id: dummyCommuteId,
         time: "09:30 AM",
@@ -389,21 +343,17 @@ describe("Phase 6: Auto Booking Engine & Lifecycle Verification Tests", () => {
       const now = buildIstTimestamp(2026, 9, 12, 7, 0);
       const newCandidates = calculateUpcomingOccurrences(updatedCommute, now, 180);
 
-      // New occurrence key is distinct: does not overwrite original ride
       assert.equal(newCandidates[0].occurrenceKey, `${dummyCommuteId}:2026-10-12_0930`);
       assert.notEqual(newCandidates[0].occurrenceKey, originalRide.autoBookingOccurrenceKey);
       assert.equal(originalRide.status, "SEARCHING");
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // 7. Pricing Engine Integration & Integer Paise Fares
-  // ─────────────────────────────────────────────────────────────
   describe("7. Pricing Invariants & Integer Paise Fares", () => {
     it("Materialized ride fare retains server-authoritative integer paise calculation", () => {
       const fare = calculateAuthoritativeFare({
-        pickupCoordinates: [28.6139, 77.2090], // Connaught Place
-        dropoffCoordinates: [28.5355, 77.3910], // DLF Cyber City (~25km)
+        pickupCoordinates: [28.6139, 77.2090],
+        dropoffCoordinates: [28.5355, 77.3910],
         vehicleType: "Cab Premium",
         petFriendly: false,
       });
@@ -417,7 +367,6 @@ describe("Phase 6: Auto Booking Engine & Lifecycle Verification Tests", () => {
     });
 
     it("Client-supplied fare is ignored: server-authoritative fare is strictly preserved", () => {
-      // Simulating a malicious client attempting to inject fare = 1 rupee
       const clientSuppliedFare = 1;
 
       const serverFare = calculateAuthoritativeFare({
@@ -432,9 +381,6 @@ describe("Phase 6: Auto Booking Engine & Lifecycle Verification Tests", () => {
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // 8. Error Classification & Fault Isolation
-  // ─────────────────────────────────────────────────────────────
   describe("8. Error Classification & Fault Isolation", () => {
     it("Permanently fails when commute pickup or dropoff address is missing", () => {
       const invalidCommute = {

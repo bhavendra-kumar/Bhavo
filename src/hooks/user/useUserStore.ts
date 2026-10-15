@@ -4,7 +4,7 @@ interface UserState {
   isSidebarCollapsed: boolean;
   toggleSidebar: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
-  
+
   user: {
     id: string;
     name: string;
@@ -22,10 +22,10 @@ export const useUserStore = create<UserState>((set) => ({
   isSidebarCollapsed: false,
   toggleSidebar: () => set((state) => ({ isSidebarCollapsed: !state.isSidebarCollapsed })),
   setSidebarCollapsed: (collapsed) => set({ isSidebarCollapsed: collapsed }),
-  
+
   user: null,
   loading: true,
-  
+
   fetchUser: async () => {
     try {
       const res = await fetch("/api/user/profile");

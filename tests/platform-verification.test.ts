@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import mongoose from "mongoose";
@@ -75,9 +74,6 @@ describe("Phase 8: Comprehensive Platform Verification & Quality Assurance Suite
   const dummyAdminId = new mongoose.Types.ObjectId("6529ab81c9a1240033333333");
   const dummyRideId = new mongoose.Types.ObjectId("6529ab81c9a1240044444444");
 
-  // ─────────────────────────────────────────────────────────────
-  // 1. Authentication, Role Security & Privilege Boundaries
-  // ─────────────────────────────────────────────────────────────
   describe("1. Authentication, Role Security & Privilege Boundaries (Security & Integration)", () => {
     it("Public registration schema validates required fields and password length", () => {
       const valid = registerSchema.safeParse({
@@ -103,9 +99,7 @@ describe("Phase 8: Comprehensive Platform Verification & Quality Assurance Suite
     });
 
     it("Registration role cannot be manipulated by client (strictly forces RIDER)", () => {
-      // Simulating public registration logic
       const processRegistration = (payload: { role?: string }) => {
-        // Production logic ignores client-supplied role regardless of input
         void payload;
         const assignedRole = "RIDER";
         return assignedRole;
@@ -148,7 +142,7 @@ describe("Phase 8: Comprehensive Platform Verification & Quality Assurance Suite
       });
 
       const payload = await verifyAuthToken(token);
-      const activeUserTokenVersion = 2; // Incremented on logout/suspension
+      const activeUserTokenVersion = 2;
 
       const isRevoked = payload.tokenVersion !== activeUserTokenVersion;
       assert.equal(isRevoked, true, "Old tokenVersion must be treated as revoked");
@@ -189,7 +183,6 @@ describe("Phase 8: Comprehensive Platform Verification & Quality Assurance Suite
       assert.equal((await limiter.check(key)).allowed, true);
       await limiter.recordFailure(key, 60000);
 
-      // 4th check must be throttled
       const check4 = await limiter.check(key);
       assert.equal(check4.allowed, false);
       assert.ok(check4.retryAfterSeconds! > 0);
@@ -213,12 +206,9 @@ describe("Phase 8: Comprehensive Platform Verification & Quality Assurance Suite
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // 2. Rider Workflows, Fares & Ownership Boundaries
-  // ─────────────────────────────────────────────────────────────
   describe("2. Rider Workflows, Fares & Ownership Boundaries (API Integration & Domain)", () => {
-    const cpCoords: [number, number] = [28.6304, 77.2177]; // Connaught Place
-    const airportCoords: [number, number] = [28.5562, 77.1000]; // IGI Airport (~15 km)
+    const cpCoords: [number, number] = [28.6304, 77.2177];
+    const airportCoords: [number, number] = [28.5562, 77.1000];
 
     it("Authoritative integer-paise fare computation for all supported vehicle categories", () => {
       const vehicleTypes = ["Cab Economy", "Cab Premium", "Cab XL", "Auto", "Bike"];
@@ -279,7 +269,7 @@ describe("Phase 8: Comprehensive Platform Verification & Quality Assurance Suite
       assert.throws(
         () => {
           calculateAuthoritativeFare({
-            pickupCoordinates: [95, 77.2], // lat > 90
+            pickupCoordinates: [95, 77.2],
             dropoffCoordinates: airportCoords,
             vehicleType: "Cab Economy",
           });
@@ -314,7 +304,6 @@ describe("Phase 8: Comprehensive Platform Verification & Quality Assurance Suite
       assert.equal(canTransition("ACCEPTED", "CANCELLED"), true);
       assert.equal(canTransition("ARRIVED", "CANCELLED"), true);
 
-      // Forbidden once ride is in progress or completed
       assert.equal(canTransition("IN_PROGRESS", "CANCELLED"), false);
       assert.equal(canTransition("COMPLETED", "CANCELLED"), false);
     });
@@ -343,9 +332,6 @@ describe("Phase 8: Comprehensive Platform Verification & Quality Assurance Suite
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // 3. Driver Compliance, Duty & Active-Ride Exclusivity
-  // ─────────────────────────────────────────────────────────────
   describe("3. Driver Compliance, Duty & Exclusivity (API Integration & Concurrency)", () => {
     it("Canonical document synchronization guarantees all 8 required documents exist", () => {
       const docs = syncDriverDocuments([]);
@@ -403,8 +389,8 @@ describe("Phase 8: Comprehensive Platform Verification & Quality Assurance Suite
         role: "DRIVER",
         status: "ACTIVE",
         isOnline: true,
-        dutyState: "ONLINE_SEARCHING", // Even if dutyState hasn't flipped yet
-        activeRideId: dummyRideId.toString(), // Holding active lock
+        dutyState: "ONLINE_SEARCHING",
+        activeRideId: dummyRideId.toString(),
         driverCoordinates: [28.6139, 77.209],
         driverCoordinatesUpdatedAt: new Date(baseTime.getTime() - 20000),
         driverVehicle: { type: "Cab Premium", documentsVerified: true },
@@ -444,40 +430,31 @@ describe("Phase 8: Comprehensive Platform Verification & Quality Assurance Suite
       const limiter = new InMemoryRateLimiter(60, 60000);
       const driverIdStr = dummyDriverId.toString();
 
-      // First 60 updates within a minute are allowed
       for (let i = 0; i < 60; i++) {
         const check = await limiter.check(driverIdStr);
         assert.equal(check.allowed, true);
         await limiter.recordFailure(driverIdStr, 60000);
       }
 
-      // 61st update must be throttled
       const check61 = await limiter.check(driverIdStr);
       assert.equal(check61.allowed, false);
       assert.ok(check61.retryAfterSeconds! > 0);
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // 4. Financial Integrity, Cash Collection & Razorpay Invariants
-  // ─────────────────────────────────────────────────────────────
   describe("4. Financial Integrity & Gateway Integration (Financial & Security)", () => {
     it("Razorpay live payment gateway is strictly disabled by default for Phase 2 Pilot", () => {
-      // With empty or absent env var
       delete process.env.LIVE_PAYMENTS_ENABLED;
       assert.equal(isLivePaymentEnabled(), false, "Gateway must be disabled by default");
 
-      // With explicit "false"
       process.env.LIVE_PAYMENTS_ENABLED = "false";
       assert.equal(isLivePaymentEnabled(), false);
 
-      // Only explicit "true" with valid key and secret enables it
       process.env.LIVE_PAYMENTS_ENABLED = "true";
       process.env.RAZORPAY_KEY_ID = "rzp_test_valid_key_123456";
       process.env.RAZORPAY_KEY_SECRET = "rzp_test_secret_1234567890123456";
       assert.equal(isLivePaymentEnabled(), true);
 
-      // Cleanup
       delete process.env.LIVE_PAYMENTS_ENABLED;
       delete process.env.RAZORPAY_KEY_ID;
       delete process.env.RAZORPAY_KEY_SECRET;
@@ -552,9 +529,6 @@ describe("Phase 8: Comprehensive Platform Verification & Quality Assurance Suite
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // 5. Auto Booking Engine & Commute Recurrence Invariants
-  // ─────────────────────────────────────────────────────────────
   describe("5. Auto Booking Engine & Recurrence Invariants (Domain & Integration)", () => {
     it("parseCommuteTime validates 12-hour and 24-hour formats and extracts minutes correctly", () => {
       const t1 = parseCommuteTime("08:30 AM");
@@ -605,26 +579,20 @@ describe("Phase 8: Comprehensive Platform Verification & Quality Assurance Suite
 
     it("Enforces distinction between Auto Booking materialization (T-180) and dispatch lead time (T-60)", () => {
       const now = new Date("2026-10-13T09:00:00.000Z");
-      const dispatchLeadTimeMs = getDispatchLeadTimeMs(); // 60 mins
+      const dispatchLeadTimeMs = getDispatchLeadTimeMs();
 
-      // Materialized ride for T+120 mins (created ahead of time)
       const scheduledRide = {
         status: "SEARCHING",
-        scheduledFor: new Date("2026-10-13T11:00:00.000Z"), // 120 mins in future
+        scheduledFor: new Date("2026-10-13T11:00:00.000Z"),
       };
 
-      // Outside dispatch window -> CANNOT be dispatched yet
       assert.equal(isRideDispatchable(scheduledRide, now, dispatchLeadTimeMs), false);
 
-      // Same ride at T-45 mins (inside 60 min window)
       const laterNow = new Date("2026-10-13T10:15:00.000Z");
       assert.equal(isRideDispatchable(scheduledRide, laterNow, dispatchLeadTimeMs), true);
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // 6. Realtime Tracking, SSE Framing & Out-of-Order Telemetry
-  // ─────────────────────────────────────────────────────────────
   describe("6. Realtime Tracking, SSE & Out-of-Order Telemetry (Reliability & Security)", () => {
     it("buildSseMessage formats typed event frames with id, event, and JSON data", () => {
       const data = { rideId: dummyRideId.toString(), status: "ACCEPTED", trackingVersion: 3 };
@@ -644,19 +612,16 @@ describe("Phase 8: Comprehensive Platform Verification & Quality Assurance Suite
     it("Location freshness evaluates accurately against configured TTL", () => {
       const coords: [number, number] = [28.6139, 77.209];
 
-      // Fresh: 45s ago (<= 120s TTL)
       const fresh = evaluateLocationFreshness(coords, new Date(baseTime.getTime() - 45000), 120, baseTime);
       assert.equal(fresh.status, "FRESH");
       assert.equal(fresh.isFresh, true);
       assert.equal(fresh.ageSeconds, 45);
 
-      // Stale: 130s ago (> 120s TTL)
       const stale = evaluateLocationFreshness(coords, new Date(baseTime.getTime() - 130000), 120, baseTime);
       assert.equal(stale.status, "STALE");
       assert.equal(stale.isFresh, false);
       assert.equal(stale.ageSeconds, 130);
 
-      // Unavailable: null updatedAt
       const unavail = evaluateLocationFreshness(coords, null, 120, baseTime);
       assert.equal(unavail.status, "UNAVAILABLE");
       assert.equal(unavail.isFresh, false);
@@ -669,10 +634,10 @@ describe("Phase 8: Comprehensive Platform Verification & Quality Assurance Suite
         return clientTime.getTime() >= existingTime.getTime();
       };
 
-      const olderTime = new Date("2026-10-13T12:00:15.000Z"); // 15s older
+      const olderTime = new Date("2026-10-13T12:00:15.000Z");
       assert.equal(validateTelemetryOrder(olderTime, existingCoordinatesUpdatedAt), false);
 
-      const newerTime = new Date("2026-10-13T12:00:45.000Z"); // 15s newer
+      const newerTime = new Date("2026-10-13T12:00:45.000Z");
       assert.equal(validateTelemetryOrder(newerTime, existingCoordinatesUpdatedAt), true);
     });
 
@@ -721,9 +686,6 @@ describe("Phase 8: Comprehensive Platform Verification & Quality Assurance Suite
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // 7. Admin Governance, Audit Logs & Driver Suspension Safeguards
-  // ─────────────────────────────────────────────────────────────
   describe("7. Admin Governance & Suspension Safeguards (Security & Integration)", () => {
     it("Admin role verification strictly requires ADMIN role and rejects RIDER and DRIVER", () => {
       const checkAdmin = (role: string) => {
@@ -740,7 +702,7 @@ describe("Phase 8: Comprehensive Platform Verification & Quality Assurance Suite
 
     it("Admin self-suspension is strictly blocked (preventing administrator lockout)", () => {
       const adminId = dummyAdminId.toString();
-      const targetUserId = dummyAdminId.toString(); // Same admin
+      const targetUserId = dummyAdminId.toString();
 
       const canSuspend = (adminCallerId: string, targetId: string) => {
         if (adminCallerId === targetId) {
@@ -780,28 +742,21 @@ describe("Phase 8: Comprehensive Platform Verification & Quality Assurance Suite
         return { success: true };
       };
 
-      // Driver with activeRideId
       const res1 = canSuspendDriver({ activeRideId: dummyRideId.toString() }, null);
       assert.equal(res1.statusCode, 409);
       assert.equal(res1.error, "DRIVER_HAS_ACCEPTED_RIDE");
 
-      // Driver on in-progress trip
       const res2 = canSuspendDriver({ activeRideId: dummyRideId.toString() }, { status: "IN_PROGRESS" });
       assert.equal(res2.statusCode, 409);
       assert.equal(res2.error, "DRIVER_ON_ACTIVE_TRIP");
 
-      // Free driver with no active ride
       const res3 = canSuspendDriver({ activeRideId: null }, null);
       assert.equal(res3.success, true);
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // 8. End-to-End Multi-Actor Lifecycle & State Traversal
-  // ─────────────────────────────────────────────────────────────
   describe("8. End-to-End Multi-Actor Lifecycle & State Traversal (Workflow Integration)", () => {
     it("Complete Golden Path Journey: Booking -> Ranking -> Offer -> Accept -> Arrived -> Start -> Complete -> Cash Collect", () => {
-      // Step 1: Rider creates booking with authoritative fare
       const fare = calculateAuthoritativeFare({
         pickupCoordinates: [28.6304, 77.2177],
         dropoffCoordinates: [28.5562, 77.1000],
@@ -826,7 +781,6 @@ describe("Phase 8: Comprehensive Platform Verification & Quality Assurance Suite
       };
       assert.equal(rideState.status, "SEARCHING");
 
-      // Step 2: Driver Candidate Discovery & Ranking
       const candidateDriver: IDriverCandidate = {
         _id: dummyDriverId.toString(),
         role: "DRIVER",
@@ -847,7 +801,6 @@ describe("Phase 8: Comprehensive Platform Verification & Quality Assurance Suite
       }, { atTime: baseTime });
       assert.equal(eligibility.isEligible, true);
 
-      // Step 3: Targeted Offer Assignment
       const offerId = crypto.randomUUID();
       const expiresAt = new Date(baseTime.getTime() + 15000);
       rideState.currentOffer = {
@@ -859,7 +812,6 @@ describe("Phase 8: Comprehensive Platform Verification & Quality Assurance Suite
       rideState.dispatchAttempts = 1;
       assert.equal(rideState.currentOffer.driverId, candidateDriver._id);
 
-      // Step 4: Driver Accepts Offer Atomically
       assert.equal(canTransition(rideState.status as any, "ACCEPTED"), true);
       rideState.status = "ACCEPTED";
       rideState.driver = candidateDriver._id;
@@ -869,19 +821,16 @@ describe("Phase 8: Comprehensive Platform Verification & Quality Assurance Suite
       assert.equal(rideState.status, "ACCEPTED");
       assert.equal(candidateDriver.activeRideId, rideState._id);
 
-      // Step 5: Driver Marks Arrived
       assert.equal(canTransition(rideState.status as any, "ARRIVED"), true);
       rideState.status = "ARRIVED";
       assert.equal(rideState.status, "ARRIVED");
 
-      // Step 6: Driver Enters Rider OTP & Starts Trip
       const enteredOtp = "4829";
       assert.equal(enteredOtp === rideState.otp, true);
       assert.equal(canTransition(rideState.status as any, "IN_PROGRESS"), true);
       rideState.status = "IN_PROGRESS";
       assert.equal(rideState.status, "IN_PROGRESS");
 
-      // Step 7: Driver Completes Trip -> Enters PENDING_COLLECTION (Not PAID)
       assert.equal(canTransition(rideState.status as any, "COMPLETED"), true);
       rideState.status = "COMPLETED";
       rideState.paymentStatus = "PENDING_COLLECTION";
@@ -891,7 +840,6 @@ describe("Phase 8: Comprehensive Platform Verification & Quality Assurance Suite
       assert.equal(rideState.paymentStatus, "PENDING_COLLECTION");
       assert.equal(candidateDriver.activeRideId, null);
 
-      // Step 8: Driver Confirms Physical Cash Collection
       rideState.paymentStatus = "COLLECTED";
       const ledgerKey = generateLedgerIdempotencyKey("RIDE", rideState._id, "CASH_COLLECTED", 1);
       assert.ok(ledgerKey.includes("cash_collected"));
@@ -911,11 +859,9 @@ describe("Phase 8: Comprehensive Platform Verification & Quality Assurance Suite
         driver: dummyDriverId.toString(),
       };
 
-      // Rider cancels
       assert.equal(canTransition(rideObj.status as any, "CANCELLED"), true);
       rideObj.status = "CANCELLED";
 
-      // Driver reservation release logic
       driverObj.dutyState = driverObj.isOnline ? "ONLINE_SEARCHING" : "OFFLINE";
       driverObj.activeRideId = null;
 

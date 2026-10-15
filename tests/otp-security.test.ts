@@ -2,7 +2,6 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 describe("Phase 1A: OTP Security & Verification Tests", () => {
-  // Logic matching the hardened ride start OTP verification in src/app/api/driver/rides/route.ts
   const verifyRideStartOtp = (actualRideOtp: string, enteredOtp: unknown) => {
     const cleanOtp = String(enteredOtp || "").trim();
     if (!cleanOtp) {
@@ -14,7 +13,6 @@ describe("Phase 1A: OTP Security & Verification Tests", () => {
     return { success: true, status: 200, message: "Ride started" };
   };
 
-  // 23. Universal OTP 1234 fails
   it("Scenario 23: Universal test OTP 1234 fails when actual ride OTP is different", () => {
     const rideOtp = "7891";
     const result = verifyRideStartOtp(rideOtp, "1234");
@@ -23,7 +21,6 @@ describe("Phase 1A: OTP Security & Verification Tests", () => {
     assert.equal(result.message, "Invalid OTP code");
   });
 
-  // 24. Universal OTP 4826 fails
   it("Scenario 24: Universal test OTP 4826 fails when actual ride OTP is different", () => {
     const rideOtp = "9182";
     const result = verifyRideStartOtp(rideOtp, "4826");
@@ -32,7 +29,6 @@ describe("Phase 1A: OTP Security & Verification Tests", () => {
     assert.equal(result.message, "Invalid OTP code");
   });
 
-  // 25. Empty OTP fails
   it("Scenario 25: Empty, whitespace, or null OTP fails verification", () => {
     const rideOtp = "5512";
     const emptyInputs = ["", "   ", null, undefined];
@@ -44,11 +40,10 @@ describe("Phase 1A: OTP Security & Verification Tests", () => {
     }
   });
 
-  // 26. Expired OTP fails
   it("Scenario 26: Expired OTP fails verification and is invalidated", () => {
     const userOtpRecord = {
       resetOtp: "839201",
-      resetOtpExpiry: new Date(Date.now() - 60 * 1000), // Expired 1 minute ago
+      resetOtpExpiry: new Date(Date.now() - 60 * 1000),
     };
 
     const verifyResetOtp = (record: typeof userOtpRecord, enteredOtp: string) => {
@@ -63,7 +58,6 @@ describe("Phase 1A: OTP Security & Verification Tests", () => {
     assert.match(res.message ?? "", /expired/i);
   });
 
-  // 27. Reused OTP fails
   it("Scenario 27: OTP is strictly single-use and fails on second attempt", () => {
     const userOtpRecord = {
       resetOtp: "654321" as string | null,
@@ -74,25 +68,20 @@ describe("Phase 1A: OTP Security & Verification Tests", () => {
       if (!record.resetOtp || record.resetOtp !== enteredOtp) {
         return { success: false, message: "Invalid or already consumed OTP" };
       }
-      // Single use: Invalidate immediately upon consumption
       record.resetOtp = null;
       record.resetOtpExpiry = null;
       return { success: true };
     };
 
-    // First use: succeeds
     const firstAttempt = consumeOtp(userOtpRecord, "654321");
     assert.equal(firstAttempt.success, true);
 
-    // Second use with identical OTP: must fail
     const secondAttempt = consumeOtp(userOtpRecord, "654321");
     assert.equal(secondAttempt.success, false);
     assert.equal(userOtpRecord.resetOtp, null);
   });
 
-  // 28. OTP is not returned in production API responses
   it("Scenario 28: Production forgot-password API response does not include devOtp or plain OTP", () => {
-    // Response payload shape produced by src/app/api/auth/forgot-password/route.ts
     const forgotPasswordApiResponse = {
       status: "success",
       message: "Password reset request registered for rider@bhavo.in.",
@@ -103,7 +92,6 @@ describe("Phase 1A: OTP Security & Verification Tests", () => {
     assert.equal("otp" in forgotPasswordApiResponse, false, "otp must never be in API response");
   });
 
-  // 29. OTP is not written to normal production logs
   it("Scenario 29: Production logger masks or omits OTP secrets from logs", () => {
     const sanitizeLog = (message: string, context?: Record<string, unknown>) => {
       const sanitized = { ...context };

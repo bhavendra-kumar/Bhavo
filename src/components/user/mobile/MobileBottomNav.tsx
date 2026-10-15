@@ -42,7 +42,6 @@ export default function MobileBottomNav({ onOpenMenu, isMenuOpen }: MobileBottom
             className="flex-1 flex flex-col items-center justify-center py-1 rounded-2xl transition-all duration-150 group relative active:scale-90"
             style={{ minHeight: "46px" }}
           >
-            {/* Active Pill Glow Background */}
             <div
               className={`w-12 h-7.5 rounded-full flex items-center justify-center transition-all duration-200 ${
                 isActive
@@ -61,7 +60,6 @@ export default function MobileBottomNav({ onOpenMenu, isMenuOpen }: MobileBottom
               {tab.name}
             </span>
 
-            {/* Micro active glowing pill indicator */}
             {isActive && (
               <span className="absolute bottom-0.5 w-3.5 h-0.8 rounded-full bg-[#2dd4bf] shadow-[0_0_8px_#2dd4bf]" />
             )}
@@ -69,7 +67,6 @@ export default function MobileBottomNav({ onOpenMenu, isMenuOpen }: MobileBottom
         );
       })}
 
-      {/* 5th Tab: App Menu Sheet Trigger */}
       <button
         type="button"
         onClick={onOpenMenu}

@@ -172,13 +172,9 @@ export default function MobileBookRide(props: MobileBookRideProps) {
   const isLocationsCollapsed = hasTrip && !isEditingLocations;
   const { confirm, alert } = useDialog();
 
-  /* ─────────────────────────────────────────────────────────────
-     1. ACTIVE RIDE LIVE TRACKER SCREEN (RAPIDO/UBER STYLE)
-  ───────────────────────────────────────────────────────────── */
   if (activeRide) {
     return (
       <div className="flex flex-col gap-3 pb-6 flex-1 -mx-3.5 -mt-3">
-        {/* Top Interactive Live Map */}
         <div className="relative w-full h-[46vh] overflow-hidden border-b border-teal-200 shadow-sm">
           <LeafletMap
             pickupCoords={activeRide.pickup.coordinates}
@@ -189,7 +185,6 @@ export default function MobileBookRide(props: MobileBookRideProps) {
             vehicleType={activeRide.vehicleType}
           />
 
-          {/* Live tracking status floating badge */}
           <div className="absolute top-3 left-3 z-10 bg-white/95 backdrop-blur px-3 py-1.5 rounded-full border border-slate-200 shadow-md flex items-center gap-2">
             <span
               className={`w-2.5 h-2.5 rounded-full ${
@@ -218,9 +213,7 @@ export default function MobileBookRide(props: MobileBookRideProps) {
           </div>
         </div>
 
-        {/* Live Driver & Trip Details Sheet */}
         <div className="px-3.5 flex flex-col gap-3">
-          {/* Status Badge */}
           <div className="flex items-center justify-between">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-bold bg-teal-100 text-teal-800 border border-teal-200">
               <span className="w-2 h-2 rounded-full bg-teal-600 animate-ping" />
@@ -238,7 +231,6 @@ export default function MobileBookRide(props: MobileBookRideProps) {
             </span>
           </div>
 
-          {/* Driver Profile Card */}
           {activeRide.status === "SEARCHING" ? (
             <div className="card p-5 border border-teal-100 shadow-xs flex flex-col items-center justify-center text-center gap-2.5 bg-white">
               <div className="relative flex items-center justify-center w-12 h-12 rounded-full bg-teal-50 text-teal-600">
@@ -284,7 +276,6 @@ export default function MobileBookRide(props: MobileBookRideProps) {
                 )}
               </div>
 
-              {/* OTP Pin Card */}
               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-teal-50 border border-teal-200">
                 <div>
                   <p className="text-[9.5px] uppercase font-bold text-teal-800 tracking-wider">Start PIN</p>
@@ -295,7 +286,6 @@ export default function MobileBookRide(props: MobileBookRideProps) {
                 </div>
               </div>
 
-              {/* Quick Action Buttons: Call, Message, SOS */}
               <div className="grid grid-cols-4 gap-2 pt-0.5">
                 <button
                   type="button"
@@ -329,7 +319,6 @@ export default function MobileBookRide(props: MobileBookRideProps) {
             </div>
           )}
 
-          {/* Route Summary */}
           <div className="card p-3.5 border border-teal-100 flex flex-col gap-2.5 bg-white">
             <div className="relative pl-5 flex flex-col gap-2.5">
               <div className="absolute left-2 top-1.5 bottom-2 w-0.5 bg-teal-200" />
@@ -357,7 +346,6 @@ export default function MobileBookRide(props: MobileBookRideProps) {
             </div>
           </div>
 
-          {/* Status Refresh & Cancel */}
           <div className="flex items-center gap-2 pt-1">
             <button
               type="button"
@@ -388,12 +376,8 @@ export default function MobileBookRide(props: MobileBookRideProps) {
     );
   }
 
-  /* ─────────────────────────────────────────────────────────────
-     2. BOOKING INTERFACE SCREEN (RAPIDO/OLA/UBER STYLE)
-  ───────────────────────────────────────────────────────────── */
   return (
     <div className="flex flex-col gap-3 pb-8 flex-1 -mx-3.5 -mt-3">
-      {/* ── Top Map Canvas Viewport (Takes ~42vh on mobile) ── */}
       <div className="relative w-full h-[38vh] overflow-hidden border-b border-teal-200 shadow-sm shrink-0">
         <LeafletMap
           pickupCoords={pickupCoords}
@@ -411,7 +395,6 @@ export default function MobileBookRide(props: MobileBookRideProps) {
           selectionMode={mapSelectionMode}
         />
 
-        {/* Floating Top Route Status Badge */}
         <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5">
           {hasTrip && routeDistanceKm > 0 ? (
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/95 backdrop-blur border border-slate-200 shadow-md text-[11.5px] font-bold text-slate-900">
@@ -426,9 +409,7 @@ export default function MobileBookRide(props: MobileBookRideProps) {
           )}
         </div>
 
-        {/* Floating Right Controls: GPS Target & Live Tracking */}
         <div className="absolute top-3 right-3 z-10 flex flex-col gap-2">
-          {/* 1-Tap Exact GPS Button */}
           <button
             type="button"
             onClick={() => handleUseCurrentLocation(true)}
@@ -440,7 +421,6 @@ export default function MobileBookRide(props: MobileBookRideProps) {
             {gpsLoading ? <Loader2 size={16} className="animate-spin text-teal-600" /> : <Target size={17} />}
           </button>
 
-          {/* Live Tracking toggle button */}
           <button
             type="button"
             onClick={handleToggleLiveTracking}
@@ -454,7 +434,6 @@ export default function MobileBookRide(props: MobileBookRideProps) {
           </button>
         </div>
 
-        {/* Map Selection Mode Banner */}
         {mapSelectionMode !== "none" && (
           <div className="absolute bottom-3 left-3 right-3 z-20 bg-teal-900/95 text-white backdrop-blur px-3 py-2 rounded-xl shadow-lg flex items-center justify-between border border-teal-700">
             <div className="flex items-center gap-2">
@@ -474,9 +453,7 @@ export default function MobileBookRide(props: MobileBookRideProps) {
         )}
       </div>
 
-      {/* ── Bottom Booking Sheet / Controls ── */}
       <div className="px-3.5 flex flex-col gap-3">
-        {/* Mode Toggle (Instant vs Schedule) */}
         <div className="flex p-1 rounded-xl bg-slate-200/80 border border-slate-300/60">
           <button
             type="button"
@@ -504,7 +481,6 @@ export default function MobileBookRide(props: MobileBookRideProps) {
           </button>
         </div>
 
-        {/* Schedule Date & Time Row if mode === schedule */}
         {rideMode === "schedule" && (
           <div className="flex gap-2">
             <input
@@ -522,7 +498,6 @@ export default function MobileBookRide(props: MobileBookRideProps) {
           </div>
         )}
 
-        {/* GPS notice if any */}
         {gpsNotice && (
           <div className="text-[11px] text-teal-800 bg-teal-100/70 px-3 py-1.5 rounded-xl border border-teal-200 flex items-center justify-between">
             <span>{gpsNotice}</span>
@@ -532,9 +507,7 @@ export default function MobileBookRide(props: MobileBookRideProps) {
           </div>
         )}
 
-        {/* ── Location Input Section (Collapsed view when configured, expanded when editing) ── */}
         {hasTrip && isLocationsCollapsed ? (
-          /* Compact Route Summary Pill */
           <div className="card p-3 flex items-center justify-between gap-2 bg-white border border-teal-200 shadow-xs">
             <div className="flex-1 min-w-0 flex items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0 shadow-xs" />
@@ -553,7 +526,6 @@ export default function MobileBookRide(props: MobileBookRideProps) {
             </button>
           </div>
         ) : (
-          /* Expanded Location Pick & Drop Inputs */
           <div className="card p-3.5 flex flex-col gap-3 bg-white border border-teal-100 shadow-xs">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Where to?</span>
@@ -629,7 +601,6 @@ export default function MobileBookRide(props: MobileBookRideProps) {
               </div>
             </div>
 
-            {/* Saved Places Horizontal Scroll Pills (Only if user has actual saved places) */}
             {savedPlaces.length > 0 && (
               <div className="flex items-center gap-2 pt-1 overflow-x-auto no-scrollbar">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">Saved:</span>
@@ -660,11 +631,9 @@ export default function MobileBookRide(props: MobileBookRideProps) {
           </div>
         )}
 
-        {/* ── Rapido/Ola Style Real-Time Recommended Destinations Section (When no trip is set) ── */}
         {!hasTrip ? (
           <div className="flex flex-col gap-2.5">
             <div className="card p-4 bg-white border border-slate-200/90 rounded-2xl shadow-xs flex flex-col gap-3">
-              {/* Header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   <div className="w-6 h-6 rounded-lg bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600">
@@ -685,7 +654,6 @@ export default function MobileBookRide(props: MobileBookRideProps) {
                 </span>
               </div>
 
-              {/* Category Filter Chips */}
               <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
                 {[
                   { id: "all", label: "All Spots" },
@@ -711,7 +679,6 @@ export default function MobileBookRide(props: MobileBookRideProps) {
                 ))}
               </div>
 
-              {/* Places List */}
               {recsLoading && recommendedPlaces.length === 0 ? (
                 <div className="flex flex-col gap-2 py-1">
                   {[1, 2, 3].map((n) => (
@@ -791,7 +758,6 @@ export default function MobileBookRide(props: MobileBookRideProps) {
                 })()
               )}
 
-              {/* Bottom Quick Help */}
               <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-medium">
                 <span>Tap any spot to set destination instantly</span>
                 <span className="text-teal-600 font-bold flex items-center gap-0.5">
@@ -811,7 +777,6 @@ export default function MobileBookRide(props: MobileBookRideProps) {
               </span>
             </div>
 
-            {/* Vehicle List Items */}
             <div className="flex flex-col gap-2">
               {dynamicVehicles.map((v) => {
                 const isSelected = selected === v.id;
@@ -827,7 +792,6 @@ export default function MobileBookRide(props: MobileBookRideProps) {
                       boxShadow: isSelected ? "0 2px 10px rgba(13,148,136,0.18)" : "none",
                     }}
                   >
-                    {/* Vehicle Icon Badge */}
                     <div
                       className="w-13 h-10 rounded-xl flex items-center justify-center shrink-0 border"
                       style={{
@@ -838,7 +802,6 @@ export default function MobileBookRide(props: MobileBookRideProps) {
                       <VehicleIcon id={v.id} type={v.type} className="w-10 h-6" />
                     </div>
 
-                    {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
                         <p className="text-[13.5px] font-bold text-slate-900 leading-none">{v.name}</p>
@@ -849,7 +812,6 @@ export default function MobileBookRide(props: MobileBookRideProps) {
                       <p className="text-[11px] font-medium text-slate-500 mt-1 truncate">{v.desc}</p>
                     </div>
 
-                    {/* Price & ETA */}
                     <div className="text-right shrink-0">
                       <p className="text-[15px] font-black text-slate-900 leading-none">
                         {routeLoading ? "..." : v.price}
@@ -857,7 +819,6 @@ export default function MobileBookRide(props: MobileBookRideProps) {
                       <p className="text-[10.5px] font-bold text-teal-600 mt-1">{v.eta}</p>
                     </div>
 
-                    {/* Active check icon */}
                     {isSelected && (
                       <div className="w-4.5 h-4.5 rounded-full bg-teal-600 text-white flex items-center justify-center shrink-0">
                         <Check size={10} />
@@ -868,10 +829,8 @@ export default function MobileBookRide(props: MobileBookRideProps) {
               })}
             </div>
 
-            {/* Ride Preferences & Wallet Strip */}
             <div className="card p-3 bg-white border border-slate-200 flex flex-col gap-2 mt-1">
               <div className="flex items-center justify-between text-[11.5px]">
-                {/* Pet friendly checkbox */}
                 <button
                   type="button"
                   onClick={() => setPetFriendly(!petFriendly)}
@@ -883,7 +842,6 @@ export default function MobileBookRide(props: MobileBookRideProps) {
                   {petFriendly && <Check size={11} className="text-teal-700" />}
                 </button>
 
-                {/* Preferred driver checkbox */}
                 <button
                   type="button"
                   onClick={() => setPrefDriver(!prefDriver)}
@@ -912,7 +870,6 @@ export default function MobileBookRide(props: MobileBookRideProps) {
               </div>
             )}
 
-            {/* ── Primary Sticky CTA Button (Rapido / Uber style) ── */}
             <button
               type="button"
               onClick={handleBookRide}

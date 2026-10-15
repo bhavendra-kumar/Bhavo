@@ -66,9 +66,6 @@ export interface GetPaymentStatusInput {
   userRole: "RIDER" | "DRIVER" | "ADMIN" | "USER";
 }
 
-/**
- * Creates or reuses a server-authoritative Razorpay order for an eligible completed ride.
- */
 export async function createRidePaymentOrder(
   input: CreatePaymentOrderInput
 ): Promise<PaymentOrderDetails> {
@@ -97,7 +94,6 @@ export async function createRidePaymentOrder(
     throw new PaymentError("Ride not found or access denied", "RIDE_NOT_FOUND", 404);
   }
 
-  // State checks: payment can only happen for a completed ride
   if (ride.status !== "COMPLETED") {
     throw new PaymentError(
       `Cannot initiate payment for ride in status "${ride.status}". Ride must be COMPLETED.`,
@@ -106,7 +102,6 @@ export async function createRidePaymentOrder(
     );
   }
 
-  // Method check: cash rides cannot be paid online
   if (ride.paymentMethod === "CASH") {
     throw new PaymentError(
       "This ride was booked with CASH payment method. Direct driver cash collection is required.",
@@ -115,12 +110,10 @@ export async function createRidePaymentOrder(
     );
   }
 
-  // Status check: already paid
   if (ride.paymentStatus === "PAID") {
     throw new PaymentError("This ride is already marked as PAID", "ALREADY_PAID", 409);
   }
 
-  // Mutual exclusion: already settled in cash
   if (ride.paymentStatus === "COLLECTED") {
     throw new PaymentError(
       "Payment for this ride has already been collected in cash by the driver",
@@ -129,7 +122,6 @@ export async function createRidePaymentOrder(
     );
   }
 
-  // Calculate authoritative payable amount in integer paise
   const amountInPaise =
     ride.fareInPaise && ride.fareInPaise > 0
       ? ride.fareInPaise
@@ -143,7 +135,6 @@ export async function createRidePaymentOrder(
     );
   }
 
-  // Reuse existing Razorpay order if already created and ride remains unpaid
   if (ride.razorpayOrderId) {
     return {
       orderId: ride.razorpayOrderId,
@@ -155,7 +146,6 @@ export async function createRidePaymentOrder(
     };
   }
 
-  // Create order via provider
   const receipt = `ride_${ride._id.toString().slice(-14)}`;
   const order = await createRazorpayOrder({
     amountInPaise,
@@ -167,7 +157,6 @@ export async function createRidePaymentOrder(
     },
   });
 
-  // Persist provider order ID atomically
   await Ride.updateOne(
     { _id: ride._id },
     {
@@ -187,10 +176,6 @@ export async function createRidePaymentOrder(
   };
 }
 
-/**
- * Shared idempotent payment confirmation service.
- * Used by both checkout verification and webhook reconciliation.
- */
 export async function confirmOnlinePayment(
   input: ConfirmOnlinePaymentInput
 ): Promise<ConfirmOnlinePaymentResult> {
@@ -218,7 +203,6 @@ export async function confirmOnlinePayment(
     throw new PaymentError("Ride not found or access denied", "RIDE_NOT_FOUND", 404);
   }
 
-  // Enforce ride completion
   if (ride.status !== "COMPLETED") {
     throw new PaymentError(
       `Cannot settle payment for ride in status "${ride.status}". Ride must be COMPLETED.`,
@@ -227,7 +211,6 @@ export async function confirmOnlinePayment(
     );
   }
 
-  // Mutual exclusion: cannot settle if already collected in cash
   if (ride.paymentStatus === "COLLECTED") {
     throw new PaymentError(
       "Ride is already settled in physical cash. Online payment cannot be confirmed.",
@@ -241,7 +224,6 @@ export async function confirmOnlinePayment(
       ? ride.fareInPaise
       : rupeesToPaise(ride.fare);
 
-  // Idempotency: ride already marked as PAID
   if (ride.paymentStatus === "PAID") {
     const existingTx = await Transaction.findOne({
       entityType: "RIDE",
@@ -259,7 +241,6 @@ export async function confirmOnlinePayment(
     };
   }
 
-  // Enforce order correspondence
   if (ride.razorpayOrderId && ride.razorpayOrderId !== razorpayOrderId) {
     throw new PaymentError(
       `Submitted order ID does not match the authoritative order on this ride`,
@@ -268,7 +249,6 @@ export async function confirmOnlinePayment(
     );
   }
 
-  // Verify checkout signature if coming from browser checkout
   if (source === "CHECKOUT") {
     if (!razorpaySignature) {
       throw new PaymentError("Razorpay checkout signature is required", "MISSING_SIGNATURE", 400);
@@ -285,7 +265,6 @@ export async function confirmOnlinePayment(
     }
   }
 
-  // Independently validate payment status directly from provider
   let providerPayment: RazorpayPaymentOutput;
   try {
     providerPayment = await fetchRazorpayPayment(razorpayPaymentId);
@@ -298,7 +277,6 @@ export async function confirmOnlinePayment(
     );
   }
 
-  // Ensure payment is captured (authorized alone is NOT paid)
   if (providerPayment.status !== "captured") {
     throw new PaymentError(
       `Payment is in uncaptured status: "${providerPayment.status}". Only CAPTURED payments mark a ride as paid.`,
@@ -307,7 +285,6 @@ export async function confirmOnlinePayment(
     );
   }
 
-  // Validate provider currency
   if (providerPayment.currency !== "INR") {
     throw new PaymentError(
       `Provider reported unsupported currency "${providerPayment.currency}". Must be INR.`,
@@ -316,7 +293,6 @@ export async function confirmOnlinePayment(
     );
   }
 
-  // Validate provider amount matches authoritative stored fare
   if (providerPayment.amount !== expectedFareInPaise) {
     throw new PaymentError(
       `Provider payment amount (₹${providerPayment.amount / 100}) does not match authoritative fare (₹${expectedFareInPaise / 100})`,
@@ -325,7 +301,6 @@ export async function confirmOnlinePayment(
     );
   }
 
-  // Validate provider order corresponds to this order
   if (providerPayment.order_id && providerPayment.order_id !== razorpayOrderId) {
     throw new PaymentError(
       `Provider payment order ID "${providerPayment.order_id}" does not match requested order "${razorpayOrderId}"`,
@@ -336,7 +311,6 @@ export async function confirmOnlinePayment(
 
   const now = new Date();
 
-  // Atomic state transition to PAID
   const updatedRide = await Ride.findOneAndUpdate(
     {
       _id: ride._id,
@@ -357,7 +331,6 @@ export async function confirmOnlinePayment(
   );
 
   if (!updatedRide) {
-    // Re-check why findOneAndUpdate failed
     const rechecked = await Ride.findById(ride._id);
     if (rechecked && rechecked.paymentStatus === "PAID") {
       const existingTx = await Transaction.findOne({
@@ -384,7 +357,6 @@ export async function confirmOnlinePayment(
     throw new PaymentError("Failed to update ride payment status atomically", "UPDATE_FAILED", 409);
   }
 
-  // Record immutable transaction in ledger
   const { transaction } = await recordFinancialEvent({
     userId: updatedRide.rider,
     userRole: "RIDER",
@@ -415,9 +387,6 @@ export async function confirmOnlinePayment(
   };
 }
 
-/**
- * Retrieves payment status for an authenticated user with IDOR checks.
- */
 export async function getRidePaymentStatus(
   input: GetPaymentStatusInput
 ): Promise<{
@@ -442,7 +411,6 @@ export async function getRidePaymentStatus(
     throw new PaymentError("Ride not found", "RIDE_NOT_FOUND", 404);
   }
 
-  // Authorization check
   const isRider = ride.rider.toString() === userId.toString();
   const isDriver = ride.driver && ride.driver.toString() === userId.toString();
   const isAdmin = userRole === "ADMIN";

@@ -160,7 +160,6 @@ export async function POST(req: Request) {
         );
 
         if (existingRide) {
-          // Reject if caller is not the assigned driver
           if (existingRide.driver && existingRide.driver.toString() !== driverUser._id.toString()) {
             return NextResponse.json(
               {
@@ -172,7 +171,6 @@ export async function POST(req: Request) {
             );
           }
 
-          // Reject location updates for terminal rides
           if (["COMPLETED", "CANCELLED"].includes(existingRide.status)) {
             return NextResponse.json(
               {
@@ -184,7 +182,6 @@ export async function POST(req: Request) {
             );
           }
 
-          // Guard against out-of-order client telemetry
           if (isClientDateValid && existingRide.driverCoordinatesUpdatedAt) {
             if (clientDate.getTime() < new Date(existingRide.driverCoordinatesUpdatedAt).getTime()) {
               return NextResponse.json(
@@ -203,7 +200,6 @@ export async function POST(req: Request) {
           }
         }
 
-        // Atomically update active ride coordinates and monotonic tracking version
         const updatedRide = await Ride.findOneAndUpdate(
           {
             _id: rideId,

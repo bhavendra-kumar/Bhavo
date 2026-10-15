@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
@@ -25,28 +24,9 @@ import { generateOccurrenceKey } from "../src/lib/recurrenceEngine";
 import { InMemoryRateLimiter } from "../src/lib/rateLimit";
 import { DEFAULT_DRIVER_DOCUMENTS } from "../src/lib/driverCompliance";
 
-/**
- * PHASE 2: Comprehensive End-to-End Staging Smoke & Ride Journey Test Suite
- *
- * Covers:
- * 1. Passenger booking & server-authoritative fare calculation (integer paise)
- * 2. Targeted driver candidate discovery & strict eligibility filtering
- * 3. Atomic driver acceptance, mutual exclusion & concurrency safety
- * 4. Driver exclusivity (activeRideId prevents multiple concurrent active rides)
- * 5. Passenger live tracking, coordinates updating & stale data detection
- * 6. Ride lifecycle progression & mandatory 4-digit OTP verification
- * 7. Completed ride payment invariant (retains PENDING_COLLECTION, not auto-PAID)
- * 8. Driver cash collection confirmation & non-monetary ledger recording
- * 9. Idempotent financial transaction guarantees & wallet non-inflation
- * 10. Offer rejection, expiry sweep & driver fallback
- * 11. Auto Booking recurring commute materialization & T-60 lead-time boundary
- * 12. Admin document review, suspension safety & public registration role guards
- * 13. Cron endpoint security & sensitive log data redaction
- */
-
 describe("Phase 2 Smoke Test Suite 1: Booking Creation & Authoritative Fare Calculation", () => {
-  const pickupCoords: [number, number] = [18.5204, 73.8567]; // Shivajinagar, Pune
-  const dropoffCoords: [number, number] = [18.5987, 73.7978]; // Hinjawadi Phase 1, Pune
+  const pickupCoords: [number, number] = [18.5204, 73.8567];
+  const dropoffCoords: [number, number] = [18.5987, 73.7978];
 
   it("Computes server-authoritative integer-paise fares for standard ride", () => {
     const distanceKm = calculateHaversineDistanceKm(pickupCoords, dropoffCoords);
@@ -95,7 +75,6 @@ describe("Phase 2 Smoke Test Suite 1: Booking Creation & Authoritative Fare Calc
       pickupCoordinates: pickupCoords,
       dropoffCoordinates: dropoffCoords,
       vehicleType: "Cab Economy",
-      // Attacker attempts to tamper with pricing and ride status:
       fare: 1,
       totalFarePaise: 100,
       status: "COMPLETED",
@@ -103,7 +82,6 @@ describe("Phase 2 Smoke Test Suite 1: Booking Creation & Authoritative Fare Calc
       otp: "0000",
     };
 
-    // Server-side creation logic calculates authoritative fare and discards client values
     const serverPricing = calculateAuthoritativeFare({
       pickupCoordinates: clientProvidedPayload.pickupCoordinates,
       dropoffCoordinates: clientProvidedPayload.dropoffCoordinates,
@@ -114,13 +92,12 @@ describe("Phase 2 Smoke Test Suite 1: Booking Creation & Authoritative Fare Calc
       pickup: { coordinates: clientProvidedPayload.pickupCoordinates, address: "Shivajinagar" },
       dropoff: { coordinates: clientProvidedPayload.dropoffCoordinates, address: "Hinjawadi" },
       vehicleType: clientProvidedPayload.vehicleType,
-      // Overridden with server truth:
       fare: serverPricing.fareInRupees,
       fareInPaise: serverPricing.fareInPaise,
       pricingSnapshot: serverPricing.pricingSnapshot,
-      status: "SEARCHING", // Hard-coded initial state
-      driver: null, // Always unassigned initially
-      otp: String(Math.floor(1000 + Math.random() * 9000)), // Secure server-generated 4-digit OTP
+      status: "SEARCHING",
+      driver: null,
+      otp: String(Math.floor(1000 + Math.random() * 9000)),
       paymentStatus: "PENDING",
     };
 
@@ -153,7 +130,7 @@ describe("Phase 2 Smoke Test Suite 2: Driver Candidate Discovery & Eligibility F
         type: "SEDAN",
         documentsVerified: true,
       },
-      driverCoordinates: [18.522, 73.858] as [number, number], // ~200m away
+      driverCoordinates: [18.522, 73.858] as [number, number],
       driverCoordinatesUpdatedAt: new Date(),
     };
 
@@ -251,7 +228,7 @@ describe("Phase 2 Smoke Test Suite 2: Driver Candidate Discovery & Eligibility F
     const suspendedDriver = {
       _id: "driver_05",
       role: "DRIVER",
-      status: "SUSPENDED", // Suspended account
+      status: "SUSPENDED",
       dutyState: "ONLINE_SEARCHING",
       isOnline: true,
       activeRideId: null,
@@ -292,7 +269,6 @@ describe("Phase 2 Smoke Test Suite 3: Atomic Driver Acceptance & Mutual Exclusio
       },
     };
 
-    // Step 1: Atomic driver reservation (CAS on User where activeRideId: null)
     let driverReserved = false;
     if (driver.activeRideId === null && driver.dutyState !== "ON_TRIP") {
       driver.activeRideId = ride._id;
@@ -301,7 +277,6 @@ describe("Phase 2 Smoke Test Suite 3: Atomic Driver Acceptance & Mutual Exclusio
     }
     assert.equal(driverReserved, true);
 
-    // Step 2: Atomic ride assignment (CAS on Ride where status: SEARCHING, driver: null)
     let rideAssigned = false;
     if (ride.status === "SEARCHING" && ride.driver === null) {
       ride.status = "ACCEPTED";
@@ -322,11 +297,9 @@ describe("Phase 2 Smoke Test Suite 3: Atomic Driver Acceptance & Mutual Exclusio
       activeRideId: "ride_first_01",
     };
 
-    // Attempting reservation must fail because activeRideId is not null
     const canReserve = occupiedDriver.activeRideId === null && occupiedDriver.dutyState !== "ON_TRIP";
     assert.equal(canReserve, false, "Occupied driver cannot reserve second ride");
 
-    // Attempted acceptance returns 409 DRIVER_OCCUPIED
     const error = new RideTransitionError(
       "Driver already has an active ride in progress",
       409,
@@ -343,7 +316,6 @@ describe("Phase 2 Smoke Test Suite 3: Atomic Driver Acceptance & Mutual Exclusio
     let loserCount = 0;
 
     const attemptAccept = async (driverId: string) => {
-      // Simulate MongoDB atomic findOneAndUpdate({ status: 'SEARCHING', driver: null }, { ... })
       await new Promise((r) => setTimeout(r, Math.floor(Math.random() * 5)));
       if (rideStatus === "SEARCHING" && rideDriver === null) {
         rideStatus = "ACCEPTED";
@@ -379,7 +351,6 @@ describe("Phase 2 Smoke Test Suite 4: Passenger Realtime Tracking & Location Fre
       trackingVersion: 1,
     };
 
-    // Driver posts new location
     const newCoords: [number, number] = [18.5215, 73.8579];
     const now = new Date();
 
@@ -396,8 +367,8 @@ describe("Phase 2 Smoke Test Suite 4: Passenger Realtime Tracking & Location Fre
     const STALE_THRESHOLD_SECONDS = 30;
     const now = Date.now();
 
-    const freshUpdate = new Date(now - 10 * 1000); // 10s old
-    const staleUpdate = new Date(now - 45 * 1000); // 45s old
+    const freshUpdate = new Date(now - 10 * 1000);
+    const staleUpdate = new Date(now - 45 * 1000);
 
     const isFreshStale = (now - freshUpdate.getTime()) / 1000 > STALE_THRESHOLD_SECONDS;
     const isStaleStale = (now - staleUpdate.getTime()) / 1000 > STALE_THRESHOLD_SECONDS;
@@ -413,7 +384,6 @@ describe("Phase 2 Smoke Test Suite 5: Ride Progression, OTP Security & Completio
     assert.equal(canTransition("ARRIVED", "IN_PROGRESS"), true);
     assert.equal(canTransition("IN_PROGRESS", "COMPLETED"), true);
 
-    // Invalid backwards or jump transitions:
     assert.equal(canTransition("SEARCHING", "ARRIVED"), false);
     assert.equal(canTransition("ACCEPTED", "COMPLETED"), false);
     assert.equal(canTransition("COMPLETED", "IN_PROGRESS"), false);
@@ -454,7 +424,6 @@ describe("Phase 2 Smoke Test Suite 5: Ride Progression, OTP Security & Completio
       fareInPaise: 25000,
     };
 
-    // Transition to completed
     const targetPaymentStatus =
       inProgressRide.paymentMethod === "CASH" ? "PENDING_COLLECTION" : "PENDING_PAYMENT";
 
@@ -492,7 +461,6 @@ describe("Phase 2 Smoke Test Suite 6: Cash Collection Safety & Ledger Immutabili
       cashCollectedAt: null as Date | null,
     };
 
-    // Driver confirms cash collection
     const now = new Date();
     completedRide.paymentStatus = "COLLECTED";
     completedRide.cashCollectedAt = now;
@@ -527,8 +495,7 @@ describe("Phase 2 Smoke Test Suite 6: Cash Collection Safety & Ledger Immutabili
     assert.equal(transactionRecord.direction, "NON_MONETARY_RECORD");
     assert.equal(transactionRecord.amountInPaise, 35000);
 
-    // Platform wallet balance of driver remains unchanged
-    const driverPlatformWalletBalance = 0; // Does not increment by 35000 paise
+    const driverPlatformWalletBalance = 0;
     assert.equal(
       driverPlatformWalletBalance,
       0,
@@ -581,7 +548,6 @@ describe("Phase 2 Smoke Test Suite 7: Offer Rejection, Maintenance Sweep & Drive
       dispatchStatus: "OFFERED",
     };
 
-    // Driver declines offer
     ride.rejectedDrivers.push("driver_reject_01");
     ride.currentOffer = null as any;
     ride.dispatchStatus = "DISPATCHING";
@@ -615,10 +581,8 @@ describe("Phase 2 Smoke Test Suite 7: Offer Rejection, Maintenance Sweep & Drive
       driver: assignedDriver._id,
     };
 
-    // Rider cancels
     ride.status = "CANCELLED";
 
-    // Conditional driver release (where activeRideId === rideId)
     if (assignedDriver.activeRideId === ride._id) {
       assignedDriver.activeRideId = null;
       assignedDriver.dutyState = "ONLINE_SEARCHING";
@@ -648,14 +612,12 @@ describe("Phase 2 Smoke Test Suite 8: Auto Booking Recurring Commute & Lead-Time
 
     const now = new Date("2026-10-12T10:00:00.000Z");
 
-    // Ride scheduled for 2 hours in future (120 minutes)
     const futureRide = {
       status: "SEARCHING",
       driver: null,
       scheduledFor: new Date("2026-10-12T12:00:00.000Z"),
     };
 
-    // Ride scheduled for 45 minutes in future
     const nearRide = {
       status: "SEARCHING",
       driver: null,
@@ -693,7 +655,6 @@ describe("Phase 2 Smoke Test Suite 9: Admin Document Review & Governance Control
       driverCoordinatesUpdatedAt: new Date(),
     };
 
-    // Before approval: ineligible
     let check = evaluateDriverEligibility(
       unverifiedDriver as any,
       { pickup: { coordinates: [18.52, 73.85] }, vehicleType: "SEDAN" },
@@ -701,14 +662,12 @@ describe("Phase 2 Smoke Test Suite 9: Admin Document Review & Governance Control
     );
     assert.equal(check.isEligible, false);
 
-    // Admin reviews and approves documents
     const approvedDriver = {
       ...unverifiedDriver,
       driverDocuments: DEFAULT_DRIVER_DOCUMENTS,
       driverVehicle: { type: "SEDAN", documentsVerified: true },
     };
 
-    // After approval: eligible
     check = evaluateDriverEligibility(
       approvedDriver as any,
       { pickup: { coordinates: [18.52, 73.85] }, vehicleType: "SEDAN" },
@@ -725,7 +684,6 @@ describe("Phase 2 Smoke Test Suite 9: Admin Document Review & Governance Control
       activeRideId: "ride_live_999",
     };
 
-    // Admin suspension safety check
     const canSafelySuspend = (driver: { activeRideId: string | null; dutyState: string }) => {
       if (driver.activeRideId !== null || driver.dutyState === "ON_TRIP") {
         return {
@@ -748,10 +706,9 @@ describe("Phase 2 Smoke Test Suite 9: Admin Document Review & Governance Control
       email: "attacker@example.com",
       phone: "+919876543210",
       password: "SuperSecretPassword123!",
-      role: "ADMIN", // Attacker attempts privilege escalation
+      role: "ADMIN",
     };
 
-    // Canonical registration service enforces role: "RIDER"
     const enforcedRole = "RIDER";
     const userToSave = {
       ...publicRegistrationPayload,
@@ -810,13 +767,11 @@ describe("Phase 2 Smoke Test Suite 10: Infrastructure, Cron Security & Logging S
     const limiter = new InMemoryRateLimiter(5, 60000);
     const clientKey = "ip_192.168.1.100_auth";
 
-    // 5 attempts allowed
     for (let i = 0; i < 5; i++) {
       const res = await limiter.recordFailure(clientKey, 60000);
-      assert.equal(res.allowed, i < 4); // 5th failure consumes last remaining attempt
+      assert.equal(res.allowed, i < 4);
     }
 
-    // 6th attempt is throttled
     const blockedRes = await limiter.recordFailure(clientKey, 60000);
     assert.equal(blockedRes.allowed, false);
     assert.ok(blockedRes.retryAfterSeconds !== undefined && blockedRes.retryAfterSeconds > 0);

@@ -77,7 +77,6 @@ export default function CommuteCommandHero({
 
   return (
     <div className="relative overflow-hidden rounded-3xl bg-white border border-slate-200/80 shadow-sm">
-      {/* Subtle animated gradient accent */}
       <div
         className="absolute top-0 left-0 right-0 h-1.5 rounded-t-3xl"
         style={{
@@ -94,14 +93,11 @@ export default function CommuteCommandHero({
         }
       `}</style>
 
-      {/* Ambient glow */}
       <div className="absolute -top-20 -right-20 w-64 h-64 bg-teal-100/40 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-16 -left-10 w-48 h-48 bg-cyan-50/50 rounded-full blur-3xl pointer-events-none" />
 
       <div className="relative z-10 p-6 sm:p-8 flex flex-col lg:flex-row gap-6 lg:gap-10 lg:items-center">
-        {/* Left: Greeting + Today's Ride Status */}
         <div className="flex-1 min-w-0">
-          {/* Greeting */}
           <div className="flex items-center gap-3 mb-1">
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               {greeting}, {userName?.split(" ")[0] || "Commuter"}
@@ -117,7 +113,6 @@ export default function CommuteCommandHero({
             )}
           </div>
 
-          {/* Ride context */}
           <p className="text-[14px] text-slate-500 mt-1 leading-relaxed">
             {isWfhToday ? (
               <span>
@@ -141,7 +136,6 @@ export default function CommuteCommandHero({
             )}
           </p>
 
-          {/* Quick Action Buttons */}
           <div className="flex flex-wrap items-center gap-2.5 mt-5">
             <button
               onClick={() => router.push("/user/book-ride")}
@@ -198,7 +192,6 @@ export default function CommuteCommandHero({
           </div>
         </div>
 
-        {/* Right: Next Ride Mini Card */}
         {!isWfhToday && (
           activeLeg ? (
             <div className="w-full lg:w-72 shrink-0 rounded-2xl bg-slate-50 border border-slate-200 p-5 flex flex-col gap-4">
@@ -212,11 +205,9 @@ export default function CommuteCommandHero({
                 </span>
               </div>
 
-              {/* Route line */}
               <div className="relative pl-5 flex flex-col gap-3.5">
                 <div className="absolute left-1.5 top-2 bottom-2 w-0.5 bg-linear-to-b from-teal-400 to-teal-200" />
 
-                {/* Pickup */}
                 <div className="relative flex items-start gap-2.5">
                   <div className="absolute -left-5 top-0.5 w-3.5 h-3.5 rounded-full border-2 border-teal-500 bg-white" />
                   <div className="min-w-0">
@@ -232,7 +223,6 @@ export default function CommuteCommandHero({
                   </div>
                 </div>
 
-                {/* Dropoff */}
                 <div className="relative flex items-start gap-2.5">
                   <div className="absolute -left-5 top-0.5 w-3.5 h-3.5 rounded-full bg-teal-500 flex items-center justify-center">
                     <MapPin size={8} className="text-white" />
@@ -248,7 +238,6 @@ export default function CommuteCommandHero({
                 </div>
               </div>
 
-              {/* Footer */}
               <div className="pt-3 border-t border-slate-200 flex items-center justify-between text-[11px]">
                 <span className="text-slate-400 font-medium flex items-center gap-1">
                   <Clock size={10} /> {activeLeg.vehicleType || "Cab Premium"}

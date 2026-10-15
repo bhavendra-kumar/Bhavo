@@ -13,14 +13,6 @@ export type RideStatus =
   | "COMPLETED"
   | "CANCELLED";
 
-/**
- * Authoritative Canonical Transition Map
- * Canonical lifecycle: SEARCHING -> ACCEPTED -> ARRIVED -> IN_PROGRESS -> COMPLETED
- * Cancellations:
- * - SEARCHING, ACCEPTED, ARRIVED can be CANCELLED
- * - Terminal states (COMPLETED, CANCELLED) have zero allowed transitions
- * - IN_PROGRESS cannot be cancelled via normal flow
- */
 export const VALID_TRANSITIONS: Record<RideStatus, RideStatus[]> = {
   SEARCHING: ["ACCEPTED", "CANCELLED"],
   ACCEPTED: ["ARRIVED", "CANCELLED"],
@@ -30,18 +22,8 @@ export const VALID_TRANSITIONS: Record<RideStatus, RideStatus[]> = {
   CANCELLED: [],
 };
 
-/**
- * Authoritative default dispatch lead time (in minutes).
- * Scheduled rides enter the driver confirmation window at T-60 minutes before scheduled pickup.
- */
 export const DEFAULT_DISPATCH_LEAD_TIME_MINUTES = 60;
 
-/**
- * Validates and retrieves the configured dispatch lead time in minutes.
- * - If the environment variable is absent or empty, returns the default (60 minutes).
- * - Enforces a finite, positive integer (> 0).
- * - Rejects non-numeric values, decimals, zero, negative numbers, NaN, or Infinity with a descriptive Error.
- */
 export function getDispatchLeadTimeMinutes(
   rawVal: string | undefined = process.env.RIDE_DISPATCH_LEAD_TIME_MINUTES
 ): number {
@@ -51,7 +33,6 @@ export function getDispatchLeadTimeMinutes(
 
   const trimmed = typeof rawVal === "string" ? rawVal.trim() : String(rawVal);
 
-  // Must be an integer string composed strictly of digits
   if (!/^\d+$/.test(trimmed)) {
     throw new Error(
       `Invalid RIDE_DISPATCH_LEAD_TIME_MINUTES configuration: "${rawVal}". Value must be a positive integer without decimals or symbols.`
@@ -69,19 +50,12 @@ export function getDispatchLeadTimeMinutes(
   return parsed;
 }
 
-/**
- * Authoritative single source of truth for the dispatch lead time in milliseconds.
- * Converts configured minutes to milliseconds at the configuration/domain boundary.
- */
 export function getDispatchLeadTimeMs(
   rawVal: string | undefined = process.env.RIDE_DISPATCH_LEAD_TIME_MINUTES
 ): number {
   return getDispatchLeadTimeMinutes(rawVal) * 60 * 1000;
 }
 
-/**
- * Default dispatch lead time in milliseconds (for static references)
- */
 export const DISPATCH_LEAD_TIME_MS = DEFAULT_DISPATCH_LEAD_TIME_MINUTES * 60 * 1000;
 
 export interface IDriverUserState {
@@ -124,19 +98,10 @@ export class RideTransitionError extends Error {
   }
 }
 
-/**
- * Evaluates whether a requested transition is valid according to the canonical state machine.
- */
 export function canTransition(fromStatus: RideStatus, toStatus: RideStatus): boolean {
   return VALID_TRANSITIONS[fromStatus]?.includes(toStatus) ?? false;
 }
 
-/**
- * Evaluates whether a ride is currently dispatchable.
- * Instant rides (scheduledFor is null) are immediately dispatchable.
- * Scheduled rides are dispatchable ONLY if current time is within leadTimeMs of scheduledFor.
- * Exact boundary: atTime >= scheduledFor - leadTimeMs (equivalently scheduledFor <= atTime + leadTimeMs).
- */
 export function isRideDispatchable(
   ride: { status: string; driver?: unknown; scheduledFor?: Date | string | null },
   atTime: Date = new Date(),
@@ -153,13 +118,6 @@ export function isRideDispatchable(
   return atTime.getTime() >= earliestDispatchTime.getTime();
 }
 
-/**
- * ATOMIC TRANSITION: SEARCHING -> ACCEPTED
- * Concurrency Safety:
- * Exactly ONE driver can accept a SEARCHING ride.
- * MongoDB atomic findOneAndUpdate with condition { status: "SEARCHING", driver: null } decides the winner.
- * Losers receive 409 Conflict without modifying database state.
- */
 export async function transitionToAccepted({
   rideId,
   driverUser,
@@ -177,7 +135,6 @@ export async function transitionToAccepted({
     throw new RideTransitionError("Invalid ride ID format", 400, "INVALID_ID");
   }
 
-  // 1. Account status validation: incomplete, suspended, or disabled drivers cannot accept rides
   if (driverUser.status && driverUser.status !== "ACTIVE") {
     throw new RideTransitionError(
       `Driver account is ${driverUser.status.toLowerCase()} and cannot accept rides`,
@@ -186,7 +143,6 @@ export async function transitionToAccepted({
     );
   }
 
-  // 2. Driver verification compliance check
   const verification = checkDriverVerification(driverUser);
   if (!verification.isVerified) {
     throw new RideTransitionError(
@@ -196,12 +152,10 @@ export async function transitionToAccepted({
     );
   }
 
-  // 3. Online availability check
   if (driverUser.isOnline === false || driverUser.dutyState === "OFFLINE") {
     throw new RideTransitionError("Driver is currently offline and cannot accept rides", 403, "DRIVER_OFFLINE");
   }
 
-  // 4. Active-trip exclusivity check (driver cannot have another active trip)
   if (driverUser.activeRideId && driverUser.activeRideId.toString() !== rideId) {
     throw new RideTransitionError("Driver already has an active ride in progress", 409, "DRIVER_OCCUPIED");
   }
@@ -211,19 +165,18 @@ export async function transitionToAccepted({
   });
   if (occupiedRide) {
     if (occupiedRide._id.toString() === rideId) {
-      return occupiedRide; // Idempotent retry by the same assigned driver
+      return occupiedRide;
     }
     throw new RideTransitionError("Driver already has an active ride in progress", 409, "DRIVER_OCCUPIED");
   }
 
-  // 5. Pre-fetch existing ride to validate offer ownership, vehicle compatibility, and pet compatibility
   const existing = await Ride.findById(rideId);
   if (!existing) {
     throw new RideTransitionError("Ride not found", 404, "RIDE_NOT_FOUND");
   }
 
   if (existing.driver && existing.driver.toString() === driverUser._id.toString() && existing.status === "ACCEPTED") {
-    return existing; // Idempotent retry
+    return existing;
   }
 
   if (existing.driver) {
@@ -242,7 +195,6 @@ export async function transitionToAccepted({
     );
   }
 
-  // 6. Dispatch window condition: scheduled rides cannot be accepted earlier than configured lead time
   const maxAllowedScheduledFor = new Date(atTime.getTime() + leadTimeMs);
   if (existing.scheduledFor && new Date(existing.scheduledFor) > maxAllowedScheduledFor) {
     throw new RideTransitionError(
@@ -252,7 +204,6 @@ export async function transitionToAccepted({
     );
   }
 
-  // 7. Targeted offer ownership and expiration check
   if (existing.currentOffer) {
     const offerDriverId = existing.currentOffer.driverId ? existing.currentOffer.driverId.toString() : "";
     if (offerDriverId && offerDriverId !== driverUser._id.toString()) {
@@ -266,7 +217,6 @@ export async function transitionToAccepted({
     }
   }
 
-  // 8. Vehicle compatibility check
   if (!isVehicleCompatible(driverUser.driverVehicle?.type, existing.vehicleType)) {
     throw new RideTransitionError(
       `Driver vehicle "${driverUser.driverVehicle?.type || "unknown"}" cannot fulfill ride "${existing.vehicleType}"`,
@@ -275,13 +225,10 @@ export async function transitionToAccepted({
     );
   }
 
-  // 9. Pet compatibility check
   if (existing.petFriendly && !isPetCompatible(driverUser.driverSettings, true)) {
     throw new RideTransitionError("Ride requires a pet-friendly driver", 409, "PET_INCOMPATIBLE");
   }
 
-  // 10. Atomic driver reservation to prevent simultaneous acceptance of multiple active rides
-  // Enforces mutual exclusion directly on the driver document with activeRideId tracking
   const driverReserved = await User.findOneAndUpdate(
     {
       _id: driverUser._id,
@@ -291,7 +238,7 @@ export async function transitionToAccepted({
       $or: [
         { activeRideId: null },
         { activeRideId: { $exists: false } },
-        { activeRideId: rideId }, // Allow idempotent re-entry for the same ride
+        { activeRideId: rideId },
       ],
     },
     {
@@ -312,7 +259,6 @@ export async function transitionToAccepted({
     throw new RideTransitionError("Driver already has an active ride in progress", 409, "DRIVER_OCCUPIED");
   }
 
-  // 11. Atomic CAS assignment on Ride
   const updatedRide = await Ride.findOneAndUpdate(
     {
       _id: rideId,
@@ -359,7 +305,6 @@ export async function transitionToAccepted({
     return updatedRide;
   }
 
-  // If Ride assignment CAS was lost, immediately release driver reservation conditionally on THIS ride
   await User.updateOne(
     { _id: driverUser._id, activeRideId: rideId },
     {
@@ -370,7 +315,6 @@ export async function transitionToAccepted({
     }
   );
 
-  // Re-inspect if atomic CAS was lost
   const finalCheck = await Ride.findById(rideId);
   if (finalCheck?.driver && finalCheck.driver.toString() === driverUser._id.toString()) {
     return finalCheck;
@@ -385,12 +329,6 @@ export async function transitionToAccepted({
   throw new RideTransitionError("Unable to accept ride due to conflict", 409, "CONFLICT");
 }
 
-/**
- * ATOMIC TRANSITION: Driver Rejection / Decline of a Targeted Offer
- * - Appends the rejecting driver to rejectedDrivers
- * - Atomically clears currentOffer so the matching engine can advance
- * - Updates dispatchStatus to DISPATCHING or EXHAUSTED if max attempts reached
- */
 export async function transitionToOfferRejected({
   rideId,
   driverUser,
@@ -413,7 +351,6 @@ export async function transitionToOfferRejected({
     return { rejected: false, ride: existing };
   }
 
-  // If ride has an active offer, verify caller owns it
   if (existing.currentOffer) {
     const offerDriverId = existing.currentOffer.driverId ? existing.currentOffer.driverId.toString() : "";
     if (offerDriverId && offerDriverId !== driverUser._id.toString()) {
@@ -449,10 +386,6 @@ export async function transitionToOfferRejected({
   return { rejected: true, ride: updated || existing };
 }
 
-/**
- * ATOMIC TRANSITION: ACCEPTED -> ARRIVED
- * Requires assigned driver ownership and status === ACCEPTED.
- */
 export async function transitionToArrived({
   rideId,
   driverId,
@@ -495,7 +428,7 @@ export async function transitionToArrived({
   }
 
   if (existing.status === "ARRIVED") {
-    return existing; // Idempotent arrival
+    return existing;
   }
 
   throw new RideTransitionError(
@@ -505,10 +438,6 @@ export async function transitionToArrived({
   );
 }
 
-/**
- * ATOMIC TRANSITION: ARRIVED -> IN_PROGRESS
- * Requires valid OTP, assigned driver ownership, and status === ARRIVED.
- */
 export async function transitionToInProgress({
   rideId,
   driverId,
@@ -577,13 +506,6 @@ export async function transitionToInProgress({
   throw new RideTransitionError("Unable to start ride", 409, "CONFLICT");
 }
 
-/**
- * ATOMIC TRANSITION: IN_PROGRESS -> COMPLETED
- * Concurrency Safety & Financial Side Effects:
- * Exactly ONE request can transition from IN_PROGRESS to COMPLETED.
- * Financial side effects (wallet balance, earnings) are applied ONLY upon winning the atomic transition.
- * Duplicate completion calls are safely rejected with 409 ALREADY_COMPLETED.
- */
 export async function transitionToCompleted({
   rideId,
   driverUser,
@@ -601,7 +523,6 @@ export async function transitionToCompleted({
     throw new RideTransitionError("Invalid ride ID format", 400, "INVALID_ID");
   }
 
-  // Lookup existing ride to determine payment method and target payment status
   const existingRide = await Ride.findById(rideId);
   if (!existingRide) {
     throw new RideTransitionError("Ride not found", 404, "RIDE_NOT_FOUND");
@@ -623,9 +544,6 @@ export async function transitionToCompleted({
     );
   }
 
-  // Phase 1C Invariant: Completing a ride NEVER marks payment as PAID automatically.
-  // Cash rides enter PENDING_COLLECTION awaiting explicit driver confirmation.
-  // Online/wallet rides enter PENDING_PAYMENT awaiting verified server settlement.
   const targetPaymentStatus =
     existingRide.paymentMethod === "CASH" ? "PENDING_COLLECTION" : "PENDING_PAYMENT";
 
@@ -649,7 +567,6 @@ export async function transitionToCompleted({
   );
 
   if (updatedRide) {
-    // Release driver reservation conditionally on THIS completed ride
     await User.updateOne(
       { _id: driverUser._id, activeRideId: rideId },
       {
@@ -665,8 +582,6 @@ export async function transitionToCompleted({
       await driverUser.save();
     }
 
-    // In Phase 1C: Cash is collected directly by driver in person, so platform wallet balance
-    // is NOT credited (preventing double credit). Online payment settlement is pending gateway.
     return { ride: updatedRide, creditedAmount: 0 };
   }
 
@@ -690,12 +605,6 @@ export async function transitionToCompleted({
   );
 }
 
-/**
- * ATOMIC TRANSITION: CANCELLED (by Rider)
- * Rider can cancel their own ride in SEARCHING, ACCEPTED, or ARRIVED states.
- * Cannot cancel IN_PROGRESS or COMPLETED rides.
- * Duplicate cancellations return 409 ALREADY_CANCELLED.
- */
 export async function transitionToCancelledByRider({
   rideId,
   riderId,
@@ -729,7 +638,6 @@ export async function transitionToCancelledByRider({
   );
 
   if (updatedRide) {
-    // If a driver was assigned, release their reservation conditionally on THIS cancelled ride
     if (updatedRide.driver) {
       await User.updateOne(
         { _id: updatedRide.driver, activeRideId: updatedRide._id },
@@ -750,7 +658,7 @@ export async function transitionToCancelledByRider({
   }
 
   if (existing.rider.toString() !== riderId.toString()) {
-    throw new RideTransitionError("Ride not found", 404, "RIDE_NOT_FOUND"); // IDOR prevention
+    throw new RideTransitionError("Ride not found", 404, "RIDE_NOT_FOUND");
   }
 
   if (existing.status === "CANCELLED") {
@@ -772,11 +680,6 @@ export async function transitionToCancelledByRider({
   );
 }
 
-/**
- * ATOMIC TRANSITION: CANCELLED (by Driver)
- * Driver can cancel assigned ride in ACCEPTED or ARRIVED states.
- * Cannot cancel SEARCHING (not assigned), IN_PROGRESS, or COMPLETED rides.
- */
 export async function transitionToCancelledByDriver({
   rideId,
   driverUser,
@@ -810,7 +713,6 @@ export async function transitionToCancelledByDriver({
   );
 
   if (updatedRide) {
-    // Release driver reservation conditionally on THIS cancelled ride
     await User.updateOne(
       { _id: driverUser._id, activeRideId: rideId },
       {

@@ -3,20 +3,20 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 
+const WORDS = ["Smarter.", "Faster.", "Effortlessly."];
+
 export default function Hero() {
   const [typed, setTyped] = useState("");
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const words = ["Smarter.", "Faster.", "Effortlessly."];
   const wordRef = useRef(0);
   const charRef = useRef(0);
   const dirRef = useRef<"forward" | "back">("forward");
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sectionRef = useRef<HTMLElement>(null);
 
-  // Typewriter
   useEffect(() => {
     function tick() {
-      const word = words[wordRef.current];
+      const word = WORDS[wordRef.current];
       if (dirRef.current === "forward") {
         charRef.current++;
         setTyped(word.slice(0, charRef.current));
@@ -29,7 +29,7 @@ export default function Hero() {
         charRef.current--;
         setTyped(word.slice(0, charRef.current));
         if (charRef.current === 0) {
-          wordRef.current = (wordRef.current + 1) % words.length;
+          wordRef.current = (wordRef.current + 1) % WORDS.length;
           dirRef.current = "forward";
           timerRef.current = setTimeout(tick, 300);
           return;
@@ -39,10 +39,8 @@ export default function Hero() {
     }
     timerRef.current = setTimeout(tick, 600);
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Parallax on mouse move
   useEffect(() => {
     const handleMove = (e: MouseEvent) => {
       if (!sectionRef.current) return;
@@ -163,7 +161,7 @@ export default function Hero() {
           }}
         />
         <span style={{ fontSize: 12, color: "#0d9488", fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase" }}>
-          AI-Powered Commutes
+          {"Dual Platform · Commuters & Drivers"}
         </span>
       </div>
 
@@ -208,12 +206,12 @@ export default function Hero() {
         Commute Better.
       </h1>
 
-      {/* Subheading */}
+      {/* Subheading with Dual Platform Content */}
       <p
         style={{
           fontSize: "clamp(16px, 2vw, 19px)",
           color: "#64748b",
-          maxWidth: 540,
+          maxWidth: 600,
           lineHeight: 1.75,
           margin: "0 0 52px",
           animation: "fadeUp 0.8s 0.2s ease both",
@@ -221,8 +219,7 @@ export default function Hero() {
           zIndex: 1,
         }}
       >
-        Bhavo combines AI-powered ride booking with recurring commute automation
-        to deliver seamless, predictable, and premium daily travel experiences.
+        {"Bhavo combines AI-powered ride booking & recurring commute automation for riders with a dedicated real-time dispatch and earnings console for drivers — all in one platform."}
       </p>
 
       {/* CTA buttons */}

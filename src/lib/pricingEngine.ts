@@ -1,12 +1,3 @@
-/**
- * Server-Authoritative Pricing Engine (Phase 1C)
- * 
- * Rules:
- * - All internal money calculations are strictly in integer paise (₹1 = 100 paise).
- * - Client-supplied fares, distances, or multipliers are NEVER trusted.
- * - Coordinates are validated; geodesic distance is calculated via Haversine.
- * - Rate cards are frozen to authoritative platform standards.
- */
 
 export class PricingError extends Error {
   public readonly code: string;
@@ -23,8 +14,8 @@ export class PricingError extends Error {
 export interface VehicleRateCard {
   id: string;
   name: string;
-  baseRatePaise: number; // in integer paise
-  perKmPaise: number;    // in integer paise
+  baseRatePaise: number;
+  perKmPaise: number;
   capacity: number;
 }
 
@@ -32,52 +23,49 @@ export const AUTHORITATIVE_RATE_CARDS: Record<string, VehicleRateCard> = {
   bike: {
     id: "bike",
     name: "Bike",
-    baseRatePaise: 4000, // ₹40
-    perKmPaise: 1200,    // ₹12/km
+    baseRatePaise: 4000,
+    perKmPaise: 1200,
     capacity: 1,
   },
   auto: {
     id: "auto",
     name: "Auto",
-    baseRatePaise: 5000, // ₹50
-    perKmPaise: 1600,    // ₹16/km
+    baseRatePaise: 5000,
+    perKmPaise: 1600,
     capacity: 3,
   },
   economy: {
     id: "economy",
     name: "Cab Economy",
-    baseRatePaise: 8000, // ₹80
-    perKmPaise: 2200,    // ₹22/km
+    baseRatePaise: 8000,
+    perKmPaise: 2200,
     capacity: 4,
   },
   premium: {
     id: "premium",
     name: "Cab Premium",
-    baseRatePaise: 12000, // ₹120
-    perKmPaise: 3200,     // ₹32/km
+    baseRatePaise: 12000,
+    perKmPaise: 3200,
     capacity: 4,
   },
   large: {
     id: "large",
     name: "Cab Large",
-    baseRatePaise: 16000, // ₹160
-    perKmPaise: 4200,     // ₹42/km
+    baseRatePaise: 16000,
+    perKmPaise: 4200,
     capacity: 6,
   },
   parcel: {
     id: "parcel",
     name: "Parcel Express",
-    baseRatePaise: 3500, // ₹35
-    perKmPaise: 1000,    // ₹10/km
+    baseRatePaise: 3500,
+    perKmPaise: 1000,
     capacity: 1,
   },
 };
 
 export const PRICING_RULE_VERSION = "v1_standard";
 
-/**
- * Normalizes vehicle type string to matching rate card key
- */
 export function resolveRateCard(vehicleTypeInput: string): VehicleRateCard {
   if (!vehicleTypeInput || typeof vehicleTypeInput !== "string") {
     throw new PricingError(
@@ -103,9 +91,6 @@ export function resolveRateCard(vehicleTypeInput: string): VehicleRateCard {
   );
 }
 
-/**
- * Validates geo coordinates [latitude, longitude]
- */
 export function validateCoordinates(coords: unknown, label = "location"): [number, number] {
   if (!Array.isArray(coords) || coords.length !== 2) {
     throw new PricingError(
@@ -136,9 +121,6 @@ export function validateCoordinates(coords: unknown, label = "location"): [numbe
   return [lat, lng];
 }
 
-/**
- * Calculates geodesic (great-circle) distance in kilometers between two coordinates
- */
 export function calculateGeodesicDistanceKm(
   p1: [number, number],
   p2: [number, number]
@@ -146,7 +128,7 @@ export function calculateGeodesicDistanceKm(
   const [lat1, lon1] = p1;
   const [lat2, lon2] = p2;
 
-  const R = 6371; // Earth radius in kilometers
+  const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
 
@@ -187,9 +169,6 @@ export interface AuthoritativeFareResult {
   };
 }
 
-/**
- * Authoritatively calculates server fare for a ride
- */
 export function calculateAuthoritativeFare(
   input: PricingCalculationInput
 ): AuthoritativeFareResult {
@@ -198,7 +177,6 @@ export function calculateAuthoritativeFare(
 
   const geodesicKm = calculateGeodesicDistanceKm(pickup, dropoff);
 
-  // Reject zero or negligible distance (same point)
   if (geodesicKm < 0.05) {
     throw new PricingError(
       "Pickup and drop-off locations are too close or identical.",
@@ -207,9 +185,6 @@ export function calculateAuthoritativeFare(
     );
   }
 
-  // Authoritative road distance determination:
-  // Standard urban India road tortuosity is ~1.30.
-  // If client submits a claimed distance, verify it cannot be physically less than line-of-sight geodesic.
   let authoritativeDistanceKm: number;
   const defaultEstimatedKm = Math.max(1.0, Math.round(geodesicKm * 1.30 * 10) / 10);
 
@@ -218,7 +193,6 @@ export function calculateAuthoritativeFare(
     Number.isFinite(input.claimedDistanceKm) &&
     input.claimedDistanceKm > 0
   ) {
-    // Road distance can never be less than geodesic (0.95 tolerance for slight GPS rounding)
     if (input.claimedDistanceKm < geodesicKm * 0.95) {
       throw new PricingError(
         "Submitted distance violates geodesic road lower bound.",
@@ -226,7 +200,6 @@ export function calculateAuthoritativeFare(
         400
       );
     }
-    // Cannot be absurdly large (> 5x geodesic or > 1000 km for intra-city rides)
     if (input.claimedDistanceKm > Math.max(geodesicKm * 3.5, 50) || input.claimedDistanceKm > 1000) {
       throw new PricingError(
         "Submitted distance is outside plausible route bounds.",
@@ -241,12 +214,10 @@ export function calculateAuthoritativeFare(
 
   const rateCard = resolveRateCard(input.vehicleType);
 
-  // Monetary calculations in integer paise
   const baseFarePaise = rateCard.baseRatePaise;
   const distanceFarePaise = Math.round(authoritativeDistanceKm * rateCard.perKmPaise);
   const subtotalPaise = baseFarePaise + distanceFarePaise;
 
-  // Pet friendly surcharge: +15%
   const petFriendlySurchargePaise = input.petFriendly
     ? Math.round(subtotalPaise * 0.15)
     : 0;
@@ -254,7 +225,6 @@ export function calculateAuthoritativeFare(
   const totalFarePaise = subtotalPaise + petFriendlySurchargePaise;
   const fareInRupees = Math.round(totalFarePaise / 100);
 
-  // Authoritative ETA in minutes based on distance
   const estimatedDurationMins = Math.max(
     5,
     Math.round(authoritativeDistanceKm * 2.5)
@@ -279,9 +249,6 @@ export function calculateAuthoritativeFare(
   };
 }
 
-/**
- * Converts rupee amount to integer paise, with validation
- */
 export function rupeesToPaise(rupees: unknown): number {
   if (typeof rupees !== "number" || !Number.isFinite(rupees) || isNaN(rupees)) {
     throw new PricingError("Monetary amount must be a finite number", "INVALID_AMOUNT", 400);
@@ -296,9 +263,6 @@ export function rupeesToPaise(rupees: unknown): number {
   return paise;
 }
 
-/**
- * Converts integer paise to rupees
- */
 export function paiseToRupees(paise: unknown): number {
   if (typeof paise !== "number" || !Number.isInteger(paise)) {
     throw new PricingError("Paise amount must be an integer", "INVALID_PAISE", 400);

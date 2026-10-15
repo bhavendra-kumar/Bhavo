@@ -101,7 +101,6 @@ export default function DriverDutyHero() {
         ? "bg-linear-to-br from-[#1c1917] via-[#292524] to-[#0c0a09] border-amber-500/30 shadow-amber-950/20"
         : "bg-linear-to-br from-[#042f2e] via-[#064e3b] to-[#022c22] border-teal-500/20 shadow-teal-950/20"
     }`}>
-      {/* Background Decorative Glow */}
       <div className={`absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full blur-3xl pointer-events-none ${
         !isVerified ? "bg-amber-500/15" : "bg-teal-500/15"
       }`} />
@@ -110,9 +109,7 @@ export default function DriverDutyHero() {
       }`} />
 
       <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        {/* Left Side: Status & Sonar Pulse */}
         <div className="flex items-start gap-4">
-          {/* Duty Pulse Icon */}
           <div className="relative shrink-0 mt-1">
             {!isVerified ? (
               <div className="relative flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-400/40 text-amber-300">
@@ -130,7 +127,6 @@ export default function DriverDutyHero() {
             )}
           </div>
 
-          {/* Status Text Details */}
           <div className="flex flex-col">
             <div className="flex items-center gap-2.5 flex-wrap">
               {!isVerified ? (
@@ -187,7 +183,6 @@ export default function DriverDutyHero() {
           </div>
         </div>
 
-        {/* Right Side: Primary Actions */}
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto shrink-0">
           {!isVerified ? (
             <button
@@ -209,7 +204,6 @@ export default function DriverDutyHero() {
             )
           )}
 
-          {/* Master Duty Switch */}
           <button
             onClick={handleToggleDuty}
             className={`flex-1 md:flex-initial flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl font-black text-[14px] transition-all shadow-lg active:scale-95 cursor-pointer ${
@@ -235,7 +229,6 @@ export default function DriverDutyHero() {
         </div>
       </div>
 
-      {/* Quick Shift Summary Bar */}
       <div className="mt-6 pt-4 border-t border-teal-500/20 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
         <div className="flex items-center gap-2">
           <div className="p-1.5 rounded-lg bg-teal-500/10 text-teal-300">

@@ -30,7 +30,6 @@ export async function GET(req: Request) {
     const fiveStarCount = ratedRides.filter((r) => r.riderRating === 5).length;
     const fourStarCount = ratedRides.filter((r) => r.riderRating === 4).length;
 
-    // Real compliment tallies from database
     const complimentCounts: Record<string, { count: number; iconKey: string }> = {
       "Smooth & Safe Driving": { count: 0, iconKey: "ShieldCheck" },
       "Polite & Professional": { count: 0, iconKey: "ThumbsUp" },

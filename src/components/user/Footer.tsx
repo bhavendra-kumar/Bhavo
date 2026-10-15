@@ -34,10 +34,8 @@ export default function Footer() {
       className="w-full mt-auto shrink-0"
       style={{ background: "#042f2e", borderTop: "1px solid rgba(255, 255, 255, 0.08)" }}
     >
-      {/* Main footer content */}
       <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8 grid grid-cols-1 md:grid-cols-4 gap-8">
 
-        {/* Brand column */}
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-2.5">
             <div
@@ -55,7 +53,6 @@ export default function Footer() {
             Your intelligent ride companion. Fast, safe, and sustainable commutes across the city.
           </p>
 
-          {/* Status pill */}
           <div className="flex items-center gap-2 mt-1">
             <span className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full text-slate-200" style={{ background: "rgba(255, 255, 255, 0.06)", border: "1px solid rgba(255, 255, 255, 0.1)" }}>
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -64,7 +61,6 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Quick Links */}
         <div className="flex flex-col gap-3">
           <p className="text-[11px] font-bold uppercase tracking-wider text-white">Navigate</p>
           <ul className="flex flex-col gap-2">
@@ -85,7 +81,6 @@ export default function Footer() {
           </ul>
         </div>
 
-        {/* Account Links */}
         <div className="flex flex-col gap-3">
           <p className="text-[11px] font-bold uppercase tracking-wider text-white">Account</p>
           <ul className="flex flex-col gap-2">
@@ -106,7 +101,6 @@ export default function Footer() {
           </ul>
         </div>
 
-        {/* Support & Legal */}
         <div className="flex flex-col gap-3">
           <p className="text-[11px] font-bold uppercase tracking-wider text-white">Support</p>
           <ul className="flex flex-col gap-2">
@@ -126,7 +120,6 @@ export default function Footer() {
             ))}
           </ul>
 
-          {/* Contact mini-block */}
           <div className="mt-2 flex flex-col gap-1.5">
             <a href="mailto:support@bhavo.in" className="flex items-center gap-2 text-[12px] font-medium transition-colors" style={{ color: "#cbd5e1" }}
               onMouseEnter={(e) => (e.currentTarget.style.color = "#ffffff")}
@@ -141,7 +134,6 @@ export default function Footer() {
           </div>
         </div>
       </div>
-
 
     </footer>
   );

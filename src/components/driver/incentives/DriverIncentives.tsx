@@ -190,7 +190,6 @@ export default function DriverIncentives() {
                 </div>
               </div>
 
-              {/* Progress bar */}
               <div className="w-full h-2.5 bg-slate-200 rounded-full mt-4 overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all duration-500 ${

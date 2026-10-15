@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 interface SignUpProps {
@@ -34,8 +35,8 @@ export default function SignUp({ initialRole = "RIDER" }: SignUpProps) {
     }
     if (!password) {
       e.password = "Password is required.";
-    } else if (password.length < 8) {
-      e.password = "Password must be at least 8 characters.";
+    } else if (password.length < 6) {
+      e.password = "Password must be at least 6 characters.";
     }
     if (!confirmPassword) {
       e.confirmPassword = "Confirm password is required.";
@@ -150,9 +151,6 @@ export default function SignUp({ initialRole = "RIDER" }: SignUpProps) {
 
       <div style={{ display: "flex", minHeight: "100vh", fontFamily: "var(--font-outfit), system-ui, sans-serif", alignItems: "flex-start" }}>
 
-        {/* ════════════════════════════════════════════
-            LEFT — Animated Night City Scene
-        ════════════════════════════════════════════ */}
         <div className="auth-scene" style={{
           position: "sticky", top: 0, width: "52%", flexShrink: 0, height: "100vh",
           background: "linear-gradient(180deg, #020b0b 0%, #021a1a 45%, #042f2e 100%)",
@@ -160,7 +158,6 @@ export default function SignUp({ initialRole = "RIDER" }: SignUpProps) {
         }}>
           <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(20,184,166,0.12) 0%, transparent 70%)" }} />
 
-          {/* Stars */}
           {[
             { x: 8, y: 5, d: "2.2s", dl: "0.2s" }, { x: 22, y: 9, d: "1.7s", dl: "0.8s" },
             { x: 38, y: 3, d: "2.6s", dl: "0s" }, { x: 55, y: 7, d: "1.9s", dl: "1.1s" },
@@ -177,25 +174,28 @@ export default function SignUp({ initialRole = "RIDER" }: SignUpProps) {
             }} />
           ))}
 
-          {/* BHAVO Giant Title */}
           <div style={{ position: "relative", zIndex: 10, padding: "44px 48px 0" }}>
-            <Link href="/" style={{ textDecoration: "none" }}>
-              <div className="bhavo-title" style={{
-                fontSize: "clamp(64px, 7vw, 96px)", fontWeight: 900,
-                letterSpacing: "-4px", lineHeight: 1,
-                background: "linear-gradient(135deg, #ffffff 0%, #5eead4 40%, #34d399 100%)",
-                WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-                marginBottom: 10,
-              }}>
-                BHAVO
+            <Link href="/" style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 16 }}>
+              <div style={{ width: 56, height: 56, borderRadius: 16, background: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", padding: 6, boxShadow: "0 4px 14px rgba(0,0,0,0.2)", flexShrink: 0 }}>
+                <Image src="/bhavo-logo.png" alt="Bhavo Logo" width={44} height={44} style={{ width: "100%", height: "100%", objectFit: "contain" }} priority />
+              </div>
+              <div>
+                <div className="bhavo-title" style={{
+                  fontSize: "clamp(48px, 5.5vw, 72px)", fontWeight: 900,
+                  letterSpacing: "-3px", lineHeight: 1,
+                  background: "linear-gradient(135deg, #ffffff 0%, #5eead4 40%, #34d399 100%)",
+                  WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+                  marginBottom: 6,
+                }}>
+                  BHAVO
+                </div>
+                <p style={{ color: "rgba(94,234,212,0.8)", fontSize: 13, fontWeight: 600, letterSpacing: "3px", textTransform: "uppercase", margin: 0 }}>
+                  Your City. Your Ride.
+                </p>
               </div>
             </Link>
-            <p style={{ color: "rgba(94,234,212,0.8)", fontSize: 13, fontWeight: 600, letterSpacing: "3px", textTransform: "uppercase" }}>
-              Your City. Your Ride.
-            </p>
           </div>
 
-          {/* City Skyline */}
           <div style={{ position: "absolute", bottom: 200, left: 0, right: 0, display: "flex", alignItems: "flex-end" }}>
             {[
               { w: 48, h: 200, x: 0, col: "#071f1f", wins: [[14, 30], [14, 65], [14, 100], [14, 140], [14, 175]], d: "2.1s" },
@@ -224,37 +224,30 @@ export default function SignUp({ initialRole = "RIDER" }: SignUpProps) {
             <div style={{ position: "absolute", right: 80, bottom: 0, width: 120, height: 210, background: "#062020" }} />
           </div>
 
-          {/* Road Section */}
           <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 200 }}>
             <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 200, background: "linear-gradient(180deg, #111827 0%, #0d1117 100%)" }} />
             <div style={{ position: "absolute", bottom: 195, left: 0, right: 0, height: 5, background: "rgba(20,184,166,0.6)" }} />
 
-            {/* Lane dashes */}
             <div className="lane-dash" style={{ position: "absolute", bottom: 90, left: 0, display: "flex", gap: 48 }}>
               {Array.from({ length: 20 }).map((_, i) => (
                 <div key={i} style={{ width: 48, height: 5, background: "rgba(255,255,255,0.25)", borderRadius: 3, flexShrink: 0 }} />
               ))}
             </div>
 
-            {/* Headlight glow on road */}
             <div className="headlight" style={{
               position: "absolute", bottom: 50, left: "12%",
               width: 200, height: 80,
               background: "radial-gradient(ellipse 100% 60% at 0% 50%, rgba(254,249,195,0.25) 0%, transparent 100%)",
             }} />
 
-            {/* Car */}
             <div className="car-drive" style={{ position: "absolute", bottom: 88, left: 0 }}>
               <svg viewBox="0 0 220 72" width="220" height="72" style={{ display: "block", overflow: "visible", transform: "scaleX(-1)" }}>
-                {/* Speed lines — trail behind (right side when flipped) */}
                 <rect x="228" y="26" width="72" height="3" rx="2" fill="rgba(20,184,166,0.5)" opacity="0.7" />
                 <rect x="228" y="36" width="52" height="2" rx="1" fill="rgba(20,184,166,0.3)" opacity="0.5" />
                 <rect x="228" y="44" width="80" height="2" rx="1" fill="rgba(20,184,166,0.4)" opacity="0.6" />
 
-                {/* Shadow */}
                 <ellipse cx="110" cy="70" rx="88" ry="5" fill="rgba(0,0,0,0.5)" />
 
-                {/* Body */}
                 <path d="M12 44 Q12 32 26 32 L78 32 Q92 10 120 10 L160 10 Q178 10 188 32 L198 32 Q208 32 208 44 L208 58 Q203 64 196 64 L24 64 Q16 64 12 58 Z" fill="#0d9488" />
                 <path d="M78 32 Q90 12 118 12 L158 12 Q174 12 182 32" fill="#0a7a6e" />
                 <path d="M82 32 Q92 14 117 14 L152 14 Q166 14 174 32" fill="rgba(186,230,253,0.45)" stroke="rgba(186,230,253,0.2)" strokeWidth="1" />
@@ -268,7 +261,6 @@ export default function SignUp({ initialRole = "RIDER" }: SignUpProps) {
                 <rect x="200" y="38" width="10" height="7" rx="2" fill="#f87171" />
                 <rect x="12" y="53" width="196" height="3" rx="1" fill="rgba(20,184,166,0.4)" />
 
-                {/* Front wheel */}
                 <circle cx="54" cy="64" r="14" fill="#111827" />
                 <g className="wheel-spin" style={{ transformOrigin: "54px 64px" }}>
                   <circle cx="54" cy="64" r="9" fill="#1e293b" />
@@ -277,7 +269,6 @@ export default function SignUp({ initialRole = "RIDER" }: SignUpProps) {
                   <circle cx="54" cy="64" r="3" fill="#475569" />
                 </g>
 
-                {/* Rear wheel */}
                 <circle cx="168" cy="64" r="14" fill="#111827" />
                 <g className="wheel-spin" style={{ transformOrigin: "168px 64px" }}>
                   <circle cx="168" cy="64" r="9" fill="#1e293b" />
@@ -291,13 +282,9 @@ export default function SignUp({ initialRole = "RIDER" }: SignUpProps) {
             <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 80, background: "linear-gradient(180deg, transparent 0%, rgba(20,184,166,0.04) 100%)" }} />
           </div>
 
-
           <div className="noise-overlay" style={{ opacity: 0.035, zIndex: 5 }} />
         </div>
 
-        {/* ════════════════════════════════════════════
-            RIGHT — Sign Up Form
-        ════════════════════════════════════════════ */}
         <div className="auth-form-col" style={{
           flex: 1, minWidth: 0, display: "flex", flexDirection: "column",
           alignItems: "center", justifyContent: "center",
@@ -308,16 +295,17 @@ export default function SignUp({ initialRole = "RIDER" }: SignUpProps) {
           <div style={{ position: "absolute", top: "-15%", right: "-10%", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, rgba(20,184,166,0.08) 0%, transparent 70%)", pointerEvents: "none" }} />
           <div style={{ position: "absolute", bottom: "-15%", left: "-10%", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(16,185,129,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
 
-          {/* Mobile BHAVO */}
           <div style={{ display: "none" }} className="mobile-bhavo">
-            <Link href="/" style={{ textDecoration: "none" }}>
-              <div style={{ fontSize: 48, fontWeight: 900, letterSpacing: "-2px", background: "linear-gradient(135deg, #0d9488 0%, #34d399 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", marginBottom: 32, textAlign: "center" }}>
+            <Link href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 28 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", padding: 4, boxShadow: "0 2px 8px rgba(0,0,0,0.1)", flexShrink: 0 }}>
+                <Image src="/bhavo-logo.png" alt="Bhavo Logo" width={36} height={36} style={{ width: "100%", height: "100%", objectFit: "contain" }} priority />
+              </div>
+              <div style={{ fontSize: 36, fontWeight: 900, letterSpacing: "-1.5px", background: "linear-gradient(135deg, #0d9488 0%, #34d399 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
                 BHAVO
               </div>
             </Link>
           </div>
 
-          {/* Card */}
           <div className={`form-card${shake ? " form-shake" : ""}`} style={{
             width: "100%", maxWidth: 400,
             background: "#ffffff", borderRadius: 28,
@@ -325,10 +313,8 @@ export default function SignUp({ initialRole = "RIDER" }: SignUpProps) {
             boxShadow: "0 0 0 1px rgba(20,184,166,0.08), 0 4px 6px rgba(0,0,0,0.03), 0 16px 48px rgba(0,0,0,0.07), 0 40px 80px rgba(0,0,0,0.05)",
             position: "relative", zIndex: 10,
           }}>
-            {/* Top accent bar */}
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 4, background: "linear-gradient(90deg, #0d9488, #34d399, #0d9488)", borderRadius: "28px 28px 0 0", backgroundSize: "200% 100%", animation: "lane-dash 3s linear infinite" }} />
 
-            {/* Top Dual Section Selector (Register as Rider / Driver) */}
             <div style={{ marginBottom: 24 }}>
               <div style={{
                 display: "flex",
@@ -338,7 +324,6 @@ export default function SignUp({ initialRole = "RIDER" }: SignUpProps) {
                 position: "relative",
                 border: "1px solid #e2e8f0"
               }}>
-                {/* Sliding indicator */}
                 <div style={{
                   position: "absolute",
                   top: 4,
@@ -352,7 +337,6 @@ export default function SignUp({ initialRole = "RIDER" }: SignUpProps) {
                   border: role === "RIDER" ? "1px solid rgba(13,148,136,0.25)" : "1px solid rgba(217,119,6,0.25)"
                 }} />
 
-                {/* Rider Section Tab */}
                 <button
                   type="button"
                   id="tab-register-rider"
@@ -380,7 +364,6 @@ export default function SignUp({ initialRole = "RIDER" }: SignUpProps) {
                   <span>Register as Rider</span>
                 </button>
 
-                {/* Driver Section Tab */}
                 <button
                   type="button"
                   id="tab-register-driver"
@@ -410,7 +393,6 @@ export default function SignUp({ initialRole = "RIDER" }: SignUpProps) {
               </div>
             </div>
 
-            {/* Dynamic Role Header */}
             <div style={{ marginBottom: 22 }}>
               <div style={{
                 display: "inline-flex",
@@ -438,7 +420,6 @@ export default function SignUp({ initialRole = "RIDER" }: SignUpProps) {
                   : "Drive with Bhavo. Zero commission on daily bonuses and instant payouts."}
               </p>
 
-              {/* Role-specific Value Props */}
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
                 {role === "RIDER" ? (
                   <>
@@ -456,9 +437,7 @@ export default function SignUp({ initialRole = "RIDER" }: SignUpProps) {
               </div>
             </div>
 
-            {/* Email Form */}
             <form onSubmit={handleSubmit} noValidate style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              {/* Name */}
               <div>
                 <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 7, letterSpacing: "0.4px", textTransform: "uppercase" }} htmlFor="signup-name">Full name</label>
                 <div style={{ position: "relative" }}>
@@ -475,7 +454,6 @@ export default function SignUp({ initialRole = "RIDER" }: SignUpProps) {
                 {errors.name && <p className="field-error"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" /></svg>{errors.name}</p>}
               </div>
 
-              {/* Email */}
               <div>
                 <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 7, letterSpacing: "0.4px", textTransform: "uppercase" }} htmlFor="signup-email">Email</label>
                 <div style={{ position: "relative" }}>
@@ -492,7 +470,6 @@ export default function SignUp({ initialRole = "RIDER" }: SignUpProps) {
                 {errors.email && <p className="field-error"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" /></svg>{errors.email}</p>}
               </div>
 
-              {/* Password */}
               <div>
                 <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 7, letterSpacing: "0.4px", textTransform: "uppercase" }} htmlFor="signup-password">Password</label>
                 <div style={{ position: "relative" }}>
@@ -520,7 +497,6 @@ export default function SignUp({ initialRole = "RIDER" }: SignUpProps) {
                 }
               </div>
 
-              {/* Confirm Password */}
               <div>
                 <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 7, letterSpacing: "0.4px", textTransform: "uppercase" }} htmlFor="signup-confirm-password">Confirm Password</label>
                 <div style={{ position: "relative" }}>
@@ -600,14 +576,12 @@ export default function SignUp({ initialRole = "RIDER" }: SignUpProps) {
               </button>
             </form>
 
-            {/* Divider */}
             <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "22px 0 18px" }}>
               <div style={{ flex: 1, height: 1, background: "#f1f5f9" }} />
               <span style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", letterSpacing: "0.5px", textTransform: "uppercase" }}>or continue with</span>
               <div style={{ flex: 1, height: 1, background: "#f1f5f9" }} />
             </div>
 
-            {/* Google Button (bottom) */}
             <button
               type="button"
               onClick={() => setErrors({ form: "Google Sign-Up is currently in private preview. Please register with email and password." })}
@@ -639,7 +613,6 @@ export default function SignUp({ initialRole = "RIDER" }: SignUpProps) {
               Sign up as {role === "RIDER" ? "Rider" : "Driver"} with Google
             </button>
 
-            {/* Footer link */}
             <div style={{ marginTop: 22, textAlign: "center", color: "#64748b", fontSize: 13.5 }}>
               Already registered as {role === "RIDER" ? "a Rider" : "a Driver"}?{" "}
               <Link href={`/login?role=${role.toLowerCase()}`} style={{ color: role === "RIDER" ? "#0d9488" : "#b45309", fontWeight: 700, textDecoration: "none" }}>

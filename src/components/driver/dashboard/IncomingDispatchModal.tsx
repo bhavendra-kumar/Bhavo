@@ -76,7 +76,6 @@ export default function IncomingDispatchModal() {
       style={{ zIndex: 9999 }}
     >
       <div className="relative w-full max-w-lg max-h-[92vh] bg-white rounded-3xl shadow-2xl overflow-hidden border border-teal-500/30 flex flex-col my-auto">
-        {/* Animated Countdown Progress Bar at Top */}
         <div className="h-2 w-full bg-slate-100 shrink-0">
           <div
             className={`h-full transition-all duration-1000 ease-linear ${
@@ -86,7 +85,6 @@ export default function IncomingDispatchModal() {
           />
         </div>
 
-        {/* Modal Header */}
         <div className="px-6 pt-5 pb-4 bg-linear-to-r from-teal-900 to-emerald-900 text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
             <span className="relative flex h-3 w-3">
@@ -112,9 +110,7 @@ export default function IncomingDispatchModal() {
           </div>
         </div>
 
-        {/* Body Content */}
         <div className="p-5 sm:p-6 flex flex-col gap-4 overflow-y-auto overscroll-contain flex-1">
-          {/* Estimated Driver Fare Box */}
           <div className="flex items-center justify-between p-4 rounded-2xl bg-teal-50/80 border border-teal-200">
             <div>
               <span className="text-[11px] font-bold uppercase tracking-wider text-teal-700 block">
@@ -143,7 +139,6 @@ export default function IncomingDispatchModal() {
             </div>
           </div>
 
-          {/* Passenger Info */}
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-3">
               <Avatar className="w-11 h-11 rounded-full border-2 border-teal-500/40">
@@ -178,9 +173,7 @@ export default function IncomingDispatchModal() {
             </div>
           </div>
 
-          {/* Route Details (Pickup & Dropoff) */}
           <div className="space-y-3 p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
-            {/* Pickup */}
             <div className="flex items-start gap-3">
               <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5 border border-emerald-300">
                 <div className="w-2 h-2 rounded-full bg-emerald-600" />
@@ -195,10 +188,8 @@ export default function IncomingDispatchModal() {
               </div>
             </div>
 
-            {/* Connecting dashed line */}
             <div className="ml-2.5 w-0.5 h-3 border-l-2 border-dashed border-slate-300" />
 
-            {/* Dropoff */}
             <div className="flex items-start gap-3">
               <div className="w-5 h-5 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center shrink-0 mt-0.5 border border-rose-300">
                 <MapPin size={12} className="text-rose-600" />
@@ -215,7 +206,6 @@ export default function IncomingDispatchModal() {
             </div>
           </div>
 
-          {/* Action Buttons */}
           <div className="flex items-center gap-3 pt-2 shrink-0">
             <button
               onClick={declineDispatch}

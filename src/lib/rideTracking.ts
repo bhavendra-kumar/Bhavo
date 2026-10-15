@@ -1,13 +1,3 @@
-/**
- * Real-Time Ride Tracking & Location Freshness Engine (Phase 1E)
- *
- * Rules:
- * - Authoritative server-side tracking snapshots.
- * - Strict role-based projection (OTP never leaked to driver).
- * - Location freshness evaluation against 120s TTL.
- * - Monotonic tracking version for out-of-order rejection.
- * - Terminal ride detection.
- */
 
 import { IRide } from "@/models/Ride";
 import { DEFAULT_DRIVER_LOCATION_MAX_AGE_SECONDS } from "@/lib/dispatchConfig";
@@ -61,16 +51,10 @@ export interface ITrackingSnapshot {
   snapshotAt: string;
 }
 
-/**
- * Checks whether a ride status is in a terminal state
- */
 export function isRideTerminal(status: string): boolean {
   return status === "COMPLETED" || status === "CANCELLED";
 }
 
-/**
- * Evaluates driver location validity and freshness against the authoritative TTL
- */
 export function evaluateLocationFreshness(
   coordinates?: [number, number] | null,
   updatedAt?: Date | string | null,
@@ -115,9 +99,6 @@ export function evaluateLocationFreshness(
   return { status: "STALE", isFresh: false, ageSeconds };
 }
 
-/**
- * Generates an authoritative, role-appropriate tracking snapshot for SSE or REST polling
- */
 export function formatTrackingSnapshot(
   ride: IRide,
   viewerRole: "RIDER" | "DRIVER",
@@ -125,7 +106,6 @@ export function formatTrackingSnapshot(
 ): ITrackingSnapshot {
   const terminal = isRideTerminal(ride.status);
 
-  // Evaluate location freshness
   let freshness: ILocationFreshnessResult;
   if (terminal) {
     freshness = { status: "TERMINAL", isFresh: false, ageSeconds: null };
@@ -140,7 +120,6 @@ export function formatTrackingSnapshot(
     );
   }
 
-  // Sanitized driver public details
   const driverDetails =
     ride.driver && ride.driverDetails
       ? {
@@ -153,7 +132,6 @@ export function formatTrackingSnapshot(
         }
       : null;
 
-  // Driver coordinates are published ONLY when a driver is assigned and active
   const driverCoordinates =
     !terminal && ["ACCEPTED", "ARRIVED", "IN_PROGRESS"].includes(ride.status)
       ? ride.driverCoordinates || null
@@ -195,7 +173,6 @@ export function formatTrackingSnapshot(
     snapshotAt: atTime.toISOString(),
   };
 
-  // OTP is strictly accessible to RIDER before ride begins (never to DRIVER or after trip start)
   if (viewerRole === "RIDER" && ["ACCEPTED", "ARRIVED"].includes(ride.status) && ride.otp) {
     snapshot.otp = ride.otp;
   }
@@ -203,9 +180,6 @@ export function formatTrackingSnapshot(
   return snapshot;
 }
 
-/**
- * Formats a typed Server-Sent Events (SSE) message
- */
 export function buildSseMessage(
   event: string,
   data: unknown,
@@ -220,9 +194,6 @@ export function buildSseMessage(
   return msg;
 }
 
-/**
- * Builds an SSE comment keepalive string
- */
 export function buildSseKeepalive(): string {
   return `: keepalive ${Date.now()}\n\n`;
 }

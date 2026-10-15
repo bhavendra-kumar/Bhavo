@@ -42,7 +42,6 @@ export default function RecommendedDestinationsSection({
 
   return (
     <div className="card p-5 bg-white border border-slate-200/90 rounded-2xl shadow-xs flex flex-col gap-3.5">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600 shadow-2xs">
@@ -63,7 +62,6 @@ export default function RecommendedDestinationsSection({
         </span>
       </div>
 
-      {/* Category Filter Chips */}
       <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5">
         {CATEGORIES.map((cat) => (
           <button
@@ -81,7 +79,6 @@ export default function RecommendedDestinationsSection({
         ))}
       </div>
 
-      {/* Places Grid */}
       {recsLoading && recommendedPlaces.length === 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 py-2">
           {[1, 2, 3, 4].map((n) => (
@@ -142,7 +139,6 @@ export default function RecommendedDestinationsSection({
         </div>
       )}
 
-      {/* Footer hint */}
       <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11.5px] text-slate-400 font-medium">
         <span>Click any spot to calculate route & live vehicle fares</span>
         <span className="text-teal-600 font-bold flex items-center gap-1">

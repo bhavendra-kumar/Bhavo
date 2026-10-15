@@ -121,7 +121,6 @@ export default function MobilityInsightsPage() {
         const autoBookedPct = totalTrips > 0 ? Math.round((autoBookedCount / totalTrips) * 100) : 0;
         const timeSavedHours = dashJson?.stats?.savedHours ?? Number((totalTrips * 0.35).toFixed(1));
         const carbonOffsetKg = dashJson?.stats?.carbonOffsetKg ?? Number((totalTrips * 0.6).toFixed(1));
-        // Commuter savings estimate: approx 10% compared to surge pricing
         const moneySaved = Math.round(totalSpent * 0.1);
 
         const buckets = [0, 0, 0, 0, 0, 0, 0];
@@ -159,7 +158,6 @@ export default function MobilityInsightsPage() {
     };
   }, []);
 
-  // Compute Favorite Routes
   const routeCounts: { [key: string]: { from: string; to: string; count: number } } = {};
   for (const r of rides) {
     const from = r.pickup?.address?.split(",")[0] || "Origin";
@@ -174,7 +172,6 @@ export default function MobilityInsightsPage() {
     .sort((a, b) => b.count - a.count)
     .slice(0, 3);
 
-  // Compute Preferred Drivers
   const driverCounts: { [name: string]: { name: string; rating: number; count: number } } = {};
   for (const r of rides) {
     if (r.driverDetails?.name) {
@@ -193,7 +190,6 @@ export default function MobilityInsightsPage() {
     .sort((a, b) => b.count - a.count)
     .slice(0, 3);
 
-  // Compute Vehicle Usage
   const vehicleCounts: { [type: string]: number } = {};
   for (const r of rides) {
     const v = r.vehicleType || "Standard";
@@ -232,7 +228,6 @@ export default function MobilityInsightsPage() {
 
   return (
     <div className="flex flex-col gap-6 pb-10">
-      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight">
@@ -243,7 +238,6 @@ export default function MobilityInsightsPage() {
           </p>
         </div>
 
-        {/* Period selector & Export */}
         <div className="flex items-center gap-3">
           <div className="flex p-1 rounded-lg bg-slate-100 border border-slate-200">
             {["This Month", "Last Month", "This Year"].map((label) => (
@@ -270,7 +264,6 @@ export default function MobilityInsightsPage() {
         </div>
       </div>
 
-      {/* KPI Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard
           title="Total Trips"
@@ -315,7 +308,6 @@ export default function MobilityInsightsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Chart */}
         <div className="card lg:col-span-2 p-6 flex flex-col min-h-80">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-[15px] font-bold text-slate-900">Commute Trends</h3>
@@ -349,7 +341,6 @@ export default function MobilityInsightsPage() {
                         boxShadow: i === 6 ? "0 -4px 12px rgba(20,184,166,0.3)" : "none",
                       }}
                     />
-                    {/* Tooltip */}
                     <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-[11px] font-bold text-white px-2.5 py-1 rounded-lg whitespace-nowrap pointer-events-none bg-slate-900">
                       {weekBuckets[i]} trips
                     </div>
@@ -363,7 +354,6 @@ export default function MobilityInsightsPage() {
           )}
         </div>
 
-        {/* AI Insights Panel */}
         <div
           className="card p-6 flex flex-col gap-4 relative overflow-hidden"
           style={{
@@ -411,9 +401,7 @@ export default function MobilityInsightsPage() {
         </div>
       </div>
 
-      {/* Analytics Breakdown */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {/* Favorite Routes */}
         <div className="card p-5">
           <p className="text-[14px] font-bold mb-4 text-slate-900">Frequent Routes</p>
           {favoriteRoutes.length === 0 ? (
@@ -443,7 +431,6 @@ export default function MobilityInsightsPage() {
           )}
         </div>
 
-        {/* Preferred Drivers */}
         <div className="card p-5">
           <p className="text-[14px] font-bold mb-4 text-slate-900">Assigned Pilots</p>
           {preferredDrivers.length === 0 ? (
@@ -475,7 +462,6 @@ export default function MobilityInsightsPage() {
           )}
         </div>
 
-        {/* Most Used Vehicle */}
         <div className="card p-5">
           <p className="text-[14px] font-bold mb-4 text-slate-900">Vehicle Category</p>
           {stats.totalTrips === 0 ? (

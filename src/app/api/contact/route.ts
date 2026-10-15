@@ -47,7 +47,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Record submission against rate limit
     await contactRateLimiter.recordFailure(`contact:${clientIp}`);
 
     return NextResponse.json({

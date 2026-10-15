@@ -15,7 +15,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
 
-// Custom Modern SVG DivIcons: Pickup (Green) and Dropoff / Destination (Red)
 const createPickupIcon = () =>
   L.divIcon({
     className: "custom-pickup-pin",
@@ -79,7 +78,6 @@ const createDriverIcon = (type: string = "car") => {
   } else if (isParcel) {
     svgContent = `<svg width="22" height="15" viewBox="0 0 64 40" fill="none"><circle cx="14" cy="28" r="6.5" stroke="white" stroke-width="2.5" fill="#0f172a"/><circle cx="48" cy="28" r="6.5" stroke="white" stroke-width="2.5" fill="#0f172a"/><path d="M14 28L25 28L30 22L40 22L46 13" stroke="white" stroke-width="3"/><rect x="11" y="10" width="14" height="12" rx="2" fill="#f59e0b"/><path d="M30 25L42 25L47 16Z" fill="#5eead4"/></svg>`;
   } else {
-    // Sedan
     svgContent = `<svg width="24" height="15" viewBox="0 0 64 40" fill="none"><circle cx="16" cy="28" r="6.5" stroke="white" stroke-width="2.5" fill="#0f172a"/><circle cx="48" cy="28" r="6.5" stroke="white" stroke-width="2.5" fill="#0f172a"/><path d="M4 25L9 21L15 21L23 12L43 12L53 21L59 21L62 25L62 28L55 28L41 28L23 28L9 28Z" fill="#5eead4"/><path d="M19 19.5L24 14L34 14L34 19.5Z" fill="#0f172a"/><path d="M36 14L44 14L50 19.5L36 19.5Z" fill="#0f172a"/></svg>`;
   }
 
@@ -246,7 +244,6 @@ function MapUpdater({
       try {
         map.invalidateSize();
 
-        // 1. Both route points / multi-point route exists -> Fit Bounds
         if (validRoute && validRoute.length > 1 && routeChanged) {
           map.fitBounds(L.latLngBounds(validRoute), { padding: [45, 45], animate: false });
           return;
@@ -257,31 +254,26 @@ function MapUpdater({
           return;
         }
 
-        // 2. Pickup was set or changed -> pan to pickup
         if (validPickup && pickupChanged) {
           map.panTo(validPickup, { animate: true, duration: 0.6 });
           return;
         }
 
-        // 3. Dropoff was set or changed -> pan to dropoff
         if (validDropoff && dropoffChanged) {
           map.panTo(validDropoff, { animate: true, duration: 0.6 });
           return;
         }
 
-        // 4. Initial center on user location (once on startup)
         if (!hasCenteredInitialRef.current && validUser && !validPickup && !validDropoff) {
           hasCenteredInitialRef.current = true;
           map.setView(validUser, 15, { animate: false });
           return;
         }
 
-        // 5. If driver coordinates exist during active ride
         if (validDriver && !validPickup && !validDropoff) {
           map.panTo(validDriver, { animate: true, duration: 0.6 });
         }
       } catch {
-        // Safe fallback without throwing unhandled exceptions
         try {
           if (validPickup) {
             map.setView(validPickup, 15);
@@ -461,7 +453,6 @@ export default function LeafletMap({
 
   if (!mounted) return <div key="placeholder" className="w-full h-full bg-[#e6faf8]" />;
 
-  // Effective route line: road coordinates if provided, else fallback line
   const effectiveRoute =
     routeCoords && routeCoords.length > 1 && routeCoords.every(isValidCoord)
       ? routeCoords
@@ -486,7 +477,6 @@ export default function LeafletMap({
       className="w-full h-full relative z-0 touch-none"
       style={{ zIndex: 0 }}
       onWheel={(e) => {
-        // Prevent map scrolling gestures from propagating to page
         e.stopPropagation();
       }}
     >
@@ -510,7 +500,6 @@ export default function LeafletMap({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        {/* Real-Time User GPS Location Beacon */}
         {isValidCoord(userCoords) && (
           <Marker position={userCoords} icon={createLiveUserIcon()} zIndexOffset={600}>
             <Popup>
@@ -522,7 +511,6 @@ export default function LeafletMap({
           </Marker>
         )}
 
-        {/* Pickup Pin - Draggable */}
         {isValidCoord(pickupCoords) && (
           <Marker
             position={pickupCoords}
@@ -547,7 +535,6 @@ export default function LeafletMap({
           </Marker>
         )}
 
-        {/* Dropoff Pin - Draggable */}
         {isValidCoord(dropoffCoords) && (
           <Marker
             position={dropoffCoords}
@@ -572,14 +559,12 @@ export default function LeafletMap({
           </Marker>
         )}
 
-        {/* Real-Time Moving Driver Marker */}
         {isValidCoord(driverCoords) && (
           <Marker position={driverCoords} icon={createDriverIcon(vehicleType)}>
             <Popup>Your Driver is Here</Popup>
           </Marker>
         )}
 
-        {/* Custom Place Markers */}
         {customMarkers.filter((m) => isValidCoord(m.coordinates)).map((m, idx) => (
           <Marker key={idx} position={m.coordinates} icon={createPickupIcon()}>
             <Popup>
@@ -588,7 +573,6 @@ export default function LeafletMap({
           </Marker>
         ))}
 
-        {/* Recommended Area / Landmark Hotspots on Map */}
         {areaMarkers
           .filter((m) => isValidCoord(m.coordinates))
           .map((area, idx) => (
@@ -635,7 +619,6 @@ export default function LeafletMap({
             </Marker>
           ))}
 
-        {/* Realistic Route Line */}
         {effectiveRoute && (
           <>
             <Polyline positions={effectiveRoute} color="#0f766e" weight={7} opacity={0.4} />

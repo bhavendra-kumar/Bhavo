@@ -1,10 +1,8 @@
-/* ─────────────────────────────────────────────
-   TYPES
-───────────────────────────────────────────── */
 export interface Testimonial {
   name: string;
   role: string;
   company: string;
+  type: "rider" | "driver";
   avatar: string;
   quote: string;
   rating: number;
@@ -12,83 +10,156 @@ export interface Testimonial {
 
 export interface Feature {
   icon: string;
+  category: "rider" | "driver" | "platform";
   title: string;
   description: string;
   accent: string;
+  tag: string;
 }
 
 export interface Step {
   number: string;
   title: string;
   description: string;
+  highlight: string;
 }
 
-/* ─────────────────────────────────────────────
-   STATIC DATA
-───────────────────────────────────────────── */
 export const FEATURES: Feature[] = [
+  // Rider Features
   {
     icon: "✦",
+    category: "rider",
     title: "AI Route Optimisation",
     description:
-      "Our model ingests live traffic, weather, and historical patterns to find your fastest path — automatically, every single day.",
+      "Our predictive model ingests live city traffic, choke-points, and weather to calculate your fastest route automatically every single day.",
     accent: "#0d9488",
+    tag: "Rider Portal",
   },
   {
     icon: "⟳",
-    title: "Commute Automation",
+    category: "rider",
+    title: "Autonomous Commute Booking",
     description:
-      "Set your schedule once. Bhavo books your ride, notifies your driver, and adjusts for delays so you never have to think about it.",
-    accent: "#6366f1",
-  },
-  {
-    icon: "◈",
-    title: "Premium Driver Network",
-    description:
-      "Every Bhavo driver is background-verified, rated above 4.8, and trained in professional commute standards.",
-    accent: "#f59e0b",
-  },
-  {
-    icon: "⬡",
-    title: "Corporate Accounts",
-    description:
-      "Unified billing, per-employee ride limits, and real-time dashboards built for finance and HR teams.",
-    accent: "#ec4899",
-  },
-  {
-    icon: "◎",
-    title: "Real-Time Tracking",
-    description:
-      "Share your live ETA with family or colleagues. Get instant alerts when your driver is 2 minutes away.",
+      "Set your weekly schedule once. Bhavo reserves your ride, assigns your dedicated captain, and alerts you before pickup with zero manual taps.",
     accent: "#14b8a6",
+    tag: "Rider Portal",
   },
   {
     icon: "⟁",
-    title: "Smart Pricing",
+    category: "rider",
+    title: "Surge-Free Fare Lock",
     description:
-      "Commute subscriptions lock in your rate. No surge pricing, no surprises — just transparent, flat daily fares.",
-    accent: "#a855f7",
+      "Commute subscriptions shield you from rain or peak-hour surges. Enjoy transparent, flat daily rates guaranteed all month long.",
+    accent: "#06b6d4",
+    tag: "Rider Portal",
+  },
+  {
+    icon: "◎",
+    category: "rider",
+    title: "Live GPS & Safety Sharing",
+    description:
+      "Pinpoint sub-meter vehicle tracking, secure OTP authentication, and automated ride progress sharing with family or team members.",
+    accent: "#10b981",
+    tag: "Rider Portal",
+  },
+
+  // Driver / Captain Features
+  {
+    icon: "⚡",
+    category: "driver",
+    title: "Real-Time Dispatch Radar",
+    description:
+      "Instant high-priority trip dispatches delivered directly to your captain console with pickup distance, passenger rating, and upfront net fare.",
+    accent: "#38bdf8",
+    tag: "Captain Hub",
+  },
+  {
+    icon: "◈",
+    category: "driver",
+    title: "Zero Deadhead Commute Batches",
+    description:
+      "Our corridor-matching engine chains recurring daily commuters along your habitual route, eliminating empty driving miles.",
+    accent: "#6366f1",
+    tag: "Captain Hub",
+  },
+  {
+    icon: "💰",
+    category: "driver",
+    title: "Instant Same-Day Payouts",
+    description:
+      "Zero commission penalties, direct bank deposits within minutes of shift completion, and daily incentive bonuses with full transparency.",
+    accent: "#f59e0b",
+    tag: "Captain Hub",
+  },
+  {
+    icon: "⬡",
+    category: "driver",
+    title: "Dynamic Surge Heatmaps",
+    description:
+      "Live geo-spatial demand heatmaps show real-time multiplier zones, high-density pickup hubs, and airport surge queues before you arrive.",
+    accent: "#ec4899",
+    tag: "Captain Hub",
+  },
+
+  // Platform Unified Features
+  {
+    icon: "🛡️",
+    category: "platform",
+    title: "Verified Identity & Telematics",
+    description:
+      "Comprehensive background checks, biometric KYC, vehicle safety compliance, and telematics scoring ensuring 5-star standard rides.",
+    accent: "#2dd4bf",
+    tag: "Ecosystem",
   },
 ];
 
-export const STEPS: Step[] = [
+export const COMMUTER_STEPS: Step[] = [
   {
     number: "01",
-    title: "Set Your Commute",
+    title: "Configure Commute Rhythm",
     description:
-      "Enter your home, office, and preferred departure time. Bhavo builds your personalised commute profile in under 60 seconds.",
+      "Input your home, workspace, and target arrival times. Bhavo crafts a personalized recurring commute profile in seconds.",
+    highlight: "60-sec Setup",
   },
   {
     number: "02",
-    title: "AI Matches Your Driver",
+    title: "Predictive Captain Pairing",
     description:
-      "Our algorithm selects the optimal driver on your route — considering vehicle type, rating, and real-time position.",
+      "Our AI pairs you with a top-rated EV or premium vehicle captain already headed along your transit corridor.",
+    highlight: "99.8% Match Rate",
   },
   {
     number: "03",
-    title: "Ride, Repeat",
+    title: "Step Out & Ride Effortlessly",
     description:
-      "Your ride is confirmed automatically every morning. No taps, no searching — just walk out and your car is waiting.",
+      "Your car is stationed at your door right on schedule. No morning delays, no surge surprises, just smooth productivity.",
+    highlight: "Zero Daily Taps",
+  },
+];
+
+export const STEPS: Step[] = COMMUTER_STEPS;
+
+export const DRIVER_STEPS: Step[] = [
+  {
+    number: "01",
+    title: "Go Online with 1 Tap",
+    description:
+      "Toggle your shift active in the Captain Hub. Set your preferred zones, hours, and direction to get matched immediately.",
+    highlight: "Flexible Shifts",
+  },
+  {
+    number: "02",
+    title: "Accept High-Yield Corridors",
+    description:
+      "Receive guaranteed recurring commuter bookings along high-density routes with zero empty return trips.",
+    highlight: "Upfront Net Pay",
+  },
+  {
+    number: "03",
+    title: "Instant Daily Earnings",
+    description:
+      "Track your shift metrics, peak surge bonuses, and cash out your daily earnings directly to your bank account anytime.",
+    highlight: "Instant Payout",
   },
 ];
 
@@ -96,39 +167,55 @@ export const TESTIMONIALS: Testimonial[] = [
   {
     name: "Priya Sharma",
     role: "Product Lead",
-    company: "Infosys",
+    company: "Infosys Bangalore",
+    type: "rider",
     avatar: "PS",
     quote:
-      "Bhavo has completely eliminated the stress of my morning commute. I haven't opened another ride-hailing app in three months.",
+      "Bhavo's Commuter Portal completely transformed my mornings. The recurring schedule means my EV is waiting at 8:40 AM sharp, and I arrive relaxed.",
+    rating: 5,
+  },
+  {
+    name: "Vikram Rathore",
+    role: "Elite Fleet Captain (4.98★)",
+    company: "Bhavo Captain Network",
+    type: "driver",
+    avatar: "VR",
+    quote:
+      "The Captain Hub is hands-down the best driver dashboard I've used. Chained commute bookings give me ₹52,000/month with zero dry mileage and instant daily payouts.",
     rating: 5,
   },
   {
     name: "Rahul Mehta",
-    role: "CFO",
+    role: "VP Operations",
     company: "FinEdge Capital",
+    type: "rider",
     avatar: "RM",
     quote:
-      "The corporate dashboard gave us full visibility into employee travel spend. We cut commute costs by 31% in the first quarter.",
+      "Having our whole tech team onboarded with locked monthly fares reduced our corporate commute logistics overhead by 34% in one quarter.",
     rating: 5,
   },
   {
-    name: "Ananya Iyer",
-    role: "Senior Engineer",
-    company: "TechCorp",
-    avatar: "AI",
+    name: "Sunil K. Desai",
+    role: "Full-Time Captain",
+    company: "Pune City Fleet",
+    type: "driver",
+    avatar: "SD",
     quote:
-      "The AI rerouting is genuinely impressive — it caught a traffic jam on my usual highway and saved me 18 minutes this morning.",
+      "The live heatmaps and direct dispatch radar keep me busy during rush hours without endless roaming. Transparent fares make all the difference.",
     rating: 5,
   },
 ];
 
 export const STATS = [
-  { value: "500+", label: "Partner Companies" },
-  { value: "50k+", label: "Daily Commuters" },
-  { value: "10k+", label: "Premium Drivers" },
-  { value: "4.9★", label: "Average Rating" },
+  { value: "50,000+", label: "Daily Active Commuters", glow: "#0d9488" },
+  { value: "12,500+", label: "Verified Captains", glow: "#14b8a6" },
+  { value: "99.8%", label: "On-Time Dispatch Precision", glow: "#38bdf8" },
+  { value: "0%", label: "Surge Penalty Guarantee", glow: "#818cf8" },
 ];
 
-export const NAV_LINKS = ["Features", "How it Works", "Contact"];
-
-
+export const NAV_LINKS = [
+  { label: "Dual Ecosystem", href: "#dual-dashboard" },
+  { label: "Features", href: "#features" },
+  { label: "How It Works", href: "#how-it-works" },
+  { label: "Reviews", href: "#testimonials" },
+];

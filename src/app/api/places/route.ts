@@ -28,7 +28,6 @@ interface NominatimPlace {
   address?: NominatimAddress;
 }
 
-// In-memory cache for live queries (10-minute TTL)
 interface CacheEntry {
   data: unknown;
   timestamp: number;
@@ -54,7 +53,6 @@ function setInCache(key: string, data: unknown): void {
   queryCache.set(key, { data, timestamp: Date.now() });
 }
 
-// Haversine distance in kilometers
 function calculateHaversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -170,9 +168,6 @@ export async function GET(request: Request) {
   const lon = searchParams.get("lon");
   const nearby = searchParams.get("nearby") === "true" || searchParams.get("popular") === "true";
 
-  // ─────────────────────────────────────────────────────────────
-  // 1. REVERSE GEOCODING (Coordinates -> Live Real-Time Doorstep Address)
-  // ─────────────────────────────────────────────────────────────
   if (lat && lon && !q && !nearby) {
     const parsedLat = parseFloat(lat);
     const parsedLon = parseFloat(lon);
@@ -233,9 +228,6 @@ export async function GET(request: Request) {
     }
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // 2. DYNAMIC REAL-TIME NEARBY DESTINATIONS (Rapido/Ola Style)
-  // ─────────────────────────────────────────────────────────────
   if (nearby) {
     const centerLat = lat ? parseFloat(lat) : 9.5132;
     const centerLon = lon ? parseFloat(lon) : 77.6316;
@@ -244,7 +236,6 @@ export async function GET(request: Request) {
     if (cached) return NextResponse.json(cached);
 
     try {
-      // 1. Resolve the user's city/town/locality
       let cityName = "";
       let regionName = "";
 
@@ -267,7 +258,6 @@ export async function GET(request: Request) {
 
       const searchTarget = cityName || regionName || "India";
 
-      // 2. Query essential daily destination categories in parallel
       const categoriesToQuery = [
         { cat: "transit", label: "Bus Station", query: `${searchTarget} bus stand` },
         { cat: "railway", label: "Railway Station", query: `${searchTarget} railway station` },
@@ -277,7 +267,6 @@ export async function GET(request: Request) {
         { cat: "education", label: "College / Institute", query: `${searchTarget} college` },
       ];
 
-      // Spatial bounding box around user (~12km radius)
       const d = 0.12;
       const viewbox = `${centerLon - d},${centerLat + d},${centerLon + d},${centerLat - d}`;
 
@@ -297,12 +286,10 @@ export async function GET(request: Request) {
             return { catItem: item, list: Array.isArray(list) ? list : [] };
           }
         } catch {
-          // ignore error
         }
         return { catItem: item, list: [] };
       };
 
-      // Also fetch any nearby stations directly in viewbox
       const viewboxStationPromise = fetch(
         `https://nominatim.openstreetmap.org/search?q=station&format=json&addressdetails=1&viewbox=${viewbox}&bounded=1&countrycodes=in&limit=4`,
         {
@@ -341,7 +328,6 @@ export async function GET(request: Request) {
         fareEstimateCab: number;
       }> = [];
 
-      // Process direct viewbox transit places
       if (Array.isArray(viewboxPlaces)) {
         for (const item of viewboxPlaces) {
           const pLat = parseFloat(item.lat);
@@ -381,7 +367,6 @@ export async function GET(request: Request) {
         }
       }
 
-      // Process categorized query results
       for (const { catItem, list } of categoryResults) {
         for (const item of list) {
           const pLat = parseFloat(item.lat);
@@ -394,7 +379,6 @@ export async function GET(request: Request) {
           seenNames.add(normKey);
 
           const distanceKm = calculateHaversineKm(centerLat, centerLon, pLat, pLon);
-          // Only include destinations within reasonable commute radius (~35 km)
           if (distanceKm > 35) continue;
 
           const addr = item.address || {};
@@ -425,7 +409,6 @@ export async function GET(request: Request) {
         }
       }
 
-      // Sort by distance ascending (closest places first)
       combinedResults.sort((a, b) => a.distanceKm - b.distanceKm);
 
       setInCache(cacheKey, combinedResults);
@@ -436,9 +419,6 @@ export async function GET(request: Request) {
     }
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // 3. REAL-TIME FORWARD SEARCH & AUTOCOMPLETE (Zero Mock Data)
-  // ─────────────────────────────────────────────────────────────
   if (!q || !q.trim()) {
     return NextResponse.json([]);
   }
@@ -458,9 +438,8 @@ export async function GET(request: Request) {
       queryTrimmed
     )}&countrycodes=in&limit=10`;
 
-    // Proximity bias around user coordinates
     if (biasLat !== null && biasLon !== null) {
-      const d = 0.55; // ~55km regional viewbox
+      const d = 0.55;
       url += `&viewbox=${biasLon - d},${biasLat + d},${biasLon + d},${biasLat - d}&bounded=0`;
     }
 

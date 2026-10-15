@@ -6,16 +6,6 @@ import { createRidePaymentOrder, PaymentError } from "@/lib/paymentService";
 
 export const dynamic = "force-dynamic";
 
-/**
- * POST /api/user/rides/[id]/payment/order
- * 
- * Server-authoritative Razorpay Order Creation
- * - Requires authenticated rider who owns the ride.
- * - Only permitted for completed, outstanding rides.
- * - Authoritative fare from server storage (never client).
- * - Fails closed if live payments disabled.
- * - Returns only public checkout details (keyId, orderId, amount). Never leaks secret.
- */
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }

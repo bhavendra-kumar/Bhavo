@@ -35,7 +35,6 @@ export async function GET(
       );
     }
 
-    // Ensure documents are synchronized and normalized
     const rawDocs = driver.driverDocuments as IDriverDoc[] | undefined;
     const syncedDocs = syncDriverDocuments(rawDocs);
     const verification = checkDriverVerification({
@@ -43,7 +42,6 @@ export async function GET(
       driverDocuments: syncedDocs,
     });
 
-    // Check for any currently active ride assigned to this driver
     const activeRide = await Ride.findOne({
       driver: driver._id,
       status: { $in: ["ACCEPTED", "ARRIVED", "IN_PROGRESS"] },
@@ -51,7 +49,6 @@ export async function GET(
       .select("status pickup dropoff fare fareInPaise vehicleType createdAt")
       .lean();
 
-    // Fetch recent rides
     const recentRides = await Ride.find({ driver: driver._id })
       .select("status pickup dropoff fare fareInPaise vehicleType createdAt")
       .sort({ createdAt: -1 })

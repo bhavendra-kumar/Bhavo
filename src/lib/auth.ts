@@ -23,9 +23,6 @@ export interface CookieOptions {
 
 export const AUTH_COOKIE_NAME = "auth_token";
 
-/**
- * Custom error class for centralized authentication and authorization failures.
- */
 export class AuthError extends Error {
   statusCode: number;
   code: string;
@@ -58,11 +55,6 @@ export function handleAuthError(error: unknown): NextResponse {
   );
 }
 
-/**
- * Resolves the JWT secret from environment variables.
- * Fails fast with a clear error if neither JWT_SECRET nor AUTH_SECRET is configured.
- * Never falls back to a hardcoded string.
- */
 export function getJwtSecret(): Uint8Array {
   const secret = process.env.JWT_SECRET || process.env.AUTH_SECRET;
   if (!secret || typeof secret !== "string" || secret.trim().length === 0) {
@@ -73,9 +65,6 @@ export function getJwtSecret(): Uint8Array {
   return new TextEncoder().encode(secret.trim());
 }
 
-/**
- * Standard secure cookie options for session token storage.
- */
 export function getAuthCookieOptions(token = "", maxAgeSeconds = 60 * 60 * 24 * 7): CookieOptions {
   return {
     name: AUTH_COOKIE_NAME,
@@ -88,9 +77,6 @@ export function getAuthCookieOptions(token = "", maxAgeSeconds = 60 * 60 * 24 * 
   };
 }
 
-/**
- * Clear cookie options to invalidate user session on logout.
- */
 export function getClearAuthCookieOptions(): CookieOptions {
   return {
     name: AUTH_COOKIE_NAME,
@@ -104,10 +90,6 @@ export function getClearAuthCookieOptions(): CookieOptions {
   };
 }
 
-/**
- * Signs a new JWT for an authenticated user.
- * Embeds tokenVersion for immediate server-side session invalidation.
- */
 export async function signAuthToken(
   payload: { id: string; email: string; role: string; tokenVersion?: number; [key: string]: unknown },
   expiresIn = "7d"
@@ -125,10 +107,6 @@ export async function signAuthToken(
     .sign(secret);
 }
 
-/**
- * Cryptographically verifies and validates a JWT token string.
- * Throws an AuthError if missing, malformed, expired, or invalid.
- */
 export async function verifyAuthToken(token: string): Promise<SessionPayload> {
   if (!token || typeof token !== "string" || token.trim().length === 0) {
     throw new AuthError("Missing authentication token", 401, "TOKEN_MISSING");
@@ -164,10 +142,6 @@ export async function verifyAuthToken(token: string): Promise<SessionPayload> {
   }
 }
 
-/**
- * Extracts and verifies the session from cookie or Authorization header.
- * Returns null if missing or invalid (non-throwing helper).
- */
 export async function getSession(req?: Request): Promise<SessionPayload | null> {
   try {
     let token: string | undefined;
@@ -176,7 +150,6 @@ export async function getSession(req?: Request): Promise<SessionPayload | null> 
       const cookieStore = await cookies();
       token = cookieStore.get(AUTH_COOKIE_NAME)?.value;
     } catch {
-      // Cookies store unavailable in direct request context
     }
 
     if (!token && req) {
@@ -200,21 +173,16 @@ export async function getSession(req?: Request): Promise<SessionPayload | null> 
   }
 }
 
-/**
- * Requires a valid authenticated user session.
- * Loads fresh user from MongoDB and enforces:
- * 1. Active account status (SUSPENDED / DISABLED accounts are rejected with 403).
- * 2. Token version matching (stale or revoked tokens are rejected with 401).
- */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function requireAuth(req?: Request): Promise<any> {
+export type AuthUser = any;
+
+export async function requireAuth(req?: Request): Promise<AuthUser> {
   let token: string | undefined;
 
   try {
     const cookieStore = await cookies();
     token = cookieStore.get(AUTH_COOKIE_NAME)?.value;
   } catch {
-    // Cookies store unavailable in non-page context
   }
 
   if (!token && req) {
@@ -248,7 +216,6 @@ export async function requireAuth(req?: Request): Promise<any> {
     throw new AuthError("Unauthorized: User account not found or deactivated", 401, "USER_NOT_FOUND");
   }
 
-  // Account status check (suspended / disabled)
   const userAny = user as Record<string, unknown>;
   const userStatus = (userAny.status as string) || "ACTIVE";
   if (
@@ -260,7 +227,6 @@ export async function requireAuth(req?: Request): Promise<any> {
     throw new AuthError("Access denied: Account is suspended or disabled", 403, "ACCOUNT_SUSPENDED");
   }
 
-  // Session / Token version check (revocation mechanism)
   const userTokenVersion = (userAny.tokenVersion as number) ?? 0;
   const tokenVersionInJwt = (payload.tokenVersion as number) ?? 0;
 
@@ -271,12 +237,7 @@ export async function requireAuth(req?: Request): Promise<any> {
   return user;
 }
 
-/**
- * Requires an authenticated user with one of the allowed roles.
- * Throws AuthError (401 if unauthenticated, 403 if insufficient role).
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function requireRole(allowedRoles: string | string[], req?: Request): Promise<any> {
+export async function requireRole(allowedRoles: string | string[], req?: Request): Promise<AuthUser> {
   const user = await requireAuth(req);
   const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
 
@@ -297,19 +258,10 @@ export async function requireRole(allowedRoles: string | string[], req?: Request
   return user;
 }
 
-/**
- * Requires an authenticated user with ADMIN role.
- * Throws AuthError (401 if unauthenticated/expired/revoked, 403 if not ADMIN).
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function requireAdmin(req?: Request): Promise<any> {
+export async function requireAdmin(req?: Request): Promise<AuthUser> {
   return await requireRole("ADMIN", req);
 }
 
-/**
- * Increments the user's tokenVersion in the database, immediately invalidating
- * all previously issued JWT tokens across all devices.
- */
 export async function revokeUserSessions(userId: string): Promise<number> {
   const dbConnectModule = await import("@/lib/mongoose");
   await dbConnectModule.default();

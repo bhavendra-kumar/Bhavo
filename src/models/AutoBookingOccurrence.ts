@@ -101,7 +101,6 @@ const AutoBookingOccurrenceSchema = new Schema<IAutoBookingOccurrence>(
   }
 );
 
-// Compound indexes for worker queries and idempotency
 AutoBookingOccurrenceSchema.index({ status: 1, scheduledFor: 1 });
 AutoBookingOccurrenceSchema.index({ commuteId: 1, scheduledFor: 1 });
 AutoBookingOccurrenceSchema.index({ rider: 1, scheduledFor: 1 });

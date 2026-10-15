@@ -1,7 +1,3 @@
-/**
- * Operational Configuration Defaults for Driver Eligibility, Ranking & Targeted Dispatch (Phase 1D)
- * All values are server-side authoritative and validate against environment variables.
- */
 
 export const DEFAULT_DISPATCH_OFFER_TTL_SECONDS = 25;
 export const DEFAULT_DISPATCH_MAX_RADIUS_KM = 10;
@@ -9,9 +5,6 @@ export const DEFAULT_DISPATCH_MAX_ATTEMPTS = 8;
 export const DEFAULT_DRIVER_LOCATION_MAX_AGE_SECONDS = 120;
 export const DEFAULT_RIDE_DISPATCH_LEAD_TIME_MINUTES = 60;
 
-/**
- * Validates and retrieves a positive integer configuration value.
- */
 function parsePositiveInteger(raw: string | undefined, defaultVal: number, configName: string): number {
   if (raw === undefined || raw === null || (typeof raw === "string" && raw.trim() === "")) {
     return defaultVal;
@@ -27,9 +20,6 @@ function parsePositiveInteger(raw: string | undefined, defaultVal: number, confi
   return parsed;
 }
 
-/**
- * Validates and retrieves a positive number (can be float, e.g. radius in km).
- */
 function parsePositiveNumber(raw: string | undefined, defaultVal: number, configName: string): number {
   if (raw === undefined || raw === null || (typeof raw === "string" && raw.trim() === "")) {
     return defaultVal;

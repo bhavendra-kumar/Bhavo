@@ -6,14 +6,6 @@ import { getRidePaymentStatus, PaymentError } from "@/lib/paymentService";
 
 export const dynamic = "force-dynamic";
 
-/**
- * GET /api/user/rides/[id]/payment/status
- * 
- * Authenticated Payment Status Check
- * - Restricts access to the owning rider, assigned driver, or admin.
- * - Protects against IDOR.
- * - Returns current payment state and capability status without exposing secrets.
- */
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }

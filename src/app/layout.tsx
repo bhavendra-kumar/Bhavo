@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   title: "Bhavo",
   description: "Bhavo combines AI-powered ride booking with commute automation to deliver seamless, predictable, and premium daily travel experiences.",
   icons: {
-    icon: "/trimmed-logo.png",
+    icon: "/bhavo-logo.png",
   },
 };
 

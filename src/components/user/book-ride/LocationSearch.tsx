@@ -218,7 +218,6 @@ export default function LocationSearch({
           </div>
         </div>
 
-        {/* Dropdown */}
         {isOpen && results.length > 0 && (
           <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-2xl z-50 border border-slate-200 max-h-80 overflow-y-auto">
             {!query && (
@@ -232,7 +231,6 @@ export default function LocationSearch({
                     Live Real-Time
                   </span>
                 </div>
-                {/* Category Quick Filter Chips */}
                 <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
                   {[
                     { id: "all", label: "All" },

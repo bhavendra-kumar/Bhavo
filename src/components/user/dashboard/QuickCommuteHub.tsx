@@ -42,17 +42,14 @@ interface QuickCommuteHubProps {
 export default function QuickCommuteHub({ savedPlaces = [] }: QuickCommuteHubProps) {
   const router = useRouter();
 
-  // Booking mode tab
   const [activeTab, setActiveTab] = useState<"instant" | "schedule" | "rental">("instant");
 
-  // Input states
   const [pickupAddress, setPickupAddress] = useState("");
   const [pickupCoords, setPickupCoords] = useState<[number, number] | null>(null);
 
   const [dropoffAddress, setDropoffAddress] = useState("");
   const [dropoffCoords, setDropoffCoords] = useState<[number, number] | null>(null);
 
-  // Autocomplete states
   const [activeDropdown, setActiveDropdown] = useState<"pickup" | "dropoff" | null>(null);
   const [pickupQuery, setPickupQuery] = useState("");
   const [dropoffQuery, setDropoffQuery] = useState("");
@@ -64,7 +61,6 @@ export default function QuickCommuteHub({ savedPlaces = [] }: QuickCommuteHubPro
   const searchBoxRef = useRef<HTMLDivElement>(null);
   const dropoffInputRef = useRef<HTMLInputElement>(null);
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
       if (searchBoxRef.current && !searchBoxRef.current.contains(e.target as Node)) {
@@ -75,13 +71,11 @@ export default function QuickCommuteHub({ savedPlaces = [] }: QuickCommuteHubPro
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
-  // Fetch place suggestions with debouncing
   const activeQuery = activeDropdown === "pickup" ? pickupQuery : activeDropdown === "dropoff" ? dropoffQuery : "";
 
   const fetchPlaces = useCallback(
     async (query: string) => {
       if (!query.trim()) {
-        // Show saved places + live nearby transit & pickup hubs when query is empty
         const savedSuggestions: PlaceResult[] = savedPlaces.map((sp) => ({
           place_id: sp._id,
           display_name: `${sp.name} — ${sp.address}`,
@@ -133,7 +127,6 @@ export default function QuickCommuteHub({ savedPlaces = [] }: QuickCommuteHubPro
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data)) {
-            // Also prefix matching saved places
             const matchingSaved: PlaceResult[] = savedPlaces
               .filter(
                 (sp) =>
@@ -175,7 +168,6 @@ export default function QuickCommuteHub({ savedPlaces = [] }: QuickCommuteHubPro
     return () => clearTimeout(timer);
   }, [activeQuery, activeDropdown, fetchPlaces]);
 
-  // Use current GPS location
   const handleUseCurrentLocation = () => {
     if (typeof window === "undefined" || !navigator.geolocation) return;
     setGpsLoading(true);
@@ -215,7 +207,6 @@ export default function QuickCommuteHub({ savedPlaces = [] }: QuickCommuteHubPro
     );
   };
 
-  // Swap pickup & dropoff
   const handleSwap = () => {
     const tempAddr = pickupAddress;
     const tempCoords = pickupCoords;
@@ -230,7 +221,6 @@ export default function QuickCommuteHub({ savedPlaces = [] }: QuickCommuteHubPro
     setDropoffQuery(tempQuery);
   };
 
-  // Select a suggestion
   const handleSelectSuggestion = (place: PlaceResult) => {
     const name = place.short_name || place.display_name.split(",")[0];
     const lat = typeof place.lat === "string" ? parseFloat(place.lat) : place.lat;
@@ -242,7 +232,6 @@ export default function QuickCommuteHub({ savedPlaces = [] }: QuickCommuteHubPro
       setPickupQuery(name);
       setPickupCoords(coords);
       setActiveDropdown(null);
-      // Auto-focus drop-off if empty
       if (!dropoffAddress.trim()) {
         setTimeout(() => {
           dropoffInputRef.current?.focus();
@@ -257,7 +246,6 @@ export default function QuickCommuteHub({ savedPlaces = [] }: QuickCommuteHubPro
     }
   };
 
-  // Submit and Navigate to Book Ride
   const handleNavigateToBookRide = (customDropoff?: string, customDropoffCoords?: [number, number]) => {
     const targetDropoff = customDropoff || dropoffAddress;
     const targetDropoffCoords = customDropoffCoords || dropoffCoords;
@@ -282,7 +270,6 @@ export default function QuickCommuteHub({ savedPlaces = [] }: QuickCommuteHubPro
     router.push(`/user/book-ride?${params.toString()}`);
   };
 
-  // Quick destination presets derived from user's real saved places
   const quickDestinations =
     savedPlaces && savedPlaces.length > 0
       ? savedPlaces.map((sp) => ({
@@ -345,12 +332,10 @@ export default function QuickCommuteHub({ savedPlaces = [] }: QuickCommuteHubPro
 
   return (
     <div className="flex flex-col gap-5">
-      {/* ── Premium Mobility Booking Dock ── */}
       <div
         ref={searchBoxRef}
         className="relative rounded-3xl bg-white border border-slate-200/90 shadow-[0_8px_30px_rgb(0,0,0,0.05)] hover:shadow-[0_12px_36px_rgb(0,0,0,0.08)] transition-all p-4 sm:p-5"
       >
-        {/* Top Mini Control Bar: Tabs + Live Telemetry Status */}
         <div className="flex items-center justify-between gap-3 pb-4 mb-4 border-b border-slate-100">
           <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 rounded-xl">
             <button
@@ -404,11 +389,8 @@ export default function QuickCommuteHub({ savedPlaces = [] }: QuickCommuteHubPro
           </div>
         </div>
 
-        {/* Top-and-Bottom (Stacked) Inputs with Small Button */}
         <div className="flex flex-col md:flex-row md:items-center gap-3">
-          {/* Stacked Inputs Column */}
           <div className="flex-1 flex flex-col gap-2 relative w-full">
-            {/* 1. Pickup Input Pod */}
             <div
               className={`relative flex items-center gap-3 px-3.5 h-12.5 rounded-2xl border transition-all ${
                 activeDropdown === "pickup"
@@ -484,7 +466,6 @@ export default function QuickCommuteHub({ savedPlaces = [] }: QuickCommuteHubPro
               </div>
             </div>
 
-            {/* Central Floating Swap Button */}
             <div className="absolute right-14 sm:right-20 top-1/2 -translate-y-1/2 z-10 pointer-events-auto">
               <button
                 type="button"
@@ -496,7 +477,6 @@ export default function QuickCommuteHub({ savedPlaces = [] }: QuickCommuteHubPro
               </button>
             </div>
 
-            {/* 2. Destination Input Pod */}
             <div
               className={`relative flex items-center gap-3 px-3.5 h-12.5 rounded-2xl border transition-all ${
                 activeDropdown === "dropoff"
@@ -554,7 +534,6 @@ export default function QuickCommuteHub({ savedPlaces = [] }: QuickCommuteHubPro
             </div>
           </div>
 
-          {/* Small, Compact Find Rides Button */}
           <div className="flex items-center justify-end shrink-0">
             <button
               type="button"
@@ -568,7 +547,6 @@ export default function QuickCommuteHub({ savedPlaces = [] }: QuickCommuteHubPro
           </div>
         </div>
 
-        {/* ── Autocomplete Dropdown Panel ── */}
         {activeDropdown && (
           <div className="absolute left-4 right-4 top-full mt-2.5 bg-white rounded-2xl border border-slate-200 shadow-2xl z-50 max-h-80 overflow-y-auto p-2">
             <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">
@@ -653,7 +631,6 @@ export default function QuickCommuteHub({ savedPlaces = [] }: QuickCommuteHubPro
         )}
       </div>
 
-      {/* ── Quick Destination Chips (Only if user has saved places) ── */}
       {quickDestinations.length > 0 && (
         <div className="flex items-center flex-wrap gap-2.5">
           <span className="text-[11.5px] font-bold uppercase tracking-wider text-slate-400 mr-1 hidden sm:inline">
@@ -671,7 +648,6 @@ export default function QuickCommuteHub({ savedPlaces = [] }: QuickCommuteHubPro
                 setDropoffQuery(dest.name);
                 setDropoffCoords(dest.coords);
                 setLastSelectedChip(dest.id);
-                // If pickup is already filled, navigate immediately
                 if (pickupAddress.trim()) {
                   handleNavigateToBookRide(dest.address, dest.coords);
                 } else {
@@ -712,7 +688,6 @@ export default function QuickCommuteHub({ savedPlaces = [] }: QuickCommuteHubPro
       </div>
       )}
 
-      {/* ── Ride Modes Row ── */}
       <div className="flex gap-2.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
         {rideModes.map((mode) => {
           const Icon = mode.icon;

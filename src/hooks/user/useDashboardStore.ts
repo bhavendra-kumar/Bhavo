@@ -131,7 +131,6 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       const json = await res.json();
       set({ data: json.data, loading: false });
 
-      // If there is an active ride, subscribe to real-time updates
       if (json.data?.activeRide?._id) {
         get().subscribeToActiveRide(json.data.activeRide._id);
       }
@@ -249,7 +248,6 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
     if (typeof window === "undefined") return;
 
-    // Helper to safely apply state updates without stale version overwrites
     const applyRideUpdate = (updatedRide: IRideData) => {
       const current = get().data;
       if (!current) return;
@@ -258,13 +256,11 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       if (currentActive && currentActive._id === updatedRide._id) {
         const curVer = currentActive.trackingVersion ?? 0;
         const newVer = updatedRide.trackingVersion ?? 0;
-        // Monotonic guard: discard out-of-order or stale events
         if (newVer < curVer) {
           return;
         }
       }
 
-      // Monotonic guard: discard out-of-order updates unless ride is terminal
       if (
         current.activeRide &&
         typeof current.activeRide.trackingVersion === "number" &&
@@ -287,7 +283,6 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       }
     };
 
-    // Adaptive fallback polling (only active when SSE is unavailable)
     const startFallbackPolling = () => {
       if (get().activePollTimer) return;
       let pollDelay = 3000;
@@ -300,7 +295,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
             const json = await res.json();
             if (json.data) {
               applyRideUpdate(json.data);
-              pollDelay = 3000; // Reset backoff on success
+              pollDelay = 3000;
             }
           } else if (res.status === 404 || res.status === 401 || res.status === 403) {
             get().unsubscribeFromActiveRide();
@@ -312,7 +307,6 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
           pollDelay = Math.min(pollDelay * 1.5, 10000);
         }
 
-        // Schedule next step if still active
         const currentActive = get().data?.activeRide;
         if (currentActive && currentActive.status !== "COMPLETED" && currentActive.status !== "CANCELLED") {
           timeoutId = setTimeout(pollStep, pollDelay);
@@ -324,7 +318,6 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       set({ activePollTimer: timeoutId as unknown as ReturnType<typeof setInterval> });
     };
 
-    // Try EventSource connection first
     try {
       const es = new EventSource(`/api/user/rides/${rideId}/stream`);
 
@@ -343,7 +336,6 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       es.onmessage = handleSseMessage;
 
       es.onerror = () => {
-        // Stream failed or closed by server; switch to adaptive fallback polling
         const stream = get().activeStream;
         if (stream) {
           stream.close();
@@ -354,7 +346,6 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
       set({ activeStream: es });
     } catch {
-      // EventSource failed to instantiate; fallback to adaptive polling immediately
       startFallbackPolling();
     }
   },

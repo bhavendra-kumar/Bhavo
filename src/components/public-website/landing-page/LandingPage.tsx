@@ -13,11 +13,9 @@ export default function LandingPage() {
       <main>
         <Hero />
         <AppPreview />
-        {/* <StatsBanner /> */}
         <CTASection />
       </main>
       <Footer />
     </>
   );
 }
-

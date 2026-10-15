@@ -41,7 +41,6 @@ export async function POST(
       );
     }
 
-    // Prevent administrator self-suspension/lockout
     if (admin._id.toString() === id) {
       return NextResponse.json(
         { status: "error", message: "Administrators cannot alter their own account status" },
@@ -57,7 +56,6 @@ export async function POST(
       );
     }
 
-    // Active Ride Safety Invariant for Drivers
     if (targetUser.role === "DRIVER" && (newStatus === "SUSPENDED" || newStatus === "DISABLED")) {
       const activeTrip = await Ride.findOne({
         driver: targetUser._id,
@@ -97,7 +95,6 @@ export async function POST(
 
     targetUser.status = newStatus;
 
-    // When suspending or disabling, revoke all active sessions immediately
     if (newStatus === "SUSPENDED" || newStatus === "DISABLED") {
       targetUser.tokenVersion = (targetUser.tokenVersion || 0) + 1;
       if (targetUser.role === "DRIVER") {
@@ -108,7 +105,6 @@ export async function POST(
 
     await targetUser.save();
 
-    // Record administrative audit log
     await recordAdminAudit({
       actor: admin._id,
       actorEmail: admin.email,

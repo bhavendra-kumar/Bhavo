@@ -1,14 +1,3 @@
-/**
- * Timezone-Authoritative Recurrence Engine (Phase 1F)
- *
- * Rules:
- * - Authoritative timezone is strictly Asia/Kolkata (IST = UTC+05:30).
- * - Calculation is completely independent of the Node.js process timezone.
- * - Deterministic occurrence keys: `${commuteId}:${yyyyMMdd}_${hhmm}`.
- * - Handles both 12-hour ("8:45 AM") and 24-hour ("08:45") time formats.
- * - Evaluates occurrences within a lookahead window (default 180 minutes).
- * - Identifies past occurrences so they are never scheduled retroactively.
- */
 
 import { IST_OFFSET_MS } from "@/lib/autoBookingConfig";
 
@@ -41,12 +30,6 @@ export interface ICommuteRecurrenceInput {
   isActive?: boolean;
 }
 
-/**
- * Normalizes and parses commute time string into hours (0-23) and minutes (0-59).
- * Supports:
- * - 12-hour format: "8:45 AM", "08:45 AM", "6:30 PM", "12:00 PM", "12:00 AM"
- * - 24-hour format: "08:45", "18:30", "00:00", "23:59"
- */
 export function parseCommuteTime(timeStr: string): IParsedTime {
   if (!timeStr || typeof timeStr !== "string") {
     throw new RecurrenceError("Commute time must be a non-empty string.", "INVALID_TIME_STRING");
@@ -54,7 +37,6 @@ export function parseCommuteTime(timeStr: string): IParsedTime {
 
   const trimmed = timeStr.trim();
 
-  // Try 12-hour format with AM/PM
   const match12 = trimmed.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
   if (match12) {
     let hours = parseInt(match12[1], 10);
@@ -77,7 +59,6 @@ export function parseCommuteTime(timeStr: string): IParsedTime {
     return { hours, minutes };
   }
 
-  // Try 24-hour format
   const match24 = trimmed.match(/^(\d{1,2}):(\d{2})$/);
   if (match24) {
     const hours = parseInt(match24[1], 10);
@@ -99,9 +80,6 @@ export function parseCommuteTime(timeStr: string): IParsedTime {
   );
 }
 
-/**
- * Normalizes weekday string to standard numeric day (0 = Sunday, 1 = Monday, ..., 6 = Saturday).
- */
 export function normalizeWeekday(dayStr: string): number {
   if (!dayStr || typeof dayStr !== "string") {
     throw new RecurrenceError("Weekday must be a string.", "INVALID_WEEKDAY");
@@ -140,18 +118,11 @@ export function normalizeWeekday(dayStr: string): number {
 
 export const CANONICAL_WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
-/**
- * Returns the canonical 3-letter capitalized weekday name for any supported representation.
- */
 export function getCanonicalWeekdayName(dayStr: string): string {
   const index = normalizeWeekday(dayStr);
   return CANONICAL_WEEKDAY_NAMES[index];
 }
 
-/**
- * Extracts Indian Standard Time (Asia/Kolkata) calendar components from any UTC Date.
- * Pure mathematical offset calculation, immune to host system timezone.
- */
 export function getIstDateComponents(utcDate: Date): {
   year: number;
   month: number;
@@ -163,9 +134,9 @@ export function getIstDateComponents(utcDate: Date): {
   const istDate = new Date(istEpoch);
 
   const year = istDate.getUTCFullYear();
-  const month = istDate.getUTCMonth(); // 0-indexed
+  const month = istDate.getUTCMonth();
   const day = istDate.getUTCDate();
-  const weekday = istDate.getUTCDay(); // 0 = Sunday
+  const weekday = istDate.getUTCDay();
 
   const yyyy = String(year);
   const mm = String(month + 1).padStart(2, "0");
@@ -175,9 +146,6 @@ export function getIstDateComponents(utcDate: Date): {
   return { year, month, day, weekday, formattedDate };
 }
 
-/**
- * Constructs an exact UTC Date corresponding to a specific local IST calendar date and time.
- */
 export function buildIstTimestamp(
   year: number,
   month: number,
@@ -189,10 +157,6 @@ export function buildIstTimestamp(
   return new Date(utcMillis);
 }
 
-/**
- * Generates a stable, canonical occurrence key.
- * Format: `${commuteId}:${yyyy-MM-dd}_${HHmm}`
- */
 export function generateOccurrenceKey(
   commuteId: string | { toString(): string },
   occurrenceDate: Date
@@ -207,14 +171,6 @@ export function generateOccurrenceKey(
   return `${idStr}:${istComponents.formattedDate}_${hh}${min}`;
 }
 
-/**
- * Calculates upcoming occurrences for a commute schedule within the lookahead window.
- *
- * @param commute Commute object with _id, time, days, isActive
- * @param atTime Current evaluation timestamp (defaults to new Date())
- * @param lookaheadMinutes Window lookahead in minutes (defaults to 180m)
- * @returns Array of candidate occurrences within [atTime, atTime + lookaheadMinutes]
- */
 export function calculateUpcomingOccurrences(
   commute: ICommuteRecurrenceInput,
   atTime = new Date(),
@@ -234,7 +190,6 @@ export function calculateUpcomingOccurrences(
     try {
       allowedWeekdays.add(normalizeWeekday(dayStr));
     } catch {
-      // Ignore unrecognized day strings safely
     }
   }
 
@@ -245,11 +200,9 @@ export function calculateUpcomingOccurrences(
   const windowEnd = new Date(atTime.getTime() + lookaheadMinutes * 60 * 1000);
   const commuteIdStr = commute._id.toString();
 
-  // Dynamically calculate scanning horizon based on lookahead window (defaults to at least 2 days ahead)
   const maxDays = Math.max(2, Math.ceil(lookaheadMinutes / (24 * 60)) + 1);
   const candidates: IOccurrenceCandidate[] = [];
 
-  // Scan across the window horizon in IST calendar dates
   for (let dayOffset = 0; dayOffset <= maxDays; dayOffset++) {
     const candidateUtc = new Date(atTime.getTime() + dayOffset * 24 * 60 * 60 * 1000);
     const comps = getIstDateComponents(candidateUtc);
@@ -274,6 +227,5 @@ export function calculateUpcomingOccurrences(
     }
   }
 
-  // Sort ascending by scheduled pickup time
   return candidates.sort((a, b) => a.scheduledFor.getTime() - b.scheduledFor.getTime());
 }

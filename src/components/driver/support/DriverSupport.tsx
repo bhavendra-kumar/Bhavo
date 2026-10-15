@@ -112,7 +112,6 @@ export default function DriverSupport() {
   return (
     <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full pb-10">
 
-      {/* Emergency SOS Banner */}
       <div className="p-6 rounded-3xl bg-rose-50 border-2 border-rose-300 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-md">
@@ -135,9 +134,7 @@ export default function DriverSupport() {
         </button>
       </div>
 
-      {/* Support Form & FAQ */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Ticket Form */}
         <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm flex flex-col justify-between">
           <div>
             <h3 className="text-base font-extrabold text-slate-900 mb-1">Submit Driver Ticket</h3>
@@ -206,7 +203,6 @@ export default function DriverSupport() {
           </div>
         </div>
 
-        {/* Quick Helpline Contacts & Open Tickets */}
         <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm flex flex-col justify-between gap-6">
           <div>
             <h3 className="text-base font-extrabold text-slate-900 mb-1">Helpline Directory</h3>
@@ -234,7 +230,6 @@ export default function DriverSupport() {
             </div>
           </div>
 
-          {/* Active Tickets from Database */}
           {tickets.length > 0 && (
             <div className="pt-4 border-t border-slate-100">
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">

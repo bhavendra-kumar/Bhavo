@@ -16,9 +16,13 @@ export async function GET(req: Request) {
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "20", 10)));
     const statusFilter = searchParams.get("status") || "ALL";
     const paymentStatusFilter = searchParams.get("paymentStatus") || "ALL";
+    const bookingTypeFilter = searchParams.get("bookingType") || "ALL";
+    const petFriendlyFilter = searchParams.get("petFriendly");
     const riderId = searchParams.get("riderId");
     const driverId = searchParams.get("driverId");
     const search = searchParams.get("search")?.trim() || "";
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
 
     const query: Record<string, unknown> = {};
 
@@ -30,12 +34,43 @@ export async function GET(req: Request) {
       query.paymentStatus = paymentStatusFilter;
     }
 
+    if (petFriendlyFilter === "true") {
+      query.petFriendly = true;
+    } else if (petFriendlyFilter === "false") {
+      query.petFriendly = { $ne: true };
+    }
+
+    if (bookingTypeFilter === "COMMUTE") {
+      query.$or = [
+        { commuteId: { $ne: null } },
+        { autoBookingOccurrenceKey: { $ne: null } },
+      ];
+    } else if (bookingTypeFilter === "ON_DEMAND") {
+      query.commuteId = null;
+      query.autoBookingOccurrenceKey = null;
+    }
+
     if (riderId && mongoose.Types.ObjectId.isValid(riderId)) {
       query.rider = new mongoose.Types.ObjectId(riderId);
     }
 
     if (driverId && mongoose.Types.ObjectId.isValid(driverId)) {
       query.driver = new mongoose.Types.ObjectId(driverId);
+    }
+
+    if (startDate || endDate) {
+      const createdAtFilter: Record<string, Date> = {};
+      if (startDate) {
+        const s = new Date(startDate);
+        if (!isNaN(s.getTime())) createdAtFilter.$gte = s;
+      }
+      if (endDate) {
+        const e = new Date(endDate);
+        if (!isNaN(e.getTime())) createdAtFilter.$lte = e;
+      }
+      if (Object.keys(createdAtFilter).length > 0) {
+        query.createdAt = createdAtFilter;
+      }
     }
 
     if (search) {
@@ -54,10 +89,10 @@ export async function GET(req: Request) {
     const totalMatching = await Ride.countDocuments(query);
     const rides = await Ride.find(query)
       .select(
-        "rider driver driverDetails pickup.address dropoff.address fare fareInPaise vehicleType status paymentMethod paymentStatus scheduledFor autoBookingOccurrenceKey createdAt"
+        "rider driver driverDetails pickup.address dropoff.address fare fareInPaise vehicleType status paymentMethod paymentStatus petFriendly scheduledFor commuteId autoBookingOccurrenceKey createdAt"
       )
       .populate("rider", "name email phone")
-      .populate("driver", "name email phone")
+      .populate("driver", "name email phone driverVehicle")
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
@@ -70,7 +105,13 @@ export async function GET(req: Request) {
           const rideRec = r as unknown as {
             _id: unknown;
             rider?: { _id: unknown; name: string; email: string; phone?: string };
-            driver?: { _id: unknown; name: string; email: string; phone?: string };
+            driver?: {
+              _id: unknown;
+              name: string;
+              email: string;
+              phone?: string;
+              driverVehicle?: { numberPlate?: string; model?: string };
+            };
             driverDetails?: { name: string; phone: string; vehicleNumber: string };
             pickup?: { address: string };
             dropoff?: { address: string };
@@ -80,10 +121,14 @@ export async function GET(req: Request) {
             status: string;
             paymentMethod: string;
             paymentStatus: string;
+            petFriendly?: boolean;
             scheduledFor?: Date | null;
+            commuteId?: unknown;
             autoBookingOccurrenceKey?: string | null;
             createdAt: Date;
           };
+
+          const isCommute = Boolean(rideRec.commuteId || rideRec.autoBookingOccurrenceKey);
 
           return {
             id: rideRec._id?.toString(),
@@ -101,17 +146,33 @@ export async function GET(req: Request) {
                   name: rideRec.driver.name,
                   email: rideRec.driver.email,
                   phone: rideRec.driver.phone || "N/A",
+                  vehicleNumber:
+                    rideRec.driver.driverVehicle?.numberPlate ||
+                    rideRec.driverDetails?.vehicleNumber ||
+                    "N/A",
+                }
+              : rideRec.driverDetails
+              ? {
+                  id: null,
+                  name: rideRec.driverDetails.name,
+                  phone: rideRec.driverDetails.phone,
+                  vehicleNumber: rideRec.driverDetails.vehicleNumber,
                 }
               : null,
             pickupAddress: rideRec.pickup?.address || "N/A",
             dropoffAddress: rideRec.dropoff?.address || "N/A",
             fare: rideRec.fare,
-            fareInPaise: rideRec.fareInPaise,
+            fareInPaise: rideRec.fareInPaise || Math.round((rideRec.fare || 0) * 100),
+            fareInRupees: rideRec.fareInPaise
+              ? rideRec.fareInPaise / 100
+              : rideRec.fare || 0,
             vehicleType: rideRec.vehicleType,
             status: rideRec.status,
             paymentMethod: rideRec.paymentMethod,
             paymentStatus: rideRec.paymentStatus,
+            petFriendly: Boolean(rideRec.petFriendly),
             scheduledFor: rideRec.scheduledFor || null,
+            bookingType: isCommute ? "COMMUTE" : "ON_DEMAND",
             isAutoBooked: Boolean(rideRec.autoBookingOccurrenceKey),
             createdAt: rideRec.createdAt,
           };

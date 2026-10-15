@@ -1,16 +1,3 @@
-/**
- * Auto Booking & Recurring Ride Materialization Service (Phase 1F)
- *
- * Rules:
- * - A schedule is not a ride: materializes exactly one individual Ride per occurrence.
- * - Enforces durable idempotency via AutoBookingOccurrence and Ride.autoBookingOccurrenceKey unique index.
- * - Atomic lease claiming prevents duplicate rides under concurrent workers.
- * - Reconciles partial failures if Ride exists but occurrence update failed.
- * - Authoritative server-side pricing in integer paise via Phase 1C calculateAuthoritativeFare.
- * - Phase 1D compatibility: scheduledFor is set to future pickup time, ensuring rides enter
- *   driver dispatch strictly at the T-60 minute boundary.
- * - Past occurrences are skipped; paused/inactive commutes are respected.
- */
 
 import crypto from "crypto";
 import dbConnect from "@/lib/mongoose";
@@ -61,10 +48,6 @@ export interface IBatchAutoBookingSummary {
   executedAt: string;
 }
 
-/**
- * Atomically materializes a single scheduled occurrence into an individual Ride.
- * Crash-safe and idempotent under concurrent workers.
- */
 export async function materializeOccurrence(
   occurrenceKey: string,
   options?: {
@@ -78,7 +61,6 @@ export async function materializeOccurrence(
   const leaseId = crypto.randomUUID();
   const leaseExpiresAt = new Date(atTime.getTime() + leaseDurationMs);
 
-  // 1. Fetch current occurrence record
   const existingRecord = await AutoBookingOccurrence.findOne({ occurrenceKey });
   if (!existingRecord) {
     return {
@@ -88,7 +70,6 @@ export async function materializeOccurrence(
     };
   }
 
-  // If already materialized and linked, return immediately
   if (existingRecord.status === "MATERIALIZED" && existingRecord.rideId) {
     return {
       status: "ALREADY_MATERIALIZED",
@@ -97,7 +78,6 @@ export async function materializeOccurrence(
     };
   }
 
-  // If permanently failed or skipped past, do not retry
   if (existingRecord.status === "FAILED_PERMANENT" || existingRecord.status === "SKIPPED_PAST") {
     return {
       status: existingRecord.status,
@@ -106,8 +86,6 @@ export async function materializeOccurrence(
     };
   }
 
-  // 2. Atomic Lease Claim:
-  // Claims if pending/retryable with attempts remaining, OR if lease has expired with attempts remaining
   const claimed = await AutoBookingOccurrence.findOneAndUpdate(
     {
       occurrenceKey,
@@ -136,7 +114,6 @@ export async function materializeOccurrence(
   );
 
   if (!claimed) {
-    // Could not claim: check if currently leased by another active worker
     const current = await AutoBookingOccurrence.findOne({ occurrenceKey });
     if (current?.status === "CLAIMED" && current.leaseExpiresAt && current.leaseExpiresAt > atTime) {
       return { status: "CURRENTLY_LEASED", occurrenceKey };
@@ -147,8 +124,6 @@ export async function materializeOccurrence(
     return { status: "MAX_ATTEMPTS_EXCEEDED", occurrenceKey, error: "Maximum attempts reached without success" };
   }
 
-  // 3. Reconcile Partial Failure:
-  // Check if a Ride with this autoBookingOccurrenceKey was ALREADY persisted in MongoDB
   const existingRide = await Ride.findOne({ autoBookingOccurrenceKey: occurrenceKey });
   if (existingRide) {
     await AutoBookingOccurrence.updateOne(
@@ -163,7 +138,6 @@ export async function materializeOccurrence(
         },
       }
     );
-    // Keep parent commute synchronized with the reconciled ride
     await Commute.updateOne(
       { _id: claimed.commuteId },
       {
@@ -180,7 +154,6 @@ export async function materializeOccurrence(
     };
   }
 
-  // 4. Verify Commute & Rider Account Integrity
   const commute = options?.commute || (await Commute.findById(claimed.commuteId));
   if (!commute || commute.isActive === false) {
     await AutoBookingOccurrence.updateOne(
@@ -197,7 +170,6 @@ export async function materializeOccurrence(
     return { status: "SKIPPED_PAUSED", occurrenceKey };
   }
 
-  // Strictly reject malformed commute configurations permanently rather than retrying indefinitely
   if (!commute.pickup?.address || !commute.dropoff?.address) {
     await AutoBookingOccurrence.updateOne(
       { _id: claimed._id, leaseId },
@@ -237,7 +209,6 @@ export async function materializeOccurrence(
     };
   }
 
-  // 5. Verify Scheduled Pickup Time is Not in the Past
   if (claimed.scheduledFor.getTime() <= atTime.getTime()) {
     await AutoBookingOccurrence.updateOne(
       { _id: claimed._id, leaseId },
@@ -253,7 +224,6 @@ export async function materializeOccurrence(
     return { status: "SKIPPED_PAST", occurrenceKey };
   }
 
-  // 6. Authoritative Server-Side Pricing (Phase 1C Integration)
   const pickupCoords = commute.pickup?.coordinates || [28.6139, 77.209];
   const dropoffCoords = commute.dropoff?.coordinates || [28.5355, 77.391];
   const vehicleType = commute.vehicleType || "Cab Premium";
@@ -290,10 +260,8 @@ export async function materializeOccurrence(
     };
   }
 
-  // 7. Cryptographically Secure OTP Generation
   const otp = crypto.randomInt(1000, 10000).toString();
 
-  // 8. Materialize the Individual Ride
   let newRide;
   try {
     newRide = await Ride.create({
@@ -338,7 +306,6 @@ export async function materializeOccurrence(
       ],
     });
   } catch (writeErr: unknown) {
-    // If unique index conflict on autoBookingOccurrenceKey occurred concurrently
     const isDuplicateKey =
       typeof writeErr === "object" &&
       writeErr !== null &&
@@ -360,7 +327,6 @@ export async function materializeOccurrence(
             },
           }
         );
-        // Keep parent commute synchronized with the reconciled ride
         await Commute.updateOne(
           { _id: commute._id },
           {
@@ -407,7 +373,6 @@ export async function materializeOccurrence(
     };
   }
 
-  // 9. Finalize Occurrence as MATERIALIZED
   await AutoBookingOccurrence.updateOne(
     { _id: claimed._id, leaseId },
     {
@@ -421,7 +386,6 @@ export async function materializeOccurrence(
     }
   );
 
-  // 10. Update Commute Metadata
   await Commute.updateOne(
     { _id: commute._id },
     {
@@ -439,10 +403,6 @@ export async function materializeOccurrence(
   };
 }
 
-/**
- * Scans active commutes, identifies upcoming schedule occurrences within the lookahead window,
- * and processes materialization in a bounded, restart-safe batch.
- */
 export async function processAutoBookingBatch(options?: {
   limit?: number;
   lookaheadMinutes?: number;
@@ -469,14 +429,12 @@ export async function processAutoBookingBatch(options?: {
     executedAt: atTime.toISOString(),
   };
 
-  // 1. Fetch active commutes up to the bounded limit, prioritized by least-recently materialized
   const activeCommutes = await Commute.find({ isActive: true })
     .sort({ lastMaterializedAt: 1, updatedAt: -1 })
     .limit(batchLimit);
 
   summary.scannedCommutes = activeCommutes.length;
 
-  // 2. Identify candidate occurrences for each active commute
   for (const commute of activeCommutes) {
     let candidates;
     try {
@@ -490,7 +448,6 @@ export async function processAutoBookingBatch(options?: {
 
     for (const cand of candidates) {
       try {
-        // Upsert durable occurrence record with initial PENDING status (if not existing)
         await AutoBookingOccurrence.updateOne(
           { occurrenceKey: cand.occurrenceKey },
           {
@@ -507,13 +464,11 @@ export async function processAutoBookingBatch(options?: {
           { upsert: true }
         );
 
-        // If the occurrence is in the past, skip materialization
         if (cand.isPast) {
           summary.skippedPast++;
           continue;
         }
 
-        // Materialize the occurrence
         const result = await materializeOccurrence(cand.occurrenceKey, {
           forceAtTime: atTime,
           commute,

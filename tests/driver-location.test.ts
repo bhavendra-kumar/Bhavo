@@ -53,7 +53,7 @@ describe("Phase 1D: Driver Location Validation & Freshness Tests", () => {
 
   it("Fresh location within 120 seconds is eligible", () => {
     const now = new Date("2026-10-09T12:00:00.000Z");
-    const freshTimestamp = new Date("2026-10-09T11:59:30.000Z"); // 30s ago
+    const freshTimestamp = new Date("2026-10-09T11:59:30.000Z");
     const coords: [number, number] = [28.6139, 77.209];
 
     const isFresh = isLocationValidAndFresh(coords, freshTimestamp, 120, now);
@@ -62,7 +62,7 @@ describe("Phase 1D: Driver Location Validation & Freshness Tests", () => {
 
   it("Location older than 120 seconds is deemed stale and ineligible", () => {
     const now = new Date("2026-10-09T12:00:00.000Z");
-    const staleTimestamp = new Date("2026-10-09T11:57:59.000Z"); // 121s ago
+    const staleTimestamp = new Date("2026-10-09T11:57:59.000Z");
     const coords: [number, number] = [28.6139, 77.209];
 
     const isFresh = isLocationValidAndFresh(coords, staleTimestamp, 120, now);
@@ -78,7 +78,6 @@ describe("Phase 1D: Driver Location Validation & Freshness Tests", () => {
   });
 
   it("Haversine calculates accurate geodesic distance between Delhi NCR locations", () => {
-    // Connaught Place to Noida Sector 18 is approx ~13.5 - 14.5 km straight line
     const cpCoords: [number, number] = [28.6315, 77.2167];
     const noida18Coords: [number, number] = [28.5708, 77.3261];
 

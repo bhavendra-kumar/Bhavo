@@ -33,7 +33,6 @@ export default function MyCommutePage() {
   const [loading, setLoading] = useState(true);
   const [autoBookingGlobal, setAutoBookingGlobal] = useState(true);
 
-  // Modal State for New Commute Route
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formTitle, setFormTitle] = useState("");
   const [formPickup, setFormPickup] = useState("Connaught Place, New Delhi");
@@ -80,7 +79,6 @@ export default function MyCommutePage() {
 
   const toggleCommuteActive = async (id: string, currentActive: boolean) => {
     try {
-      // Optimistic update
       setCommutes((prev) =>
         prev.map((c) => (c._id === id ? { ...c, isActive: !currentActive } : c))
       );
@@ -172,7 +170,6 @@ export default function MyCommutePage() {
 
   return (
     <div className="flex flex-col gap-5 pb-10">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">Smart Commute Schedules</h2>
@@ -189,7 +186,6 @@ export default function MyCommutePage() {
         </button>
       </div>
 
-      {/* Global Setting Strip */}
       <div className="card p-4 sm:p-5 flex items-center justify-between gap-3 bg-linear-to-r from-teal-50 to-emerald-50 border border-teal-200/90 shadow-xs rounded-2xl">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center bg-teal-600 text-white shadow-xs shrink-0">
@@ -212,7 +208,6 @@ export default function MyCommutePage() {
         />
       </div>
 
-      {/* Commutes List */}
       <div className="flex flex-col gap-3.5">
         {loading ? (
           <div className="card p-12 text-center text-slate-500 text-sm rounded-2xl">
@@ -261,7 +256,6 @@ export default function MyCommutePage() {
                       </span>
                     </div>
 
-                    {/* Clean structured badge tags for Time, Frequency, Vehicle */}
                     <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
                       <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md bg-teal-50 text-teal-800 border border-teal-200/60">
                         <Clock size={10} className="text-teal-600" />
@@ -283,7 +277,6 @@ export default function MyCommutePage() {
                   </div>
                 </div>
 
-                {/* Mobile-optimized action buttons bar */}
                 <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
                   <button
                     onClick={() => toggleCommuteActive(commute._id, commute.isActive)}
@@ -328,7 +321,6 @@ export default function MyCommutePage() {
                 </div>
               </div>
 
-              {/* Route Summary */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-3">
                 <div className="relative pl-5 flex flex-col gap-2.5">
                   <div className="absolute left-2 top-2 bottom-3 w-px bg-teal-200" />
@@ -350,7 +342,6 @@ export default function MyCommutePage() {
                   </div>
                 </div>
 
-                {/* Day Badges */}
                 <div className="flex flex-col justify-between gap-2.5">
                   <div>
                     <p className="text-[9.5px] font-bold uppercase text-slate-400 tracking-wider mb-1.5">Scheduled Days</p>
@@ -384,7 +375,6 @@ export default function MyCommutePage() {
         )}
       </div>
 
-      {/* ── Modal: Add New Commute Schedule (Bottom Sheet on Mobile) ── */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/60 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
@@ -421,7 +411,6 @@ export default function MyCommutePage() {
                 />
               </div>
 
-              {/* Location Selectors */}
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col gap-3">
                 <LocationSearch
                   label="Pickup Location"
@@ -476,7 +465,6 @@ export default function MyCommutePage() {
                 </div>
               </div>
 
-              {/* Day selection */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-[12px] font-bold uppercase text-slate-600">Active Days</label>
                 <div className="flex gap-1.5 flex-wrap">

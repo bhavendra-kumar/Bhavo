@@ -1,15 +1,3 @@
-/**
- * Centralized Runtime Configuration & Secret Validation (Phase 1I)
- *
- * Rules:
- * - Server-side authoritative validation of all critical environment settings.
- * - Enforces minimum 32-character secret entropy in production for JWT and Cron secrets.
- * - Fails fast with clear, non-leaking diagnostic errors if security-critical secrets are missing.
- * - Never returns or exposes raw secret values to callers, clients, or logs.
- * - Validates numeric operational settings (rejects negatives, NaN, non-integers where required).
- * - Distinguishes required dependencies from optional integrations (e.g. SMTP, live payment gateway).
- * - Enforces that live payments remain disabled unless approved provider integration exists.
- */
 
 export interface RuntimeConfigStatus {
   nodeEnv: "production" | "development" | "test";
@@ -39,9 +27,6 @@ export class ConfigurationError extends Error {
   }
 }
 
-/**
- * Validates whether a secret string meets minimum length requirements.
- */
 function validateSecretString(
   value: string | undefined,
   name: string,
@@ -57,7 +42,6 @@ function validateSecretString(
 
   const trimmed = value.trim();
 
-  // In production, enforce minimum 32 characters of entropy
   if (isProduction && trimmed.length < minLen) {
     throw new ConfigurationError(
       name,
@@ -65,7 +49,6 @@ function validateSecretString(
     );
   }
 
-  // Reject known dangerous fallback placeholders
   const dangerousFallbacks = [
     "your-secret-here",
     "secret",
@@ -86,9 +69,6 @@ function validateSecretString(
   return trimmed;
 }
 
-/**
- * Validates a positive integer configuration variable.
- */
 export function validatePositiveInteger(
   raw: string | number | undefined,
   name: string,
@@ -113,9 +93,6 @@ export function validatePositiveInteger(
   return parsed;
 }
 
-/**
- * Validates a positive numeric configuration variable (allowing decimals, e.g. km).
- */
 export function validatePositiveNumber(
   raw: string | number | undefined,
   name: string,
@@ -135,9 +112,6 @@ export function validatePositiveNumber(
   return parsed;
 }
 
-/**
- * Validates database connection string.
- */
 export function validateDatabaseUrl(
   raw = process.env.DATABASE_URL,
   isProduction = process.env.NODE_ENV === "production"
@@ -156,34 +130,22 @@ export function validateDatabaseUrl(
   return trimmed;
 }
 
-/**
- * Validates authentication JWT secret.
- */
 export function validateJwtSecret(isProduction = process.env.NODE_ENV === "production"): string {
   const secret = process.env.JWT_SECRET || process.env.AUTH_SECRET || (!isProduction ? "dev-jwt-auth-secret-key-32-chars-long" : undefined);
   return validateSecretString(secret, "JWT_SECRET/AUTH_SECRET", 32, isProduction);
 }
 
-/**
- * Validates cron maintenance secret.
- */
 export function validateCronSecret(isProduction = process.env.NODE_ENV === "production"): string {
   const secret = process.env.CRON_SECRET || (!isProduction ? "dev-cron-maintenance-secret-32-chars-long" : undefined);
   return validateSecretString(secret, "CRON_SECRET", 32, isProduction);
 }
 
-/**
- * Authoritatively determines whether live online payments are permitted.
- * In Phase 1I, Razorpay integration is absent and live payment collection remains DISABLED.
- */
 export function isLivePaymentEnabled(): boolean {
-  // Live online gateway payments are disabled by default
   const flag = process.env.LIVE_PAYMENTS_ENABLED;
   if (flag !== "true") {
     return false;
   }
 
-  // If someone explicitly attempts to turn on live payments, require approved provider credentials
   const razorpayKey = process.env.RAZORPAY_KEY_ID?.trim();
   const razorpaySecret = process.env.RAZORPAY_KEY_SECRET?.trim();
   if (!razorpayKey || !razorpaySecret) {
@@ -199,10 +161,6 @@ export interface RazorpayConfig {
   webhookSecret?: string;
 }
 
-/**
- * Validates and retrieves server-side Razorpay configuration.
- * Fails closed if online payments are disabled or credentials are missing.
- */
 export function getRazorpayConfig(): RazorpayConfig {
   if (!isLivePaymentEnabled()) {
     throw new ConfigurationError(
@@ -228,10 +186,6 @@ export function getRazorpayConfig(): RazorpayConfig {
   };
 }
 
-/**
- * Validates and returns the Razorpay webhook secret.
- * Fails closed if missing or empty.
- */
 export function getRazorpayWebhookSecret(): string {
   const secret = process.env.RAZORPAY_WEBHOOK_SECRET?.trim();
   if (!secret) {
@@ -243,20 +197,13 @@ export function getRazorpayWebhookSecret(): string {
   return secret;
 }
 
-/**
- * Validates the entire platform runtime configuration.
- * Returns safe diagnostic summary (free of secrets) on success.
- * Throws ConfigurationError if any required setting fails validation.
- */
 export function validateRuntimeConfig(isProduction = process.env.NODE_ENV === "production"): RuntimeConfigStatus {
   const nodeEnv = (process.env.NODE_ENV || "development") as "production" | "development" | "test";
 
-  // Validate core secrets
   validateDatabaseUrl(process.env.DATABASE_URL, isProduction);
   validateJwtSecret(isProduction);
   validateCronSecret(isProduction);
 
-  // Validate operational numeric defaults
   const dispatchLeadTimeMinutes = validatePositiveInteger(
     process.env.RIDE_DISPATCH_LEAD_TIME_MINUTES,
     "RIDE_DISPATCH_LEAD_TIME_MINUTES",

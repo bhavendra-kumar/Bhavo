@@ -28,7 +28,6 @@ const PAGE_META: Record<string, { title: string; subtitle: string }> = {
   "/user/support": { title: "Raise a Ticket", subtitle: "Get prompt help and support from Bhavo care." },
 };
 
-// Navigation suggestions for omnibar search
 const APP_NAV_ITEMS = [
   { name: "Book a Ride", href: "/user/book-ride", icon: CarFront, desc: "Instant or scheduled cab, bike, auto" },
   { name: "Dashboard", href: "/user/dashboard", icon: LayoutDashboard, desc: "Overview & active trip status" },
@@ -97,31 +96,25 @@ export default function Navbar() {
   const { user, toggleSidebar } = useUserStore();
   const meta = PAGE_META[pathname] ?? { title: "Bhavo Smart Commute", subtitle: "" };
 
-  // Dropdown toggles
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
-  // Search state
   const [searchQuery, setSearchQuery] = useState("");
   const [placeResults, setPlaceResults] = useState<Array<{ place_id: number; display_name: string; lat: string; lon: string }>>([]);
   const [searchLoading, setSearchLoading] = useState(false);
 
-  // Notifications state
   const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
   const [notifFilter, setNotifFilter] = useState<"all" | "unread">("all");
 
-  // Logout state
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  // DOM Refs for click outside
   const searchRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { confirm } = useDialog();
 
-  // Click outside listener
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as Node;
@@ -142,7 +135,6 @@ export default function Navbar() {
         setIsNotificationsOpen(false);
         setIsUserMenuOpen(false);
       }
-      // Ctrl+K or Cmd+K to focus search
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         searchInputRef.current?.focus();
@@ -158,7 +150,6 @@ export default function Navbar() {
     };
   }, []);
 
-  // Debounced search for locations via /api/places
   useEffect(() => {
     if (!searchQuery || searchQuery.trim().length < 2) {
       return;
@@ -186,7 +177,6 @@ export default function Navbar() {
     };
   }, [searchQuery]);
 
-  // Filtered app navigation links
   const filteredNavItems = searchQuery.trim()
     ? APP_NAV_ITEMS.filter((item) =>
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -194,7 +184,6 @@ export default function Navbar() {
       )
     : APP_NAV_ITEMS.slice(0, 5);
 
-  // Unread notifications count
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const displayedNotifications =
@@ -209,7 +198,6 @@ export default function Navbar() {
   };
 
   const handleNotificationClick = (notif: NotificationItem) => {
-    // Mark as read
     setNotifications((prev) =>
       prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n))
     );
@@ -224,7 +212,6 @@ export default function Navbar() {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   };
 
-  // Logout handler
   const handleLogout = async () => {
     const ok = await confirm({
       title: "Sign out?",
@@ -249,7 +236,6 @@ export default function Navbar() {
       className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8 shrink-0 relative z-30"
       style={{ background: "#042f2e", borderBottom: "1px solid rgba(255,255,255,0.08)" }}
     >
-      {/* ── Left: Mobile Menu Toggle + Title ── */}
       <div className="flex items-center gap-3 min-w-0">
         <button
           type="button"
@@ -272,9 +258,7 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* ── Right: Omnibar Search, Notifications, User Menu ── */}
       <div className="flex items-center gap-2 sm:gap-3">
-        {/* ── 1. Global Search / Omnibar ── */}
         <div className="relative" ref={searchRef}>
           <div className="relative flex items-center">
             <Search size={14} className="absolute left-3 pointer-events-none text-slate-400" />
@@ -327,17 +311,14 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Search Dropdown Results */}
           {isSearchOpen && (
             <div className="absolute top-full right-0 sm:left-0 mt-2 w-72 sm:w-80 md:w-96 rounded-xl bg-white shadow-2xl border border-slate-200 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2">
-              {/* Header label */}
               <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-500">
                 <span>{searchQuery ? "Search Results" : "Quick Shortcuts"}</span>
                 <span className="text-[10px] text-slate-400 lowercase font-medium">esc to close</span>
               </div>
 
               <div className="max-h-80 overflow-y-auto no-scrollbar p-1.5 flex flex-col gap-1">
-                {/* Real-time geocoded place search results */}
                 {searchLoading ? (
                   <div className="p-4 flex items-center justify-center gap-2 text-slate-500 text-[12px]">
                     <Loader2 size={14} className="animate-spin text-teal-600" /> Searching places...
@@ -376,7 +357,6 @@ export default function Navbar() {
                   </div>
                 ) : null}
 
-                {/* App Sections & Features */}
                 <div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2.5 py-1">
                     Features & Pages
@@ -409,7 +389,6 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* ── 2. Notifications Center (Bell) ── */}
         <div className="relative" ref={notificationsRef}>
           <button
             type="button"
@@ -433,10 +412,8 @@ export default function Navbar() {
             )}
           </button>
 
-          {/* Notifications Dropdown Panel */}
           {isNotificationsOpen && (
             <div className="absolute top-full right-0 mt-2 w-80 sm:w-96 rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2">
-              {/* Header */}
               <div className="p-3.5 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <h3 className="text-[14px] font-bold text-slate-900">Notifications</h3>
@@ -460,7 +437,6 @@ export default function Navbar() {
                 </div>
               </div>
 
-              {/* Filter tabs */}
               <div className="flex px-3 pt-2 border-b border-slate-100 bg-white gap-2 text-[11px] font-bold">
                 <button
                   type="button"
@@ -486,7 +462,6 @@ export default function Navbar() {
                 </button>
               </div>
 
-              {/* Notifications List */}
               <div className="max-h-80 overflow-y-auto no-scrollbar divide-y divide-slate-100">
                 {displayedNotifications.length === 0 ? (
                   <div className="p-8 text-center flex flex-col items-center justify-center gap-2 text-slate-400">
@@ -503,7 +478,6 @@ export default function Navbar() {
                         !notif.read ? "bg-teal-50/40" : "bg-white"
                       }`}
                     >
-                      {/* Icon based on notification category */}
                       <div
                         className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
                           notif.type === "wallet"
@@ -540,7 +514,6 @@ export default function Navbar() {
                         </p>
                       </div>
 
-                      {/* Action / Dismiss */}
                       <button
                         type="button"
                         onClick={(e) => handleDismissNotification(e, notif.id)}
@@ -554,7 +527,6 @@ export default function Navbar() {
                 )}
               </div>
 
-              {/* Footer */}
               <div className="p-2.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold">
                 <button
                   type="button"
@@ -577,7 +549,6 @@ export default function Navbar() {
 
         <div className="w-px h-6 bg-white/10 hidden sm:block" />
 
-        {/* ── 3. User Profile Dropdown ── */}
         <div className="relative" ref={userMenuRef}>
           <button
             type="button"
@@ -613,10 +584,8 @@ export default function Navbar() {
             </div>
           </button>
 
-          {/* User Profile Menu Dropdown */}
           {isUserMenuOpen && (
             <div className="absolute top-full right-0 mt-2 w-64 sm:w-72 rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2">
-              {/* User Identity Header Card */}
               <div className="p-4 bg-teal-900 text-white flex items-center gap-3">
                 <Avatar className="w-11 h-11 border-2 border-teal-400 shrink-0">
                   <AvatarImage src={user?.avatar ?? undefined} alt={user?.name} />
@@ -640,7 +609,6 @@ export default function Navbar() {
                 </div>
               </div>
 
-              {/* Wallet balance chip */}
               <div className="p-3 bg-teal-50/80 border-b border-teal-100 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-lg bg-teal-600 text-white flex items-center justify-center shrink-0">
@@ -662,7 +630,6 @@ export default function Navbar() {
                 </Link>
               </div>
 
-              {/* Navigation Links */}
               <div className="p-2 flex flex-col gap-0.5">
                 <Link
                   href="/user/profile"
@@ -710,10 +677,8 @@ export default function Navbar() {
                 </Link>
               </div>
 
-              {/* Divider */}
               <div className="h-px bg-slate-100 my-1" />
 
-              {/* Log Out */}
               <div className="p-2 pt-0">
                 <button
                   type="button"

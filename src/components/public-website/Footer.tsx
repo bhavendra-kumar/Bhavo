@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 
 const NAV_COLS = [
   {
@@ -74,7 +75,6 @@ export default function Footer() {
         overflow: "hidden",
       }}
     >
-      {/* Gradient top accent */}
       <div
         style={{
           position: "absolute",
@@ -87,7 +87,6 @@ export default function Footer() {
         }}
       />
 
-      {/* Aurora glow */}
       <div
         style={{
           position: "absolute",
@@ -103,7 +102,6 @@ export default function Footer() {
       />
 
       <div style={{ maxWidth: 1160, margin: "0 auto", padding: "64px 28px 36px", position: "relative" }}>
-        {/* Main grid: brand + 3 link cols */}
         <div
           style={{
             display: "grid",
@@ -112,14 +110,12 @@ export default function Footer() {
             marginBottom: 48,
           }}
         >
-          {/* Brand */}
           <div style={{ gridColumn: "span 2", minWidth: 240 }}>
             <Link
               href="/"
               style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 10, marginBottom: 16 }}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt="Bhavo logo" style={{ height: 36, width: "auto", display: "block" }} />
+              <Image src="/bhavo-logo.png" alt="Bhavo logo" width={36} height={36} style={{ height: 36, width: "auto", display: "block" }} />
 
               <span style={{ fontSize: 20, fontWeight: 900, color: "#f1f5f9", letterSpacing: "-0.5px" }}>
                 BHAVO
@@ -130,7 +126,6 @@ export default function Footer() {
               Redefining daily mobility through AI-powered automation and premium commute experiences.
             </p>
 
-            {/* Social icons */}
             <div style={{ display: "flex", gap: 8 }}>
               {SOCIALS.map((s) => (
                 <a
@@ -169,7 +164,6 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Link columns */}
           {NAV_COLS.map((col) => (
             <div key={col.heading}>
               <h4
@@ -214,7 +208,6 @@ export default function Footer() {
           ))}
         </div>
 
-        {/* Bottom copyright bar */}
         <div
           style={{
             borderTop: "1px solid rgba(255,255,255,0.06)",
@@ -235,7 +228,6 @@ export default function Footer() {
             <Link href="/contact" style={{ color: "#64748b", textDecoration: "none", transition: "color 0.2s" }} onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#14b8a6")} onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "#64748b")}>Contact Us</Link>
           </div>
         </div>
-
 
       </div>
     </footer>

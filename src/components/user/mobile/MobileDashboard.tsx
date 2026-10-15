@@ -44,10 +44,8 @@ export default function MobileDashboard({
 
   return (
     <div className="flex flex-col gap-4 pb-8 flex-1 select-none">
-      {/* ── 1. Live Active Ride Tracker Card (If Active) ── */}
       {activeRide && activeRide.status !== "COMPLETED" && (
         <div className="card p-4 border-2 border-teal-500 bg-teal-50/40 flex flex-col gap-3 shadow-md">
-          {/* Header Row */}
           <div className="flex items-center justify-between">
             {getStatusBadge(activeRide.status)}
             <span className="text-[11px] font-mono font-bold text-slate-500">
@@ -55,7 +53,6 @@ export default function MobileDashboard({
             </span>
           </div>
 
-          {/* If SEARCHING, show dispatch radar card */}
           {activeRide.status === "SEARCHING" ? (
             <div className="p-4 rounded-xl bg-white border border-teal-200 flex flex-col items-center text-center gap-3">
               <div className="relative flex items-center justify-center py-2">
@@ -75,7 +72,6 @@ export default function MobileDashboard({
               </div>
             </div>
           ) : (
-            /* Pilot Info & PIN */
             <div className="p-3 rounded-xl bg-white border border-teal-100 flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
@@ -100,7 +96,6 @@ export default function MobileDashboard({
                 </span>
               </div>
 
-              {/* Start Ride PIN */}
               <div className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-teal-50 border border-teal-200">
                 <div>
                   <p className="text-[9.5px] uppercase font-bold text-teal-800 tracking-wider">Start PIN</p>
@@ -111,7 +106,6 @@ export default function MobileDashboard({
                 </div>
               </div>
 
-              {/* Calling & Messaging Buttons */}
               <div className="grid grid-cols-4 gap-2 pt-0.5">
                 <button
                   type="button"
@@ -145,7 +139,6 @@ export default function MobileDashboard({
             </div>
           )}
 
-          {/* Route path */}
           <div className="p-3 rounded-xl bg-white border border-teal-100 flex flex-col gap-2">
             <div className="relative pl-5 flex flex-col gap-2 text-[12px]">
               <div className="absolute left-2 top-1.5 bottom-2 w-0.5 bg-teal-200" />
@@ -167,7 +160,6 @@ export default function MobileDashboard({
             </div>
           </div>
 
-          {/* Quick Tracking & Status Row */}
           <div className="flex items-center gap-2">
             <Link
               href="/user/book-ride"
@@ -204,7 +196,6 @@ export default function MobileDashboard({
         </div>
       )}
 
-      {/* ── 2. Today's Ride Hero Card ── */}
       <CommuteCommandHero
         userName={user?.name}
         primaryCommute={primaryCommute}
@@ -212,19 +203,15 @@ export default function MobileDashboard({
         onToggleActive={(id, active) => toggleCommute(id, active)}
       />
 
-      {/* ── 3. Interactive Pickup & Drop-off Search Dock ── */}
       <QuickCommuteHub savedPlaces={data?.savedPlaces} />
 
-      {/* ── 4. Compact Stats Bar ── */}
       <CommuterPerksMetrics stats={data?.stats} />
 
-      {/* ── 5. Weekly Commute Strip ── */}
       <WeeklyCommutePlanner
         commutes={commutes}
         onToggleCommute={(id, active) => toggleCommute(id, active)}
       />
 
-      {/* ── 6. Recent Rides ── */}
       <RecentCommutesSnapshot recentRides={data?.recentRides} />
     </div>
   );

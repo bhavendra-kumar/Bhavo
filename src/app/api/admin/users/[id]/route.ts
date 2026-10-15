@@ -35,7 +35,6 @@ export async function GET(
       );
     }
 
-    // Check for active rides
     const activeRide = await Ride.findOne({
       $or: [{ rider: user._id }, { driver: user._id }],
       status: { $in: ["SEARCHING", "ACCEPTED", "ARRIVED", "IN_PROGRESS"] },
@@ -43,7 +42,6 @@ export async function GET(
       .select("status pickup dropoff fare fareInPaise vehicleType createdAt")
       .lean();
 
-    // Lifetime ride stats
     const totalRidesAsRider = await Ride.countDocuments({ rider: user._id });
     const totalRidesAsDriver =
       user.role === "DRIVER" ? await Ride.countDocuments({ driver: user._id }) : 0;

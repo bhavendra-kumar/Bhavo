@@ -57,7 +57,6 @@ export async function POST(req: Request) {
     const currentAttempts = (userWithAttempts.resetOtpAttempts || 0) + 1;
     userWithAttempts.resetOtpAttempts = currentAttempts;
 
-    // Rate-limiting / brute-force prevention: bounded attempts (max 5)
     if (currentAttempts > 5) {
       user.resetOtp = null;
       user.resetOtpExpiry = null;
@@ -99,7 +98,6 @@ export async function POST(req: Request) {
     await user.save();
     await otpRateLimiter.reset(rateKey);
 
-    // OTP is valid
     return NextResponse.json(
       { status: "success", message: "OTP verified successfully." },
       { status: 200 }

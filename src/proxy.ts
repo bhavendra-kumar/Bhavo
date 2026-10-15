@@ -5,7 +5,7 @@ import { getJwtSecret, AUTH_COOKIE_NAME } from "@/lib/auth";
 
 export async function proxy(req: NextRequest) {
   const token = req.cookies.get(AUTH_COOKIE_NAME)?.value;
-  
+
   if (req.nextUrl.pathname.startsWith("/admin")) {
     if (!token) {
       return NextResponse.redirect(new URL("/login", req.url));
@@ -27,15 +27,14 @@ export async function proxy(req: NextRequest) {
   }
 
   if (req.nextUrl.pathname.startsWith("/user") || req.nextUrl.pathname.startsWith("/driver")) {
-    // Finding 1 fix: All query parameter demo/bypass logic removed completely.
     if (!token) {
-      return NextResponse.redirect(new URL("/login", req.url));
+      const isDriver = req.nextUrl.pathname.startsWith("/driver");
+      return NextResponse.redirect(new URL(isDriver ? "/login?role=driver" : "/login?role=rider", req.url));
     }
     try {
       const secret = getJwtSecret();
       const { payload } = await jwtVerify(token, secret);
 
-      // Role-based boundary enforcement
       if (payload.role === "ADMIN") {
         return NextResponse.redirect(new URL("/admin", req.url));
       }
@@ -57,7 +56,13 @@ export async function proxy(req: NextRequest) {
   }
 
   if (req.nextUrl.pathname === "/login" || req.nextUrl.pathname === "/signup") {
-    if (token) {
+    const hasExplicitIntent =
+      req.nextUrl.searchParams.has("switch") ||
+      req.nextUrl.searchParams.has("registered") ||
+      req.nextUrl.searchParams.has("role") ||
+      req.nextUrl.searchParams.has("logout");
+
+    if (token && !hasExplicitIntent) {
       try {
         const secret = getJwtSecret();
         const { payload } = await jwtVerify(token, secret);

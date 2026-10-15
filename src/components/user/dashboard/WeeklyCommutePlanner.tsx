@@ -137,7 +137,6 @@ export default function WeeklyCommutePlanner({
 
   return (
     <div className="card p-5 sm:p-6 flex flex-col gap-4 border border-slate-200/80 bg-white shadow-xs rounded-3xl">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center">
@@ -162,7 +161,6 @@ export default function WeeklyCommutePlanner({
         </div>
       </div>
 
-      {/* Feedback Banner */}
       {feedbackMsg && (
         <div
           className={`px-4 py-2 rounded-xl text-[12px] font-semibold flex items-center justify-between transition-all ${
@@ -181,7 +179,6 @@ export default function WeeklyCommutePlanner({
         </div>
       )}
 
-      {/* ── Horizontal Day Strip ── */}
       <div className="flex items-center gap-1 sm:gap-2">
         {weeklySchedule.map((day) => {
           const isSelected = day.dayName === selectedDay;
@@ -221,7 +218,6 @@ export default function WeeklyCommutePlanner({
                 {day.dayName}
               </span>
 
-              {/* Status dot */}
               <div className="flex items-center justify-center">
                 {isOffice && (
                   <span
@@ -257,7 +253,6 @@ export default function WeeklyCommutePlanner({
         })}
       </div>
 
-      {/* ── Selected Day Detail Card ── */}
       {selectedDayData && (
         <div
           className={`p-4 rounded-2xl border transition-all ${
@@ -269,7 +264,6 @@ export default function WeeklyCommutePlanner({
           }`}
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            {/* Left: Day info */}
             <div className="flex items-center gap-3 min-w-0">
               <div
                 className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
@@ -351,7 +345,6 @@ export default function WeeklyCommutePlanner({
               </div>
             </div>
 
-            {/* Right: Toggle button */}
             <button
               onClick={() =>
                 handleToggleDay(
@@ -377,7 +370,6 @@ export default function WeeklyCommutePlanner({
         </div>
       )}
 
-      {/* ── Bottom Banner ── */}
       <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-100 text-[11.5px]">
         <div className="flex items-center gap-2 text-slate-500 font-medium">
           <Zap size={13} className="text-teal-600 shrink-0" />

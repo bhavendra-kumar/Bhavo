@@ -18,7 +18,7 @@ export default function AppPreview() {
       }}
     >
       <div style={{ maxWidth: 1160, margin: "0 auto" }}>
-        {/* Section header */}
+        {/* Header with Dual Platform Content */}
         <div
           style={{
             textAlign: "center",
@@ -38,7 +38,7 @@ export default function AppPreview() {
               marginBottom: 14,
             }}
           >
-            The Platform
+            The Dual Platform
           </p>
           <h2
             style={{
@@ -49,22 +49,23 @@ export default function AppPreview() {
               margin: 0,
             }}
           >
-            Experience the Difference
+            Two Dashboards. One Ecosystem.
           </h2>
           <p
             style={{
               fontSize: 18,
               color: "#64748b",
-              maxWidth: 480,
+              maxWidth: 580,
               margin: "16px auto 0",
               lineHeight: 1.6,
             }}
           >
-            A unified ecosystem designed for absolute clarity.
+            A unified mobility experience featuring autonomous commute booking for riders
+            and a dedicated real-time dispatch and earnings console for drivers.
           </p>
         </div>
 
-        {/* Mock UI cards */}
+        {/* Dual Dashboard Preview Grid */}
         <div
           style={{
             display: "grid",
@@ -75,7 +76,7 @@ export default function AppPreview() {
             transition: "all 0.9s 0.2s ease",
           }}
         >
-          {/* ── Left: Booking card ── */}
+          {/* Left Card: Rider Commute Dashboard */}
           <div
             style={{
               background: "#fff",
@@ -85,125 +86,159 @@ export default function AppPreview() {
                 "0 4px 6px rgba(0,0,0,0.04), 0 24px 64px rgba(0,0,0,0.08)",
               position: "relative",
               overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
             }}
           >
-            {/* Map placeholder */}
-            <div
-              style={{
-                background:
-                  "linear-gradient(135deg, #e6f7f6 0%, #d1fae5 50%, #e0f2fe 100%)",
-                borderRadius: 16,
-                height: 160,
-                marginBottom: 24,
-                position: "relative",
-                overflow: "hidden",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              {[...Array(6)].map((_, i) => (
-                <div
-                  key={i}
-                  style={{
-                    position: "absolute",
-                    left: 0,
-                    right: 0,
-                    top: `${i * 20}%`,
-                    height: 1,
-                    background: "rgba(13,148,136,0.15)",
-                  }}
-                />
-              ))}
-              {[...Array(8)].map((_, i) => (
-                <div
-                  key={i}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    bottom: 0,
-                    left: `${i * 14.28}%`,
-                    width: 1,
-                    background: "rgba(13,148,136,0.15)",
-                  }}
-                />
-              ))}
-              <svg
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  width: "100%",
-                  height: "100%",
-                }}
-                viewBox="0 0 400 160"
-                preserveAspectRatio="none"
-              >
-                <path
-                  d="M 60 130 C 100 80, 200 110, 280 50 C 320 25, 360 30, 380 20"
-                  stroke="#0d9488"
-                  strokeWidth="3"
-                  fill="none"
-                  strokeDasharray="8 4"
-                  strokeLinecap="round"
-                />
-                <circle cx="60" cy="130" r="6" fill="#0d9488" />
-                <circle cx="380" cy="20" r="6" fill="#6366f1" />
-              </svg>
-              <span style={{ fontSize: 28, position: "relative", zIndex: 1 }}>
-                🗺️
-              </span>
-            </div>
-
-            {/* Pickup / Destination rows */}
-            {[
-              {
-                label: "PICKUP",
-                value: "124 Tech Campus Blvd",
-                color: "#0d9488",
-                icon: "●",
-              },
-              {
-                label: "DESTINATION",
-                value: "Downtown Transit Hub",
-                color: "#6366f1",
-                icon: "◆",
-              },
-            ].map((item) => (
+            <div>
               <div
-                key={item.label}
                 style={{
                   display: "flex",
+                  justifyContent: "space-between",
                   alignItems: "center",
-                  gap: 12,
-                  padding: "12px 16px",
-                  background: "#f8fafc",
-                  borderRadius: 12,
-                  marginBottom: 10,
+                  marginBottom: 18,
                 }}
               >
-                <span style={{ color: item.color, fontSize: 10 }}>
-                  {item.icon}
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 18 }}>🚗</span>
+                  <span style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>
+                    Rider Commute Portal
+                  </span>
+                </div>
+                <span
+                  style={{
+                    background: "rgba(13,148,136,0.1)",
+                    color: "#0d9488",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: "4px 10px",
+                    borderRadius: 100,
+                  }}
+                >
+                  Auto-Scheduled
                 </span>
-                <div>
+              </div>
+
+              {/* Map visual */}
+              <div
+                style={{
+                  background:
+                    "linear-gradient(135deg, #e6f7f6 0%, #d1fae5 50%, #e0f2fe 100%)",
+
+                  borderRadius: 16,
+                  height: 160,
+                  marginBottom: 24,
+                  position: "relative",
+                  overflow: "hidden",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {[...Array(6)].map((_, i) => (
                   <div
+                    key={i}
                     style={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      color: "#94a3b8",
-                      letterSpacing: 1.5,
-                      marginBottom: 2,
+                      position: "absolute",
+                      left: 0,
+                      right: 0,
+                      top: `${i * 20}%`,
+                      height: 1,
+                      background: "rgba(13,148,136,0.15)",
                     }}
-                  >
-                    {item.label}
-                  </div>
+                  />
+                ))}
+                {[...Array(8)].map((_, i) => (
                   <div
-                    style={{ fontSize: 14, fontWeight: 600, color: "#0f172a" }}
-                  >
-                    {item.value}
+                    key={i}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      bottom: 0,
+                      left: `${i * 14.28}%`,
+                      width: 1,
+                      background: "rgba(13,148,136,0.15)",
+                    }}
+                  />
+                ))}
+                <svg
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    width: "100%",
+                    height: "100%",
+                  }}
+                  viewBox="0 0 400 160"
+                  preserveAspectRatio="none"
+                >
+                  <path
+                    d="M 60 130 C 100 80, 200 110, 280 50 C 320 25, 360 30, 380 20"
+                    stroke="#0d9488"
+                    strokeWidth="3"
+                    fill="none"
+                    strokeDasharray="8 4"
+                    strokeLinecap="round"
+                  />
+                  <circle cx="60" cy="130" r="6" fill="#0d9488" />
+                  <circle cx="380" cy="20" r="6" fill="#6366f1" />
+                </svg>
+                <span style={{ fontSize: 28, position: "relative", zIndex: 1 }}>
+                  🗺️
+                </span>
+              </div>
+
+              {/* Pickup & Destination */}
+              {[
+                {
+                  label: "COMMUTE PICKUP",
+                  value: "124 Tech Campus Blvd",
+                  color: "#0d9488",
+                  icon: "●",
+                },
+                {
+                  label: "DESTINATION",
+                  value: "Downtown Transit Hub",
+                  color: "#6366f1",
+                  icon: "◆",
+                },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    padding: "12px 16px",
+                    background: "#f8fafc",
+                    borderRadius: 12,
+                    marginBottom: 10,
+                  }}
+                >
+                  <span style={{ color: item.color, fontSize: 10 }}>
+                    {item.icon}
+                  </span>
+                  <div>
+                    <div
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        color: "#94a3b8",
+                        letterSpacing: 1.5,
+                        marginBottom: 2,
+                      }}
+                    >
+                      {item.label}
+                    </div>
+                    <div
+                      style={{ fontSize: 14, fontWeight: 600, color: "#0f172a" }}
+                    >
+                      {item.value}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
 
             <Link
               href="/signup"
@@ -234,13 +269,13 @@ export default function AppPreview() {
                 (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 16px rgba(13,148,136,0.3)";
               }}
             >
-              Confirm Commute · $14.50
+              Confirm Commute · $14.50 Flat Fare
             </Link>
           </div>
 
-          {/* ── Right: info cards ── */}
+          {/* Right Card: Driver / Captain Hub Dashboard */}
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-            {/* Upcoming ride */}
+            {/* Top Shift Card */}
             <div
               style={{
                 background: "#fff",
@@ -258,22 +293,25 @@ export default function AppPreview() {
                   marginBottom: 20,
                 }}
               >
-                <span
-                  style={{ fontSize: 16, fontWeight: 700, color: "#0f172a" }}
-                >
-                  Upcoming Ride
-                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 18 }}>⚡</span>
+                  <span
+                    style={{ fontSize: 16, fontWeight: 700, color: "#0f172a" }}
+                  >
+                    Captain Hub Console
+                  </span>
+                </div>
                 <span
                   style={{
-                    background: "rgba(13,148,136,0.1)",
-                    color: "#0d9488",
+                    background: "rgba(16, 185, 129, 0.12)",
+                    color: "#059669",
                     fontSize: 11,
                     fontWeight: 700,
                     padding: "4px 10px",
                     borderRadius: 100,
                   }}
                 >
-                  Auto-Booked
+                  🟢 Online · On Duty
                 </span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -282,7 +320,7 @@ export default function AppPreview() {
                     width: 48,
                     height: 48,
                     borderRadius: 16,
-                    background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                    background: "linear-gradient(135deg, #0284c7, #38bdf8)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -302,13 +340,13 @@ export default function AppPreview() {
                   <div
                     style={{ fontSize: 13, color: "#64748b", marginTop: 2 }}
                   >
-                    Arriving in 12 min · ⭐ 4.9
+                    Active Shift: 04h 22m · ⭐ 4.98 Rating
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* AI Smart Route */}
+            {/* Middle Real-time Radar Card */}
             <div
               style={{
                 background: "linear-gradient(135deg, #0d9488, #0f766e)",
@@ -340,19 +378,19 @@ export default function AppPreview() {
               >
                 <span style={{ fontSize: 16 }}>⚡</span>
                 <span style={{ fontSize: 14, fontWeight: 700, opacity: 0.9 }}>
-                  AI Smart Route
+                  Real-Time Dispatch Radar
                 </span>
               </div>
               <p
                 style={{ fontSize: 15, lineHeight: 1.6, opacity: 0.9, margin: 0 }}
               >
-                Heavy traffic detected on I-95. Rerouting via Express Lane
-                saves{" "}
-                <strong style={{ color: "#99f6e4" }}>14 minutes</strong> today.
+                High-demand morning corridor matched. Next commuter pickup is{" "}
+                <strong style={{ color: "#99f6e4" }}>1.1 km away</strong> with{" "}
+                <strong style={{ color: "#99f6e4" }}>+$6.00 surge bonus</strong>.
               </p>
             </div>
 
-            {/* Stats mini card */}
+            {/* Bottom Shift Stats */}
             <div
               style={{
                 background: "#fff",
@@ -364,9 +402,9 @@ export default function AppPreview() {
               }}
             >
               {[
-                { label: "Rides This Month", value: "23" },
-                { label: "Time Saved", value: "4.2h" },
-                { label: "CO₂ Offset", value: "18kg" },
+                { label: "Today's Earnings", value: "$184.50" },
+                { label: "Trips Completed", value: "8 Rides" },
+                { label: "Deadhead Miles", value: "0 miles" },
               ].map((stat, i) => (
                 <div
                   key={stat.label}
