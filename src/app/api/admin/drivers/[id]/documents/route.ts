@@ -56,7 +56,6 @@ export async function POST(
       );
     }
 
-    // Synchronize documents with canonical 8 compliance requirements
     const syncedDocs: IDriverDoc[] = syncDriverDocuments(driver.driverDocuments);
     const targetDocNameLower = docName.trim().toLowerCase();
 
@@ -79,7 +78,6 @@ export async function POST(
       docId: targetDoc.docId,
     };
 
-    // Apply decision to the target document
     if (action === "APPROVE") {
       targetDoc.status = "VERIFIED";
       targetDoc.rejectionReason = null;
@@ -90,7 +88,6 @@ export async function POST(
       targetDoc.updatedAt = new Date();
     }
 
-    // Authoritatively re-evaluate driver verification across ALL documents and vehicle checks
     const verification = checkDriverVerification({
       driverVehicle: driver.driverVehicle,
       driverDocuments: syncedDocs,
@@ -101,11 +98,8 @@ export async function POST(
       driver.driverVehicle.documentsVerified = verification.isVerified;
     }
 
-    // If driver is no longer verified, safely transition duty state
     if (!verification.isVerified) {
       if (driver.dutyState === "ON_TRIP" || driver.activeRideId) {
-        // Driver is currently on an active trip: mark offline for future dispatches
-        // while preserving ON_TRIP dutyState until trip lifecycle terminates
         driver.isOnline = false;
       } else if (driver.isOnline || driver.dutyState !== "OFFLINE") {
         driver.isOnline = false;
@@ -115,7 +109,6 @@ export async function POST(
 
     await driver.save();
 
-    // Record immutable audit log entry
     await recordAdminAudit({
       actor: admin._id,
       actorEmail: admin.email,

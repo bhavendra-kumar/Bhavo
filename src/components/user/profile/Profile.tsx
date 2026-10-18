@@ -39,26 +39,22 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Edit Personal Info State
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
 
-  // Emergency Contact Modal State
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [contactName, setContactName] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [contactRelation, setContactRelation] = useState("Family");
 
-  // Pet Profile Modal State
   const [isPetModalOpen, setIsPetModalOpen] = useState(false);
   const [petName, setPetName] = useState("");
   const [petBreed, setPetBreed] = useState("Golden Retriever");
   const [petWeight, setPetWeight] = useState("20kg");
 
   const [notification, setNotification] = useState("");
-
 
   useEffect(() => {
     let ignore = false;
@@ -230,10 +226,8 @@ export default function ProfilePage() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Avatar & Overview */}
         <div className="lg:col-span-1 flex flex-col gap-5">
           <div className="card overflow-hidden flex flex-col items-center text-center">
-            {/* Banner */}
             <div
               className="w-full h-24 relative"
               style={{ background: "linear-gradient(135deg, #0f766e 0%, #115e59 100%)" }}
@@ -271,7 +265,6 @@ export default function ProfilePage() {
                 <ShieldCheck size={13} /> Verified Bhavo Rider
               </div>
 
-              {/* Dynamic Stats from DB */}
               <div className="mt-5 grid grid-cols-2 gap-3 w-full">
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100">
                   <p className="font-black text-slate-900 text-xl">{profile.totalRides}</p>
@@ -290,9 +283,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Right Column: Details & Settings */}
         <div className="lg:col-span-2 flex flex-col gap-5">
-          {/* Personal Information */}
           <div className="card p-6">
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-[15px] font-bold text-slate-900 flex items-center gap-2">
@@ -338,7 +329,6 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Emergency Contacts from DB */}
           <div className="card p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[15px] font-bold text-slate-900 flex items-center gap-2">
@@ -386,7 +376,6 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Pet Profiles from DB */}
           <div className="card p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[15px] font-bold text-slate-900 flex items-center gap-2">
@@ -438,7 +427,6 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* ── Modal: Edit Personal Info ── */}
       {isEditProfileOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/60 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl overflow-hidden border border-slate-200">
@@ -496,7 +484,6 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* ── Modal: Add Emergency Contact ── */}
       {isContactModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/60 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl overflow-hidden border border-slate-200">
@@ -570,7 +557,6 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* ── Modal: Add Pet Profile ── */}
       {isPetModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/60 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl overflow-hidden border border-slate-200">

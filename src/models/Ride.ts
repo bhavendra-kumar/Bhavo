@@ -11,7 +11,7 @@ export interface IDriverDetails {
 
 export interface ILocation {
   address: string;
-  coordinates: [number, number]; // [lat, lng]
+  coordinates: [number, number];
   landmark?: string;
 }
 
@@ -132,7 +132,7 @@ const RideSchema = new Schema<IRide>(
     },
     pickup: {
       address: { type: String, required: true },
-      coordinates: { type: [Number], default: [28.6139, 77.2090] }, // Default center
+      coordinates: { type: [Number], default: [28.6139, 77.2090] },
       landmark: { type: String, default: "" },
     },
     dropoff: {
@@ -290,7 +290,6 @@ const RideSchema = new Schema<IRide>(
   }
 );
 
-// Indexes supporting Phase 1B, Phase 1D, Phase 1E tracking queries, Phase 1F idempotency, and Phase 1H admin operations
 RideSchema.index({ status: 1, driver: 1, scheduledFor: 1 });
 RideSchema.index({ rider: 1, status: 1 });
 RideSchema.index({ _id: 1, rider: 1, status: 1 });

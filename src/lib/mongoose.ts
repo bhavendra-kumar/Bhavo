@@ -1,16 +1,17 @@
 import mongoose from "mongoose";
 
-/**
- * Global is used here to maintain a cached connection across hot reloads
- * in development and reuse connections across serverless invocations.
- */
-// @ts-expect-error - Global caching for Next.js
-let cached = global.mongoose;
-
-if (!cached) {
-  // @ts-expect-error - Global caching for Next.js
-  cached = global.mongoose = { conn: null, promise: null };
+interface MongooseCache {
+  conn: typeof mongoose | null;
+  promise: Promise<typeof mongoose> | null;
 }
+
+const globalWithMongoose = globalThis as unknown as { mongoose: MongooseCache };
+
+if (!globalWithMongoose.mongoose) {
+  globalWithMongoose.mongoose = { conn: null, promise: null };
+}
+
+const cached: MongooseCache = globalWithMongoose.mongoose;
 
 function getDatabaseUri(): string {
   const uri = process.env.DATABASE_URL;
@@ -22,9 +23,6 @@ function getDatabaseUri(): string {
   return uri.trim();
 }
 
-/**
- * Connects to MongoDB with production-grade pooling and connection safety parameters.
- */
 async function dbConnect() {
   if (cached.conn && mongoose.connection.readyState === 1) {
     return cached.conn;
@@ -65,17 +63,10 @@ async function dbConnect() {
   }
 }
 
-/**
- * Checks whether the current process has an active MongoDB connection.
- */
 export function isDatabaseConnected(): boolean {
   return mongoose.connection.readyState === 1;
 }
 
-/**
- * Performs a lightweight health check ping against the database.
- * Never leaks database credentials, internal hostnames, or connection strings.
- */
 export async function checkDatabaseHealth(): Promise<{
   ok: boolean;
   readyState: number;

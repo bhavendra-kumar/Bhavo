@@ -41,7 +41,6 @@ export default function RecentCommutesSnapshot({
 
   return (
     <div className="card p-5 sm:p-6 flex flex-col gap-4 border border-slate-200/80 bg-white shadow-xs rounded-3xl">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center">
@@ -62,7 +61,6 @@ export default function RecentCommutesSnapshot({
         </Link>
       </div>
 
-      {/* Rides List */}
       {recentRides.length === 0 ? (
         <div className="py-8 px-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 flex flex-col items-center justify-center text-center">
           <Route size={24} className="text-slate-300 mb-2" />
@@ -96,12 +94,9 @@ export default function RecentCommutesSnapshot({
               key={ride._id}
               className="relative p-4 rounded-2xl border border-slate-100 hover:border-teal-200 bg-white hover:shadow-sm transition-all flex flex-col md:flex-row md:items-center justify-between gap-3 group overflow-hidden"
             >
-              {/* Left accent line */}
               <div className="absolute left-0 top-3 bottom-3 w-0.75 rounded-full bg-linear-to-b from-teal-400 to-teal-200 opacity-0 group-hover:opacity-100 transition-opacity" />
 
-              {/* Left: Route info */}
               <div className="flex items-center gap-3.5 min-w-0 flex-1 pl-1">
-                {/* Route dots */}
                 <div className="flex flex-col items-center gap-0.5 shrink-0">
                   <div className="w-2.5 h-2.5 rounded-full border-2 border-teal-500 bg-white" />
                   <div className="w-px h-5 bg-linear-to-b from-teal-400 to-teal-200" />
@@ -138,7 +133,6 @@ export default function RecentCommutesSnapshot({
                 </div>
               </div>
 
-              {/* Right: Fare & Actions */}
               <div className="flex items-center justify-between md:justify-end gap-3 shrink-0 pl-1">
                 <div className="text-left md:text-right">
                   <p className="text-[14px] font-black text-slate-900">

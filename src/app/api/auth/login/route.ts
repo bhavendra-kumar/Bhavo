@@ -8,7 +8,7 @@ import { loginRateLimiter, getLoginRateLimitKey } from "@/lib/rateLimit";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { email, password } = body;
+    const { email, password, role: requestedRole } = body;
 
     if (!email || !password) {
       return NextResponse.json(
@@ -19,7 +19,6 @@ export async function POST(req: Request) {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // 1. IP + Account Rate Limiting Check
     const ip =
       req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       req.headers.get("x-real-ip") ||
@@ -45,12 +44,10 @@ export async function POST(req: Request) {
     }
 
     await dbConnect();
-    // Search with case-insensitive matching to find user
     const user = await User.findOne({
       email: { $regex: new RegExp(`^${normalizedEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") },
     });
 
-    // Generic error response to avoid account enumeration
     if (!user || !user.password) {
       await loginRateLimiter.recordFailure(rateKey);
       return NextResponse.json(
@@ -68,7 +65,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Account status validation
     const userAny = user as Record<string, unknown>;
     const userStatus = (userAny.status as string) || "ACTIVE";
     if (
@@ -83,15 +79,39 @@ export async function POST(req: Request) {
       );
     }
 
-    // On successful login, clear failure counter for this IP + account
     await loginRateLimiter.reset(rateKey);
 
-    // Finding 4 fix: Server strictly preserves stored role from trusted DB record.
-    // Client input CANNOT mutate stored role.
-    const trustedRole = user.role || "RIDER";
+    const rawRole = user.role || "RIDER";
+    const trustedRole = rawRole === "USER" ? "RIDER" : rawRole;
+
+    if (requestedRole && typeof requestedRole === "string") {
+      const normalizedReqRole = requestedRole.trim().toUpperCase();
+      if (normalizedReqRole === "DRIVER" && trustedRole !== "DRIVER" && trustedRole !== "ADMIN") {
+        return NextResponse.json(
+          {
+            status: "error",
+            code: "ROLE_MISMATCH",
+            message: "This account is registered as a Rider. Please switch to the 'Login as Rider' tab to sign in.",
+            accountRole: "RIDER",
+          },
+          { status: 403 }
+        );
+      }
+      if ((normalizedReqRole === "RIDER" || normalizedReqRole === "USER") && trustedRole === "DRIVER") {
+        return NextResponse.json(
+          {
+            status: "error",
+            code: "ROLE_MISMATCH",
+            message: "This account is registered as a Bhavo Captain (Driver). Please switch to the 'Login as Driver' tab to sign in.",
+            accountRole: "DRIVER",
+          },
+          { status: 403 }
+        );
+      }
+    }
+
     const userTokenVersion = (userAny.tokenVersion as number) ?? 0;
 
-    // Generate JWT token with embedded tokenVersion for immediate server-side revocation
     const jwt = await signAuthToken({
       id: user._id.toString(),
       email: user.email,
@@ -113,7 +133,6 @@ export async function POST(req: Request) {
       { status: 200 }
     );
 
-    // Set secure HTTP-only cookie using centralized cookie configuration
     response.cookies.set(getAuthCookieOptions(jwt));
 
     return response;

@@ -25,7 +25,7 @@ export interface RazorpayOrderInput {
 export interface RazorpayOrderOutput {
   id: string;
   entity: string;
-  amount: number; // in paise
+  amount: number;
   amount_paid: number;
   amount_due: number;
   currency: string;
@@ -39,7 +39,7 @@ export interface RazorpayOrderOutput {
 export interface RazorpayPaymentOutput {
   id: string;
   entity: string;
-  amount: number; // in paise
+  amount: number;
   currency: string;
   status: "created" | "authorized" | "captured" | "refunded" | "failed";
   order_id: string;
@@ -77,7 +77,6 @@ export interface VerifyWebhookSignatureInput {
   webhookSecretOverride?: string;
 }
 
-// In-memory mock adapter hook for isolated automated testing
 type MockTransport = {
   createOrder?: (input: RazorpayOrderInput) => Promise<RazorpayOrderOutput>;
   fetchPayment?: (paymentId: string) => Promise<RazorpayPaymentOutput>;
@@ -91,10 +90,6 @@ export function __setRazorpayMockTransport(mock: MockTransport | null) {
 
 const RAZORPAY_API_BASE = "https://api.razorpay.com/v1";
 
-/**
- * Creates an authoritative Razorpay order on the provider.
- * Strictly requires amount in integer paise and currency INR.
- */
 export async function createRazorpayOrder(
   input: RazorpayOrderInput
 ): Promise<RazorpayOrderOutput> {
@@ -161,9 +156,6 @@ export async function createRazorpayOrder(
   }
 }
 
-/**
- * Fetches authoritative payment details directly from Razorpay.
- */
 export async function fetchRazorpayPayment(
   paymentId: string
 ): Promise<RazorpayPaymentOutput> {
@@ -214,10 +206,6 @@ export async function fetchRazorpayPayment(
   }
 }
 
-/**
- * Verifies Razorpay Checkout signature using HMAC SHA-256 and timing-safe comparison.
- * Algorithm: HMAC_SHA256(order_id + "|" + razorpay_payment_id, secret) === razorpay_signature
- */
 export function verifyRazorpayCheckoutSignature({
   orderId,
   paymentId,
@@ -248,10 +236,6 @@ export function verifyRazorpayCheckoutSignature({
   return crypto.timingSafeEqual(generatedBuf, providedBuf);
 }
 
-/**
- * Verifies Razorpay Webhook signature using HMAC SHA-256 and timing-safe comparison.
- * Algorithm: HMAC_SHA256(raw_body, webhook_secret) === x-razorpay-signature
- */
 export function verifyRazorpayWebhookSignature({
   rawBody,
   signature,

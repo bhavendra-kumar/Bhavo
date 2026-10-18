@@ -17,26 +17,18 @@ describe("Phase 1E: Real-Time Location, Live Tracking & SSE Reliability Tests", 
   const otherDriverId = new mongoose.Types.ObjectId();
   const rideId = new mongoose.Types.ObjectId();
 
-  // ─────────────────────────────────────────────────────────────
-  // A. Location Validation & Server-Authoritative Freshness Tests
-  // ─────────────────────────────────────────────────────────────
   describe("A. Location Validation & Freshness Evaluation", () => {
     it("Validates coordinates correctly within mathematical boundaries", () => {
-      // Normal Delhi coordinates
       assert.equal(validateDriverCoordinates([28.6139, 77.209]), true);
-      // Valid [0, 0] coordinates
       assert.equal(validateDriverCoordinates([0, 0]), true);
-      // Boundary extremes
       assert.equal(validateDriverCoordinates([90, 180]), true);
       assert.equal(validateDriverCoordinates([-90, -180]), true);
 
-      // Out of bounds
       assert.equal(validateDriverCoordinates([90.0001, 77.209]), false);
       assert.equal(validateDriverCoordinates([-90.0001, 77.209]), false);
       assert.equal(validateDriverCoordinates([28.6139, 180.0001]), false);
       assert.equal(validateDriverCoordinates([28.6139, -180.0001]), false);
 
-      // Non-finite
       assert.equal(validateDriverCoordinates([NaN, 77.209]), false);
       assert.equal(validateDriverCoordinates([28.6139, Infinity]), false);
       assert.equal(validateDriverCoordinates([null as unknown as number, 77.209]), false);
@@ -45,7 +37,7 @@ describe("Phase 1E: Real-Time Location, Live Tracking & SSE Reliability Tests", 
 
     it("Evaluates fresh location when timestamp is within 120s TTL", () => {
       const now = new Date("2026-10-11T12:00:00.000Z");
-      const updatedAt = new Date("2026-10-11T11:59:30.000Z"); // 30s ago
+      const updatedAt = new Date("2026-10-11T11:59:30.000Z");
       const coords: [number, number] = [28.6139, 77.209];
 
       const res = evaluateLocationFreshness(coords, updatedAt, "ACCEPTED", now);
@@ -56,7 +48,7 @@ describe("Phase 1E: Real-Time Location, Live Tracking & SSE Reliability Tests", 
 
     it("Evaluates stale location when timestamp is older than 120s TTL", () => {
       const now = new Date("2026-10-11T12:00:00.000Z");
-      const updatedAt = new Date("2026-10-11T11:57:45.000Z"); // 135s ago
+      const updatedAt = new Date("2026-10-11T11:57:45.000Z");
       const coords: [number, number] = [28.6139, 77.209];
 
       const res = evaluateLocationFreshness(coords, updatedAt, "ACCEPTED", now);
@@ -92,9 +84,6 @@ describe("Phase 1E: Real-Time Location, Live Tracking & SSE Reliability Tests", 
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // B. Role-Appropriate Projections & OTP Protection
-  // ─────────────────────────────────────────────────────────────
   describe("B. Role-Appropriate Projections & OTP Security", () => {
     const mockRide = {
       _id: rideId,
@@ -113,7 +102,7 @@ describe("Phase 1E: Real-Time Location, Live Tracking & SSE Reliability Tests", 
       status: "ACCEPTED" as const,
       otp: "8492",
       driverCoordinates: [28.58, 77.33] as [number, number],
-      driverCoordinatesUpdatedAt: new Date(Date.now() - 15000), // 15s ago
+      driverCoordinatesUpdatedAt: new Date(Date.now() - 15000),
       trackingVersion: 4,
       driverDetails: {
         name: "Rajesh Kumar",
@@ -169,9 +158,6 @@ describe("Phase 1E: Real-Time Location, Live Tracking & SSE Reliability Tests", 
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // C. SSE Wire Format & Monotonic Versioning Tests
-  // ─────────────────────────────────────────────────────────────
   describe("C. SSE Protocol Formatting & Monotonic Sequencing", () => {
     it("Formats SSE messages compliant with W3C Server-Sent Events spec", () => {
       const payload = {
@@ -202,7 +188,6 @@ describe("Phase 1E: Real-Time Location, Live Tracking & SSE Reliability Tests", 
       const handleUpdate = (incoming: { _id: string; status: string; trackingVersion: number; driverCoordinates: [number, number] }) => {
         if (incoming._id === currentState._id) {
           if (incoming.trackingVersion < currentState.trackingVersion) {
-            // Discard stale update
             return false;
           }
         }
@@ -210,7 +195,6 @@ describe("Phase 1E: Real-Time Location, Live Tracking & SSE Reliability Tests", 
         return true;
       };
 
-      // 1. Stale older update (e.g. from delayed network packet with version 4)
       const staleUpdate = {
         _id: rideId.toString(),
         status: "ACCEPTED",
@@ -222,7 +206,6 @@ describe("Phase 1E: Real-Time Location, Live Tracking & SSE Reliability Tests", 
       assert.equal(currentState.trackingVersion, 5);
       assert.deepEqual(currentState.driverCoordinates, [28.58, 77.33]);
 
-      // 2. Newer valid update (version 6)
       const newerUpdate = {
         _id: rideId.toString(),
         status: "ARRIVED",
@@ -236,9 +219,6 @@ describe("Phase 1E: Real-Time Location, Live Tracking & SSE Reliability Tests", 
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // D. Authorization & IDOR Protection Tests
-  // ─────────────────────────────────────────────────────────────
   describe("D. Authorization & IDOR Subscription Safety", () => {
     it("Rider can subscribe only to rides they own", () => {
       const isRiderAuthorized = (requestingRiderId: mongoose.Types.ObjectId, rideRiderId: mongoose.Types.ObjectId) => {
@@ -260,12 +240,8 @@ describe("Phase 1E: Real-Time Location, Live Tracking & SSE Reliability Tests", 
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // E. Driver Duty State & Targeted Dispatch Invariants
-  // ─────────────────────────────────────────────────────────────
   describe("E. Driver Availability & Dispatch Integrity Invariants", () => {
     it("Sending location telemetry does NOT alter driver online status or duty state independently", () => {
-      // Duty state is governed strictly by server-side authoritative actions, not telemetry
       const initialDriverState = {
         driverId: driverId.toString(),
         isOnline: false,
@@ -274,13 +250,11 @@ describe("Phase 1E: Real-Time Location, Live Tracking & SSE Reliability Tests", 
         driverCoordinatesUpdatedAt: new Date(),
       };
 
-      // Telemetry update only updates coordinates and timestamp
       const updateLocation = (coords: [number, number]) => {
         return {
           ...initialDriverState,
           coordinates: coords,
           driverCoordinatesUpdatedAt: new Date(),
-          // isOnline and dutyState MUST NOT change
           isOnline: initialDriverState.isOnline,
           dutyState: initialDriverState.dutyState,
         };

@@ -138,7 +138,6 @@ export async function PATCH(
 
     await ticket.save();
 
-    // Record administrative audit log
     await recordAdminAudit({
       actor: admin._id,
       actorEmail: admin.email,

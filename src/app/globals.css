@@ -2,24 +2,21 @@
 
 @layer base {
   :root {
-    /* ── Teal + White Design System ── */
-    --bg-page: #f0fdfa;           /* teal-50 */                              
+    --bg-page: #f0fdfa;
     --bg-card: #ffffff;
-    --border: #ccfbf1;            /* teal-100 */
-    --border-mid: #99f6e4;        /* teal-200 */
-    --text-primary: #0f172a;      /* slate-900 */
-    --text-secondary: #475569;    /* slate-600 */
-    --text-muted: #94a3b8;        /* slate-400 */
-    --accent: #14b8a6;            /* teal-500 */
-    --accent-dark: #0d9488;       /* teal-600 */
-    --accent-darker: #0f766e;     /* teal-700 */
-    --accent-light: #f0fdfa;      /* teal-50 */
-    --accent-soft: #ccfbf1;       /* teal-100 */
-    --sidebar-bg: #134e4a;        /* teal-900 */
-    --sidebar-active: #0f766e;    /* teal-700 */
-    --sidebar-border: #115e59;    /* teal-800 */
-
-    /* Shadcn compat */
+    --border: #ccfbf1;
+    --border-mid: #99f6e4;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --accent: #14b8a6;
+    --accent-dark: #0d9488;
+    --accent-darker: #0f766e;
+    --accent-light: #f0fdfa;
+    --accent-soft: #ccfbf1;
+    --sidebar-bg: #134e4a;
+    --sidebar-active: #0f766e;
+    --sidebar-border: #115e59;
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
@@ -42,10 +39,10 @@
     --radius: 0.75rem;
   }
 
-  * { 
-    box-sizing: border-box; 
-    margin: 0; 
-    padding: 0; 
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
     -webkit-tap-highlight-color: transparent;
   }
 
@@ -57,8 +54,6 @@
     -moz-osx-font-smoothing: grayscale;
     touch-action: manipulation;
   }
-
-  /* Prevent Next.js dev toast/indicator from obstructing mobile bottom bar */
   nextjs-portal, [data-nextjs-toast], #nextjs-dev-overlay {
     display: none !important;
     pointer-events: none !important;
@@ -68,8 +63,6 @@
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: #99f6e4; border-radius: 99px; }
   ::-webkit-scrollbar-thumb:hover { background: #5eead4; }
-
-  /* Prevent Leaflet maps and controls from bleeding through modals and overlays */
   .leaflet-container {
     z-index: 0 !important;
   }
@@ -78,8 +71,6 @@
 @layer utilities {
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-  /* Card — white with teal border */
   .card {
     background: #ffffff;
     border: 1px solid #ccfbf1;
@@ -93,8 +84,6 @@
     box-shadow: 0 4px 20px rgba(20, 184, 166, 0.1);
     border-color: #99f6e4;
   }
-
-  /* Pill — teal */
   .pill-teal {
     display: inline-flex; align-items: center; gap: 4px;
     font-size: 11px; font-weight: 600;
@@ -146,5 +135,10 @@
   .animate-shine {
     animation: shine 3s linear infinite;
     background-size: 200% auto;
+  }
+
+  .bhavo-title-img {
+    display: inline-block;
+    vertical-align: middle;
   }
 }

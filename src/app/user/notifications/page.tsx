@@ -85,7 +85,6 @@ export default function NotificationsPage() {
 
   return (
     <div className="flex flex-col gap-6 max-w-4xl mx-auto w-full">
-      {/* Header bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
         <div className="flex items-center gap-3.5">
           <div className="w-12 h-12 rounded-2xl bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600">
@@ -128,7 +127,6 @@ export default function NotificationsPage() {
         </div>
       </div>
 
-      {/* Filter Tabs */}
       <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
         {(
           [
@@ -153,7 +151,6 @@ export default function NotificationsPage() {
         ))}
       </div>
 
-      {/* Notifications List */}
       <div className="flex flex-col gap-3">
         {filtered.length === 0 ? (
           <div className="p-12 text-center flex flex-col items-center justify-center gap-3 bg-white rounded-2xl border border-dashed border-slate-200">

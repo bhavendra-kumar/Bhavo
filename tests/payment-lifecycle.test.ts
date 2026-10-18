@@ -35,7 +35,6 @@ describe("Phase 1C: Ride and Payment Lifecycle Decoupling Tests", () => {
   const riderObjId = new mongoose.Types.ObjectId();
   const strangerDriverId = new mongoose.Types.ObjectId();
 
-  // 1. Mock DB harness for in-memory integration validation
   class MockRidePaymentStore {
     public rides: Map<string, IMockRide> = new Map();
     public users: Map<string, IMockUser> = new Map();
@@ -84,7 +83,6 @@ describe("Phase 1C: Ride and Payment Lifecycle Decoupling Tests", () => {
     }
   }
 
-  // 2. CASH ride completion transitions to PENDING_COLLECTION, NOT PAID
   it("Ride completion for CASH ride sets status=COMPLETED and paymentStatus=PENDING_COLLECTION (never PAID)", () => {
     const store = new MockRidePaymentStore();
     const ride = store.createRide("ride_cash_01", {
@@ -93,7 +91,6 @@ describe("Phase 1C: Ride and Payment Lifecycle Decoupling Tests", () => {
       paymentStatus: "PENDING",
     });
 
-    // Simulating completion transition logic
     assert.equal(ride.status, "IN_PROGRESS");
     const targetPaymentStatus =
       ride.paymentMethod === "CASH" ? "PENDING_COLLECTION" : "PENDING_PAYMENT";
@@ -106,7 +103,6 @@ describe("Phase 1C: Ride and Payment Lifecycle Decoupling Tests", () => {
     assert.notEqual(ride.paymentStatus, "PAID", "Cash ride must never automatically become PAID on completion");
   });
 
-  // 3. ONLINE / UPI ride completion transitions to PENDING_PAYMENT, NOT PAID
   it("Ride completion for ONLINE ride sets status=COMPLETED and paymentStatus=PENDING_PAYMENT (never PAID)", () => {
     const store = new MockRidePaymentStore();
     const ride = store.createRide("ride_online_01", {
@@ -126,7 +122,6 @@ describe("Phase 1C: Ride and Payment Lifecycle Decoupling Tests", () => {
     assert.notEqual(ride.paymentStatus, "PAID", "Online ride must never automatically become PAID without gateway verification");
   });
 
-  // 4. Physical cash collected by driver does NOT credit driver platform wallet
   it("Driver cash confirmation does not credit driver platform wallet balance", () => {
     const store = new MockRidePaymentStore();
     const driver = store.users.get(driverObjId.toString())!;
@@ -140,12 +135,10 @@ describe("Phase 1C: Ride and Payment Lifecycle Decoupling Tests", () => {
       fareInPaise: 35000,
     });
 
-    // Confirmation transitions paymentStatus to COLLECTED and records cash collection
     ride.paymentStatus = "COLLECTED";
     ride.cashCollectedAt = new Date();
     ride.cashCollectedBy = driverObjId;
 
-    // Invariant: driver wallet balance is NOT modified because driver directly took physical cash
     assert.equal(
       driver.walletBalance,
       initialBalance,
@@ -154,7 +147,6 @@ describe("Phase 1C: Ride and Payment Lifecycle Decoupling Tests", () => {
     assert.equal(ride.paymentStatus, "COLLECTED");
   });
 
-  // 5. Unassigned driver cannot confirm cash collection
   it("Reject cash confirmation from an unassigned driver with 403 FORBIDDEN", () => {
     const store = new MockRidePaymentStore();
     const ride = store.createRide("ride_cash_unassigned", {
@@ -185,11 +177,10 @@ describe("Phase 1C: Ride and Payment Lifecycle Decoupling Tests", () => {
     );
   });
 
-  // 6. Cannot confirm cash collection for ride that is not COMPLETED
   it("Reject cash confirmation for rides that are not yet COMPLETED with 409", () => {
     const store = new MockRidePaymentStore();
     const ride = store.createRide("ride_not_completed", {
-      status: "IN_PROGRESS", // still in progress
+      status: "IN_PROGRESS",
       paymentMethod: "CASH",
       paymentStatus: "PENDING",
     });
@@ -215,7 +206,6 @@ describe("Phase 1C: Ride and Payment Lifecycle Decoupling Tests", () => {
     );
   });
 
-  // 7. Cannot confirm cash collection for non-CASH ride
   it("Reject cash confirmation for non-cash payment methods with 400", () => {
     const store = new MockRidePaymentStore();
     const ride = store.createRide("ride_online_method", {
@@ -245,7 +235,6 @@ describe("Phase 1C: Ride and Payment Lifecycle Decoupling Tests", () => {
     );
   });
 
-  // 8. Cash confirmation is idempotent: subsequent confirmation returns alreadyCollected: true
   it("Cash collection confirmation is idempotent and safe under repeated requests", () => {
     const store = new MockRidePaymentStore();
     const ride = store.createRide("ride_idempotent_cash", {
@@ -255,7 +244,6 @@ describe("Phase 1C: Ride and Payment Lifecycle Decoupling Tests", () => {
       fare: 280,
     });
 
-    // First confirmation
     ride.paymentStatus = "COLLECTED";
     ride.cashCollectedAt = new Date();
     ride.cashCollectedBy = driverObjId;
@@ -269,7 +257,6 @@ describe("Phase 1C: Ride and Payment Lifecycle Decoupling Tests", () => {
     assert.equal(firstConfirmationResult.alreadyCollected, false);
     assert.equal(firstConfirmationResult.paymentStatus, "COLLECTED");
 
-    // Second (duplicate) confirmation
     const isAlreadyCollected = ride.paymentStatus === "COLLECTED";
     const secondConfirmationResult = {
       alreadyCollected: isAlreadyCollected,

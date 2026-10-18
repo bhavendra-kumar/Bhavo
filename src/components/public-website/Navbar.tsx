@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useScrolled } from "./landing-page/hooks";
 import { NAV_LINKS } from "./landing-page/constants";
@@ -11,10 +12,16 @@ export default function Navbar() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const getHref = (link: string) =>
-    `/${link.toLowerCase().replace(/ /g, "-")}`;
+  const getHref = (link: string | { label: string; href: string }) =>
+    typeof link === "string"
+      ? `/${link.toLowerCase().replace(/ /g, "-")}`
+      : link.href;
 
-  const isActive = (link: string) => pathname === getHref(link);
+  const getLabel = (link: string | { label: string; href: string }) =>
+    typeof link === "string" ? link : link.label;
+
+  const isActive = (link: string | { label: string; href: string }) =>
+    pathname === getHref(link);
 
   return (
     <>
@@ -26,7 +33,7 @@ export default function Navbar() {
           right: 0,
           zIndex: 50,
           transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-          background: scrolled ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0)",
+          background: scrolled ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0)",
           backdropFilter: scrolled ? "blur(20px) saturate(180%)" : "none",
           borderBottom: scrolled ? "1px solid rgba(0,0,0,0.06)" : "1px solid transparent",
           boxShadow: scrolled ? "0 4px 32px rgba(0,0,0,0.06)" : "none",
@@ -34,45 +41,40 @@ export default function Navbar() {
       >
         <div
           style={{
-            maxWidth: 1200,
+            maxWidth: 1360,
             margin: "0 auto",
-            padding: "0 28px",
-            height: 72,
+            padding: "0 24px",
+            height: 76,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
+            gap: 16,
             position: "relative",
           }}
         >
-          {/* Logo */}
-          <Link href="/" style={{ textDecoration: "none", color: "inherit" }}>
+          {/* Logo Brand */}
+          <Link href="/" style={{ textDecoration: "none", color: "inherit", flexShrink: 0 }}>
             <div
-              style={{ display: "flex", alignItems: "center", gap: 10, transition: "opacity 0.2s" }}
+              style={{ display: "flex", alignItems: "center", transition: "opacity 0.2s" }}
               onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.opacity = "0.8")}
               onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.opacity = "1")}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt="Bhavo logo" style={{ height: 36, width: "auto", display: "block" }} />
-              <span
-                style={{
-                  fontSize: 20,
-                  fontWeight: 900,
-                  letterSpacing: "-0.5px",
-                  color: "#0f172a",
-                }}
-              >
-                BHAVO
-              </span>
+              <Image
+                src="/bhavo-title.png"
+                alt="Bhavo"
+                width={150}
+                height={50}
+                className="bhavo-title-img"
+                style={{ height: 48, width: "auto", display: "block" }}
+                priority
+              />
             </div>
           </Link>
 
-          {/* Desktop nav links — absolutely centred */}
+          {/* Center Links */}
           <div
             className="nav-links"
             style={{
-              position: "absolute",
-              left: "50%",
-              transform: "translateX(-50%)",
               display: "flex",
               gap: 4,
               alignItems: "center",
@@ -86,10 +88,12 @@ export default function Navbar() {
           >
             {NAV_LINKS.map((link) => {
               const active = isActive(link);
+              const label = getLabel(link);
+              const href = getHref(link);
               return (
                 <Link
-                  key={link}
-                  href={getHref(link)}
+                  key={label}
+                  href={href}
                   style={{
                     fontSize: 14,
                     fontWeight: active ? 600 : 500,
@@ -113,71 +117,82 @@ export default function Navbar() {
                     }
                   }}
                 >
-                  {link}
+                  {label}
                 </Link>
               );
             })}
           </div>
 
-          {/* CTA buttons */}
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            <Link
-              href="/login"
-              style={{
-                background: "transparent",
-                border: "none",
-                fontSize: 14,
-                fontWeight: 500,
-                color: "#374151",
-                cursor: "pointer",
-                padding: "9px 18px",
-                borderRadius: 10,
-                textDecoration: "none",
-                display: "inline-block",
-                transition: "all 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.background = "#f3f4f6";
-                (e.currentTarget as HTMLElement).style.color = "#0f172a";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.background = "transparent";
-                (e.currentTarget as HTMLElement).style.color = "#374151";
-              }}
-            >
-              Log In
-            </Link>
+          {/* Action Buttons */}
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
+            <div className="desktop-actions" style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              {/* Login as User */}
+              <Link
+                href="/login?role=rider"
+                title="Login as User"
+                className="btn-shimmer"
+                style={{
+                  background: "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)",
+                  color: "#fff",
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  padding: "9px 18px",
+                  borderRadius: 10,
+                  textDecoration: "none",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+                  boxShadow: "0 4px 14px rgba(13,148,136,0.32), inset 0 1px 0 rgba(255,255,255,0.18)",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)";
+                  (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 24px rgba(13,148,136,0.45), inset 0 1px 0 rgba(255,255,255,0.25)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
+                  (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 14px rgba(13,148,136,0.32), inset 0 1px 0 rgba(255,255,255,0.18)";
+                }}
+              >
+                Login as User
+              </Link>
 
-            <Link
-              href="/signup"
-              className="btn-shimmer"
-              style={{
-                background: "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)",
-                color: "#fff",
-                border: "none",
-                borderRadius: 11,
-                padding: "10px 22px",
-                fontSize: 14,
-                fontWeight: 700,
-                cursor: "pointer",
-                textDecoration: "none",
-                display: "inline-block",
-                transition: "all 0.25s",
-                boxShadow: "0 4px 16px rgba(13,148,136,0.4), inset 0 1px 0 rgba(255,255,255,0.15)",
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)";
-                (e.currentTarget as HTMLElement).style.boxShadow = "0 10px 32px rgba(13,148,136,0.5), inset 0 1px 0 rgba(255,255,255,0.2)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
-                (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 16px rgba(13,148,136,0.4), inset 0 1px 0 rgba(255,255,255,0.15)";
-              }}
-            >
-              Start a Ride →
-            </Link>
+              {/* Login as Driver */}
+              <Link
+                href="/login?role=driver"
+                title="Login as Driver"
+                style={{
+                  background: "rgba(13,148,136,0.05)",
+                  border: "1.5px solid rgba(13,148,136,0.35)",
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  color: "#0d9488",
+                  cursor: "pointer",
+                  padding: "8.5px 16px",
+                  borderRadius: 10,
+                  textDecoration: "none",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = "rgba(13,148,136,0.12)";
+                  (e.currentTarget as HTMLElement).style.borderColor = "#0d9488";
+                  (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = "rgba(13,148,136,0.05)";
+                  (e.currentTarget as HTMLElement).style.borderColor = "rgba(13,148,136,0.35)";
+                  (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
+                }}
+              >
+                Login as Driver
+              </Link>
+            </div>
 
-            {/* Hamburger */}
+            {/* Mobile Hamburger */}
             <button
               onClick={() => setMenuOpen((o) => !o)}
               aria-label="Toggle menu"
@@ -216,77 +231,47 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Mobile drawer */}
+        {/* Mobile Drawer */}
         <div
           style={{
-            maxHeight: menuOpen ? 460 : 0,
+            maxHeight: menuOpen ? 580 : 0,
             overflow: "hidden",
             transition: "max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
-            background: "rgba(255,255,255,0.97)",
+            background: "rgba(255,255,255,0.98)",
             backdropFilter: "blur(20px)",
             borderTop: menuOpen ? "1px solid rgba(0,0,0,0.06)" : "none",
           }}
         >
           <div style={{ padding: "16px 28px 24px", display: "flex", flexDirection: "column", gap: 6 }}>
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link}
-                href={getHref(link)}
-                onClick={() => setMenuOpen(false)}
-                style={{
-                  fontSize: 16,
-                  fontWeight: 500,
-                  color: isActive(link) ? "#0d9488" : "#374151",
-                  textDecoration: "none",
-                  padding: "12px 16px",
-                  borderRadius: 10,
-                  background: isActive(link) ? "rgba(13,148,136,0.08)" : "transparent",
-                  transition: "all 0.2s",
-                }}
-              >
-                {link}
-              </Link>
-            ))}
+            {NAV_LINKS.map((link) => {
+              const label = getLabel(link);
+              const href = getHref(link);
+              return (
+                <Link
+                  key={label}
+                  href={href}
+                  onClick={() => setMenuOpen(false)}
+                  style={{
+                    fontSize: 16,
+                    fontWeight: 500,
+                    color: isActive(link) ? "#0d9488" : "#374151",
+                    textDecoration: "none",
+                    padding: "12px 16px",
+                    borderRadius: 10,
+                    background: isActive(link) ? "rgba(13,148,136,0.08)" : "transparent",
+                    transition: "all 0.2s",
+                  }}
+                >
+                  {label}
+                </Link>
+              );
+            })}
 
             <div style={{ height: 1, background: "rgba(0,0,0,0.06)", margin: "8px 0" }} />
 
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <Link
-                href="/login"
-                onClick={() => setMenuOpen(false)}
-                style={{
-                  fontSize: 15,
-                  fontWeight: 600,
-                  color: "#0f172a",
-                  textDecoration: "none",
-                  padding: "12px 16px",
-                  borderRadius: 10,
-                  border: "1px solid #e2e8f0",
-                  textAlign: "center",
-                  background: "#fff",
-                }}
-              >
-                Log In
-              </Link>
-              <Link
-                href="/signup?role=driver"
-                onClick={() => setMenuOpen(false)}
-                style={{
-                  fontSize: 15,
-                  fontWeight: 600,
-                  color: "#0d9488",
-                  textDecoration: "none",
-                  padding: "12px 16px",
-                  borderRadius: 10,
-                  border: "1.5px solid rgba(13,148,136,0.3)",
-                  textAlign: "center",
-                  background: "rgba(13,148,136,0.05)",
-                }}
-              >
-                Become a Driver
-              </Link>
-              <Link
-                href="/signup"
+                href="/login?role=rider"
                 onClick={() => setMenuOpen(false)}
                 className="btn-shimmer"
                 style={{
@@ -298,10 +283,33 @@ export default function Navbar() {
                   padding: "12px 16px",
                   borderRadius: 10,
                   textAlign: "center",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   boxShadow: "0 4px 16px rgba(13,148,136,0.35)",
                 }}
               >
-                Start a Ride →
+                Login as User
+              </Link>
+              <Link
+                href="/login?role=driver"
+                onClick={() => setMenuOpen(false)}
+                style={{
+                  fontSize: 15,
+                  fontWeight: 600,
+                  color: "#0d9488",
+                  textDecoration: "none",
+                  padding: "12px 16px",
+                  borderRadius: 10,
+                  border: "1.5px solid rgba(13,148,136,0.35)",
+                  textAlign: "center",
+                  background: "rgba(13,148,136,0.05)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                Login as Driver
               </Link>
             </div>
           </div>
@@ -309,9 +317,12 @@ export default function Navbar() {
       </nav>
 
       <style>{`
-        @media (max-width: 768px) {
+        @media (max-width: 1180px) {
           .nav-links { display: none !important; }
           .hamburger-btn { display: flex !important; }
+        }
+        @media (max-width: 768px) {
+          .desktop-actions { display: none !important; }
         }
       `}</style>
     </>

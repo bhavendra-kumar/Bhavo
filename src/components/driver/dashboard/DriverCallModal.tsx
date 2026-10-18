@@ -60,13 +60,11 @@ function DriverCallModalContent({
       style={{ zIndex: 9999 }}
     >
       <div className="relative w-full max-w-sm bg-linear-to-b from-slate-900 via-[#042f2e] to-[#022c22] rounded-3xl shadow-2xl p-7 text-white flex flex-col items-center border border-teal-500/30">
-        {/* Masked Call Privacy Badge */}
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30 text-[11px] font-bold mb-6">
           <ShieldCheck size={13} />
           <span>Number Masked • Bhavo Secure Connect</span>
         </div>
 
-        {/* Rider Avatar with pulsing ring */}
         <div className="relative mb-5">
           {callStatus === "CONNECTING" && (
             <div className="absolute inset-0 rounded-full bg-teal-400/30 animate-ping" />
@@ -78,11 +76,9 @@ function DriverCallModalContent({
           </Avatar>
         </div>
 
-        {/* Rider Name & Status */}
         <h3 className="text-xl font-extrabold text-white text-center">{riderName}</h3>
         <span className="text-xs text-teal-200/70 font-semibold mt-0.5">Passenger • {riderPhone}</span>
 
-        {/* Call Status / Timer */}
         <div className="mt-4 mb-8">
           {callStatus === "CONNECTING" && (
             <span className="text-sm text-teal-300 animate-pulse font-medium">
@@ -99,9 +95,7 @@ function DriverCallModalContent({
           )}
         </div>
 
-        {/* Action Controls */}
         <div className="flex items-center gap-6">
-          {/* Mute toggle */}
           <button
             onClick={() => setIsMuted(!isMuted)}
             className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${isMuted
@@ -112,7 +106,6 @@ function DriverCallModalContent({
             {isMuted ? <MicOff size={18} /> : <Mic size={18} />}
           </button>
 
-          {/* End Call Button */}
           <button
             onClick={handleEndCall}
             className="w-16 h-16 rounded-full bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center shadow-lg shadow-rose-900/40 active:scale-95 transition-all"
@@ -121,7 +114,6 @@ function DriverCallModalContent({
             <PhoneOff size={24} />
           </button>
 
-          {/* Speaker toggle */}
           <button className="w-12 h-12 rounded-full bg-white/15 text-slate-200 hover:bg-white/25 flex items-center justify-center transition-colors">
             <Volume2 size={18} />
           </button>

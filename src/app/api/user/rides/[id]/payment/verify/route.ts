@@ -6,15 +6,6 @@ import { confirmOnlinePayment, PaymentError } from "@/lib/paymentService";
 
 export const dynamic = "force-dynamic";
 
-/**
- * POST /api/user/rides/[id]/payment/verify
- * 
- * Server-side Razorpay Checkout Verification
- * - Requires authenticated rider who owns the ride.
- * - Cryptographically verifies HMAC checkout signature.
- * - Independently verifies status, amount, and currency with provider.
- * - Idempotently confirms payment and settles financial transaction.
- */
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }

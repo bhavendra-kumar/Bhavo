@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
@@ -26,12 +25,10 @@ if (testFiles.length === 0) {
   process.exit(1);
 }
 
-// Sort test files for deterministic execution order
 testFiles.sort();
 
 console.log(`[run-tests] Discovered ${testFiles.length} test files.`);
 
-// Execute Node.js test runner with tsx loader registered
 const args = ["--import", "tsx", "--test", ...testFiles];
 
 const result = spawnSync(process.execPath, args, {

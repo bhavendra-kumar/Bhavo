@@ -114,7 +114,6 @@ export default function ActiveTripManager() {
       id="active-trip"
       className="bg-white rounded-3xl border-2 border-teal-500 shadow-xl overflow-hidden flex flex-col transition-all"
     >
-      {/* ── Active Ride Status Banner ── */}
       <div className="px-6 py-4 bg-linear-to-r from-teal-900 to-[#042f2e] text-white flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <span className="relative flex h-3.5 w-3.5">
@@ -145,7 +144,6 @@ export default function ActiveTripManager() {
       </div>
 
       <div className="p-5 md:p-6 flex flex-col gap-6">
-        {/* ── Rider Profile & Rapid Contact Row ── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
           <div className="flex items-center gap-3.5">
             <Avatar className="w-13 h-13 rounded-2xl border-2 border-teal-500/30 shadow-xs">
@@ -170,7 +168,6 @@ export default function ActiveTripManager() {
             </div>
           </div>
 
-          {/* Quick Communication & Safety Buttons */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsChatOpen(true)}
@@ -198,9 +195,7 @@ export default function ActiveTripManager() {
           </div>
         </div>
 
-        {/* ── Route Step Details ── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Pickup Card */}
           <div
             className={`p-4 rounded-2xl border transition-all ${
               status === "ACCEPTED" || status === "ARRIVED"
@@ -227,7 +222,6 @@ export default function ActiveTripManager() {
             )}
           </div>
 
-          {/* Dropoff Card */}
           <div
             className={`p-4 rounded-2xl border transition-all ${
               status === "IN_PROGRESS"
@@ -255,9 +249,6 @@ export default function ActiveTripManager() {
           </div>
         </div>
 
-        {/* ── Dynamic Action Controls By Trip Stage ── */}
-
-        {/* Stage 1: ACCEPTED -> Navigate to Pickup & "I Have Arrived" */}
         {status === "ACCEPTED" && (
           <div className="p-5 rounded-2xl bg-emerald-50/80 border border-emerald-200 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -284,7 +275,6 @@ export default function ActiveTripManager() {
           </div>
         )}
 
-        {/* Stage 2: ARRIVED -> Enter 4-digit PIN/OTP to start trip */}
         {status === "ARRIVED" && (
           <div className="p-6 rounded-2xl bg-amber-50/80 border-2 border-amber-300 flex flex-col gap-4">
             <div className="flex items-start justify-between gap-3">
@@ -338,7 +328,6 @@ export default function ActiveTripManager() {
           </div>
         )}
 
-        {/* Stage 3: IN_PROGRESS -> Live trip speedometer & Complete button */}
         {status === "IN_PROGRESS" && (
           <div className="p-6 rounded-2xl bg-teal-950 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl border border-teal-700/50">
             <div className="flex items-center gap-5 w-full md:w-auto">
@@ -373,7 +362,6 @@ export default function ActiveTripManager() {
         )}
       </div>
 
-      {/* ── Rating Passenger Modal upon completion ── */}
       {showRatingModal && (
         <div
           className="fixed inset-0 z-9999 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in"
@@ -392,7 +380,6 @@ export default function ActiveTripManager() {
               Pilot payment: cash collected in hand. Platform wallet balance is unaffected.
             </p>
 
-            {/* Star Rating for Passenger */}
             <div className="my-5">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">
                 Rate your experience with {activeRide.rider.name}
@@ -417,7 +404,6 @@ export default function ActiveTripManager() {
               </div>
             </div>
 
-            {/* Compliment Badges */}
             <div className="w-full mb-5">
               <span className="text-[11px] font-bold text-slate-500 block mb-2">
                 Add compliments:
@@ -441,7 +427,6 @@ export default function ActiveTripManager() {
               </div>
             </div>
 
-            {/* Cash Collection Confirmation */}
             <div className="w-full mb-5 p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-left flex items-start gap-3">
               <input
                 id="cash-collection-confirm"
@@ -473,7 +458,6 @@ export default function ActiveTripManager() {
         </div>
       )}
 
-      {/* Modals */}
       <DriverChatModal
         rideId={activeRide._id}
         riderName={activeRide.rider.name}

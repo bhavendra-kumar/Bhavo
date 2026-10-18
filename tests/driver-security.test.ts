@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import { AuthError } from "../src/lib/auth";
 
 describe("Phase 1A: Driver Endpoint & Boundary Security Tests", () => {
-  // Simulated driver route boundary guard
   const enforceDriverEndpointSecurity = (
     authenticatedSession: { id: string; email: string; role: string } | null,
     requestBodyDriverId?: string
@@ -16,12 +15,10 @@ describe("Phase 1A: Driver Endpoint & Boundary Security Tests", () => {
       throw new AuthError("Forbidden: Driver role required", 403, "FORBIDDEN");
     }
 
-    // Driver identity is derived solely from the authenticated session, never requestBodyDriverId
     const effectiveDriverId = authenticatedSession.id;
     return { driverId: effectiveDriverId, session: authenticatedSession, ignoredBodyId: requestBodyDriverId };
   };
 
-  // 19. Authenticated DRIVER can access allowed driver endpoints
   it("Scenario 19: Authenticated DRIVER can access allowed driver endpoints", () => {
     const validDriverSession = {
       id: "67041a9b4f1234567890abcd",
@@ -34,7 +31,6 @@ describe("Phase 1A: Driver Endpoint & Boundary Security Tests", () => {
     assert.equal(result.session.role, "DRIVER");
   });
 
-  // 20. Authenticated RIDER cannot use driver endpoints
   it("Scenario 20: Authenticated RIDER receives 403 Forbidden when attempting to access driver endpoints", () => {
     const riderSession = {
       id: "67041a9b4f12345678901234",
@@ -53,7 +49,6 @@ describe("Phase 1A: Driver Endpoint & Boundary Security Tests", () => {
     );
   });
 
-  // 21. Driver identity comes from authentication, not request body
   it("Scenario 21: Driver identity strictly comes from session, ignoring spoofed driverId in request body", () => {
     const realDriverSession = {
       id: "driver_id_session_authenticated_111",
@@ -65,12 +60,10 @@ describe("Phase 1A: Driver Endpoint & Boundary Security Tests", () => {
 
     const result = enforceDriverEndpointSecurity(realDriverSession, spoofedDriverId);
 
-    // Confirms identity comes from session (111), NOT from request body (999)
     assert.equal(result.driverId, "driver_id_session_authenticated_111");
     assert.notEqual(result.driverId, spoofedDriverId);
   });
 
-  // 22. Missing driver profile does not create a fallback account
   it("Scenario 22: Unregistered driver profile causes error without creating demo fallback driver in DB", () => {
     const driverDatabase: Record<string, { name: string; role: string }> = {};
 
@@ -91,7 +84,6 @@ describe("Phase 1A: Driver Endpoint & Boundary Security Tests", () => {
       }
     );
 
-    // Database remains empty; no fallback driver was created
     assert.equal(Object.keys(driverDatabase).length, 0);
   });
 });

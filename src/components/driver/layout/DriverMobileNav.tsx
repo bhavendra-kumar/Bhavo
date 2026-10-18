@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
@@ -91,7 +92,6 @@ export function DriverMobileHeader({ onOpenMenu }: { onOpenMenu: () => void }) {
 
   return (
     <header className="h-14 bg-white/95 backdrop-blur-md border-b border-teal-900/10 px-3.5 flex items-center justify-between shrink-0 sticky top-0 z-30">
-      {/* Brand & Vehicle */}
       <div className="flex items-center gap-2">
         <button
           onClick={onOpenMenu}
@@ -100,16 +100,13 @@ export function DriverMobileHeader({ onOpenMenu }: { onOpenMenu: () => void }) {
         >
           <Menu size={22} />
         </button>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/trimmed-logo.png" alt="Bhavo" className="h-7 w-auto object-contain" />
+        <Image src="/bhavo-title.png" alt="Bhavo" width={96} height={32} className="bhavo-title-img h-7.5 w-auto object-contain" priority />
         <span className="text-[10px] font-black tracking-wider uppercase px-1.5 py-0.5 rounded bg-teal-50 text-teal-700 border border-teal-200">
           CAPTAIN
         </span>
       </div>
 
-      {/* Right Controls */}
       <div className="flex items-center gap-2">
-        {/* Simulate Dispatch quick tap */}
         {isVerified && isOnline && (
           <button
             onClick={handleSimulate}
@@ -120,7 +117,6 @@ export function DriverMobileHeader({ onOpenMenu }: { onOpenMenu: () => void }) {
           </button>
         )}
 
-        {/* SOS Button */}
         <button
           onClick={handleSos}
           className="p-1.5 rounded-full text-rose-600 bg-rose-50 border border-rose-200 active:scale-95 cursor-pointer"
@@ -129,7 +125,6 @@ export function DriverMobileHeader({ onOpenMenu }: { onOpenMenu: () => void }) {
           <ShieldAlert size={16} />
         </button>
 
-        {/* Quick Duty Toggle */}
         <button
           onClick={handleToggleOnline}
           className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold border transition-all cursor-pointer ${
@@ -240,12 +235,9 @@ export function DriverMobileMenuSheet({
 
   return (
     <div className="fixed inset-0 z-50 flex">
-      {/* Backdrop */}
       <div className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity" onClick={onClose} />
 
-      {/* Sheet panel */}
       <div className="relative w-4/5 max-w-xs bg-[#042f2e] text-white flex flex-col h-full z-10 shadow-2xl overflow-y-auto">
-        {/* Header */}
         <div className="p-4 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <Avatar className="w-10 h-10 rounded-xl border border-teal-400/40">
@@ -267,7 +259,6 @@ export function DriverMobileMenuSheet({
           </button>
         </div>
 
-        {/* Duty Card */}
         <div className="p-4">
           {!isVerified ? (
             <button
@@ -295,7 +286,6 @@ export function DriverMobileMenuSheet({
           )}
         </div>
 
-        {/* Links */}
         <div className="flex-1 px-4 space-y-1 text-[13px] font-semibold">
           <Link
             href="/driver"
@@ -366,7 +356,6 @@ export function DriverMobileMenuSheet({
           </Link>
         </div>
 
-        {/* Footer */}
         <div className="p-4 border-t border-white/10">
           <button
             onClick={handleLogout}

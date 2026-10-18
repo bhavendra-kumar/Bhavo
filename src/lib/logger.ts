@@ -1,12 +1,3 @@
-/**
- * Privacy-Safe Structured Logger for Bhavo (Phase 1I)
- *
- * Rules:
- * - Emits structured JSON logs suitable for cloud logging, containers, or stdout aggregation.
- * - Recursively redacts sensitive keys: password, token, otp, secret, authorization, creditCard, apiKey.
- * - Formats timestamps in ISO 8601.
- * - Never logs full environment objects or client secrets.
- */
 
 const SENSITIVE_KEYS = new Set([
   "password",
@@ -26,15 +17,11 @@ const SENSITIVE_KEYS = new Set([
   "cronsecret",
 ]);
 
-/**
- * Recursively redacts sensitive values from objects before logging
- */
 export function sanitizeLogPayload(data: unknown, depth = 0): unknown {
   if (depth > 6) return "[Truncated: Max Depth]";
   if (data === null || data === undefined) return data;
 
   if (typeof data === "string") {
-    // Basic heuristics to mask tokens/secrets if passed as naked strings
     if (data.startsWith("eyJ") && data.length > 40) {
       return "[REDACTED_JWT]";
     }

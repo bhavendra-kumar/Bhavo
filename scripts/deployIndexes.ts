@@ -1,16 +1,4 @@
 #!/usr/bin/env node
-/**
- * Bhavo Standalone Database Index Deployment Script
- *
- * Usage:
- *   npx tsx scripts/deployIndexes.ts
- *   or: npm run db:indexes
- *
- * Prerequisites:
- *   - DATABASE_URL environment variable configured with valid MongoDB connection string.
- *   - Network access to MongoDB cluster.
- *   - MongoDB user credentials with index creation privileges.
- */
 
 import { ensureAllIndexes } from "../src/lib/ensureIndexes";
 import mongoose from "mongoose";
@@ -27,7 +15,6 @@ async function main() {
     process.exit(1);
   }
 
-  // Mask credentials for logging
   const maskedUri = uri.replace(/\/\/[^:]+:[^@]+@/, "//***:***@");
   console.log(`Connecting to: ${maskedUri}`);
 

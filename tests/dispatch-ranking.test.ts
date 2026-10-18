@@ -44,7 +44,6 @@ describe("Phase 1D: Deterministic Candidate Ranking Tests", () => {
       { driver: makeCandidate("driver_far", 4.9), distanceKm: 6.2 },
     ];
 
-    // Preferred driver "driver_offline_vip" was ineligible and thus not in candidates
     const ranked = rankEligibleCandidates(candidates, "driver_offline_vip");
 
     assert.equal(ranked.length, 3);
@@ -54,7 +53,6 @@ describe("Phase 1D: Deterministic Candidate Ranking Tests", () => {
   });
 
   it("Candidates within same 500m proximity bucket are ordered by rating DESC", () => {
-    // Both 1.1 km and 1.3 km fall into the same 500m bucket: Math.floor(1.1 * 2) = 2, Math.floor(1.3 * 2) = 2
     const candidates = [
       { driver: makeCandidate("driver_lower_rating", 4.6), distanceKm: 1.1 },
       { driver: makeCandidate("driver_higher_rating", 4.95), distanceKm: 1.3 },
@@ -67,7 +65,6 @@ describe("Phase 1D: Deterministic Candidate Ranking Tests", () => {
   });
 
   it("Candidates in different 500m proximity buckets prioritize closer bucket over rating", () => {
-    // 0.4 km is in bucket 0 (0-500m). 1.2 km is in bucket 2 (1000-1500m). Closer bucket wins!
     const candidates = [
       { driver: makeCandidate("driver_far_superstar", 5.0), distanceKm: 1.2 },
       { driver: makeCandidate("driver_close_standard", 4.7), distanceKm: 0.4 },

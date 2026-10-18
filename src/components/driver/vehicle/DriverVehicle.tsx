@@ -64,7 +64,6 @@ export default function DriverVehicle() {
   const [documents, setDocuments] = useState<IDriverDocItem[]>(() => [...DEFAULT_DRIVER_DOCUMENTS]);
   const [loading, setLoading] = useState(true);
 
-  // Edit Vehicle Modal State
   const [isEditingVehicle, setIsEditingVehicle] = useState(false);
   const [editVehicleModel, setEditVehicleModel] = useState("");
   const [editVehicleNumberPlate, setEditVehicleNumberPlate] = useState("");
@@ -72,7 +71,6 @@ export default function DriverVehicle() {
   const [editVehicleFuelType, setEditVehicleFuelType] = useState("EV");
   const [editVehicleSaving, setEditVehicleSaving] = useState(false);
 
-  // Edit/Upload Modal State
   const [editingDoc, setEditingDoc] = useState<IDriverDocItem | null>(null);
   const [editDocId, setEditDocId] = useState("");
   const [editExpiry, setEditExpiry] = useState("");
@@ -128,7 +126,6 @@ export default function DriverVehicle() {
     };
   }, [setVerification]);
 
-  // Filter documents by category strictly
   const driverDocs = documents.filter((d) => d.category === "DRIVER");
   const vehicleDocs = documents.filter((d) => d.category === "VEHICLE");
 
@@ -235,7 +232,7 @@ export default function DriverVehicle() {
           docData: {
             docId: editDocId.trim() || editingDoc.docId,
             expiry: editExpiry.trim() || editingDoc.expiry,
-            status: "PENDING", // Submitting an update sets it to PENDING review
+            status: "PENDING",
             fileUrl: editFileUploaded ? (editingDoc.fileUrl || "/documents/uploaded_proof.pdf") : null,
           },
         }),
@@ -299,7 +296,6 @@ export default function DriverVehicle() {
 
   return (
     <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full pb-12">
-      {/* ── Top Bar: Header & Controls ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
@@ -323,7 +319,6 @@ export default function DriverVehicle() {
         </div>
       </div>
 
-      {/* ── Primary Compliance Status Hero Banner ── */}
       <div
         className={`relative overflow-hidden rounded-3xl p-6 sm:p-7 border shadow-lg transition-all ${
           isAllVerified
@@ -385,7 +380,6 @@ export default function DriverVehicle() {
             </div>
           </div>
 
-          {/* Admin Verification Status Box */}
           <div className="bg-black/30 border border-white/10 rounded-2xl p-4 w-full md:w-auto shrink-0 flex flex-col gap-2">
             <span className="text-[10px] font-black uppercase tracking-wider text-teal-200/70 block">
               Admin Verification Status
@@ -406,7 +400,6 @@ export default function DriverVehicle() {
           </div>
         </div>
 
-        {/* Progress Bar */}
         <div className="mt-6 pt-4 border-t border-white/10">
           <div className="flex items-center justify-between text-xs font-bold text-slate-300 mb-1.5">
             <span>Compliance Progress</span>
@@ -423,7 +416,6 @@ export default function DriverVehicle() {
         </div>
       </div>
 
-      {/* ── Vehicle Hardware Telemetry Card ── */}
       <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="flex items-start gap-4">
           <div className="w-14 h-14 rounded-2xl bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-700 shrink-0">
@@ -460,7 +452,6 @@ export default function DriverVehicle() {
           </div>
         </div>
 
-        {/* Battery & Fuel State */}
         <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center gap-4 w-full md:w-auto">
           <div className="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
             <BatteryCharging size={22} />
@@ -477,7 +468,6 @@ export default function DriverVehicle() {
         </div>
       </div>
 
-      {/* ── Section 1: Driver Identity & Credential Documents ── */}
       <div className="bg-white rounded-3xl p-6 md:p-7 border border-slate-200/80 shadow-sm flex flex-col gap-5">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div className="flex items-center gap-2.5">
@@ -547,7 +537,6 @@ export default function DriverVehicle() {
                 </div>
               </div>
 
-              {/* Action Buttons for Document */}
               <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                 <button
                   onClick={() => openEditModal(doc)}
@@ -563,7 +552,6 @@ export default function DriverVehicle() {
         </div>
       </div>
 
-      {/* ── Section 2: Vehicle Compliance Documents ── */}
       <div className="bg-white rounded-3xl p-6 md:p-7 border border-slate-200/80 shadow-sm flex flex-col gap-5">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div className="flex items-center gap-2.5">
@@ -633,7 +621,6 @@ export default function DriverVehicle() {
                 </div>
               </div>
 
-              {/* Action Buttons for Document */}
               <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                 <button
                   onClick={() => openEditModal(doc)}
@@ -649,7 +636,6 @@ export default function DriverVehicle() {
         </div>
       </div>
 
-      {/* ── Section 3: Basic Requirements ── */}
       <div className="bg-white rounded-3xl p-6 md:p-7 border border-slate-200/80 shadow-sm flex flex-col gap-5">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div className="flex items-center gap-2.5">
@@ -716,7 +702,6 @@ export default function DriverVehicle() {
         </div>
       </div>
 
-      {/* ── Document Edit / Upload Modal ── */}
       {editingDoc && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col">
@@ -770,7 +755,6 @@ export default function DriverVehicle() {
                 />
               </div>
 
-              {/* Upload Proof Simulator */}
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1">
                   Upload Document Scan / Photo Proof
@@ -814,7 +798,6 @@ export default function DriverVehicle() {
         </div>
       )}
 
-      {/* ── Vehicle Edit Modal ── */}
       {isEditingVehicle && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col">

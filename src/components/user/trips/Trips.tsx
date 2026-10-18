@@ -64,11 +64,9 @@ export default function TripsPage() {
   const [rides, setRides] = useState<IRideData[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Modals for Call and Chat
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isCallOpen, setIsCallOpen] = useState(false);
 
-  // Online Payment state
   const [payingTripId, setPayingTripId] = useState<string | null>(null);
   const [verifyingTripId, setVerifyingTripId] = useState<string | null>(null);
 
@@ -297,7 +295,6 @@ export default function TripsPage() {
 
   return (
     <div className="flex flex-col gap-6 pb-8">
-      {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-teal-50 border border-teal-200">
           <TrendingUp size={18} className="text-teal-600 shrink-0" />
@@ -319,7 +316,6 @@ export default function TripsPage() {
         </button>
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-1 p-1 rounded-xl w-full sm:w-max overflow-x-auto no-scrollbar bg-slate-100 border border-slate-200">
         {TABS.map((tab) => {
           const count =
@@ -357,11 +353,9 @@ export default function TripsPage() {
         })}
       </div>
 
-      {/* Active Tab */}
       {activeTab === "Active" ? (
         activeRide ? (
           <div className="flex flex-col lg:flex-row gap-5">
-            {/* Active Trip Info Card */}
             <div className="lg:w-md shrink-0 card p-5 flex flex-col gap-4 border-2 border-teal-500 bg-white shadow-md">
               <div className="flex items-center justify-between">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-bold bg-teal-100 text-teal-800 border border-teal-200">
@@ -379,7 +373,6 @@ export default function TripsPage() {
                 </p>
               </div>
 
-              {/* Driver summary */}
               <div className="flex items-center gap-4 py-3 border-y border-slate-100">
                 <Avatar className="w-12 h-12 shrink-0 border-2 border-teal-200">
                   <AvatarFallback className="text-[15px] font-bold bg-teal-100 text-teal-800">
@@ -404,7 +397,6 @@ export default function TripsPage() {
                 )}
               </div>
 
-              {/* Quick Actions (Call, Chat, SOS) */}
               <div className="flex gap-2">
                 <button
                   onClick={() => setIsCallOpen(true)}
@@ -434,7 +426,6 @@ export default function TripsPage() {
                 </button>
               </div>
 
-              {/* Route Path */}
               <div className="relative pl-6 flex flex-col gap-4 mt-2">
                 <div className="absolute left-2.5 top-2 bottom-5 w-px bg-teal-200" />
                 <div className="relative flex items-start gap-2">
@@ -455,7 +446,6 @@ export default function TripsPage() {
                 </div>
               </div>
 
-              {/* Ride PIN */}
               <div className="p-3 bg-teal-50 rounded-xl border border-teal-200 flex items-center justify-between">
                 <div>
                   <p className="text-[10px] font-bold uppercase text-teal-800">Verification PIN</p>
@@ -466,7 +456,6 @@ export default function TripsPage() {
                 </span>
               </div>
 
-              {/* Progress and Cancel */}
               <div className="flex items-center gap-2 pt-1">
                 <button
                   onClick={handleRefresh}
@@ -483,7 +472,6 @@ export default function TripsPage() {
               </div>
             </div>
 
-            {/* Live Interactive Leaflet Map for Active Trip */}
             <div className="flex-1 rounded-2xl overflow-hidden h-72 sm:h-96 lg:h-145 min-h-65 lg:min-h-100 border border-slate-200 relative shadow-sm">
               <LeafletMap
                 pickupCoords={activeRide.pickup.coordinates}
@@ -523,7 +511,6 @@ export default function TripsPage() {
           </div>
         )
       ) : (
-        /* Upcoming / Completed / Cancelled Trips List from MongoDB */
         <div className="flex flex-col gap-3">
           {currentTabRides.length === 0 ? (
             <div className="card p-12 text-center text-slate-500 text-sm">
@@ -705,7 +692,6 @@ export default function TripsPage() {
         </div>
       )}
 
-      {/* Driver Chat Modal */}
       {activeRide && (
         <DriverChatModal
           rideId={activeRide._id}
@@ -721,7 +707,6 @@ export default function TripsPage() {
         />
       )}
 
-      {/* Driver Call Modal */}
       {activeRide && (
         <DriverCallModal
           driverName={activeRide.driverDetails?.name || "Bhavo Pilot"}

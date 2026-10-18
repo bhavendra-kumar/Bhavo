@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Bell, ChevronLeft, Wallet
 } from "lucide-react";
@@ -44,7 +45,6 @@ export default function MobileHeader({ onOpenMenu }: MobileHeaderProps) {
         paddingTop: "env(safe-area-inset-top, 0px)",
       }}
     >
-      {/* ── Left: Back button OR App Brand ── */}
       <div className="flex items-center gap-2.5 min-w-0">
         {hasParent ? (
           <button
@@ -62,17 +62,18 @@ export default function MobileHeader({ onOpenMenu }: MobileHeaderProps) {
             <ChevronLeft size={19} />
           </button>
         ) : (
-          <Link href="/user/dashboard" className="flex items-center gap-2.5 shrink-0 active:scale-98 transition-transform">
-            <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center p-1 shadow-sm border border-white/20">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/trimmed-logo.png" alt="Bhavo" className="w-full h-full object-contain" />
-            </div>
+          <Link href="/user/dashboard" className="flex items-center gap-2 shrink-0 active:scale-98 transition-transform">
             <div className="flex flex-col leading-none">
-              <span className="text-[17px] font-black tracking-tight bg-linear-to-r from-[#5eead4] via-white to-[#2dd4bf] bg-clip-text text-transparent">
-                BHAVO
-              </span>
-              <span className="text-[9px] font-bold text-teal-400/80 tracking-wider uppercase">
-                Zero-Surge Transit
+              <Image
+                src="/bhavo-title.png"
+                alt="Bhavo"
+                width={105}
+                height={35}
+                className="bhavo-title-img h-7.5 w-auto object-contain"
+                priority
+              />
+              <span className="text-[9px] font-bold text-teal-400/80 tracking-wider uppercase mt-0.5">
+                Smart Commute
               </span>
             </div>
           </Link>
@@ -85,9 +86,7 @@ export default function MobileHeader({ onOpenMenu }: MobileHeaderProps) {
         )}
       </div>
 
-      {/* ── Right Actions: Wallet Chip + Notifications + Menu Trigger ── */}
       <div className="flex items-center gap-2 shrink-0">
-        {/* Wallet Balance Chip */}
         <Link
           href="/user/wallet"
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-linear-to-r from-teal-500/20 to-emerald-500/15 border border-teal-400/35 text-teal-200 active:scale-95 transition-all shadow-[0_0_12px_rgba(45,212,191,0.12)]"
@@ -98,7 +97,6 @@ export default function MobileHeader({ onOpenMenu }: MobileHeaderProps) {
           </span>
         </Link>
 
-        {/* Notifications Icon */}
         <Link
           href="/user/notifications"
           aria-label="Notifications"
@@ -112,7 +110,6 @@ export default function MobileHeader({ onOpenMenu }: MobileHeaderProps) {
           )}
         </Link>
 
-        {/* User Avatar / Drawer Trigger */}
         <button
           type="button"
           onClick={onOpenMenu}

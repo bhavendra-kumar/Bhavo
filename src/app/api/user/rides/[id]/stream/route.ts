@@ -11,18 +11,6 @@ import {
 
 export const dynamic = "force-dynamic";
 
-/**
- * GET /api/user/rides/[id]/stream
- *
- * Hardened Server-Sent Events (SSE) Stream for Passenger Live Tracking (Phase 1E)
- * - Requires authenticated RIDER session.
- * - Strict resource ownership (rider can stream only their own ride).
- * - Emits immediate authoritative snapshot on connection.
- * - Selective, privacy-safe field projection (OTP sent only to rider before trip start).
- * - Location freshness evaluation against authoritative 120s TTL.
- * - Periodic keepalive comments to prevent proxy dropouts.
- * - Closes cleanly on client disconnect, completion, or cancellation.
- */
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -37,7 +25,6 @@ export async function GET(
 
     await dbConnect();
 
-    // Verify ownership immediately before establishing SSE stream
     const initialRide = await Ride.findOne({ _id: id, rider: user._id });
     if (!initialRide) {
       return new Response("Ride not found", { status: 404 });
@@ -67,7 +54,6 @@ export async function GET(
           cleanup();
         });
 
-        // 1. Send immediate authoritative snapshot upon connection
         try {
           controller.enqueue(
             encoder.encode(
@@ -79,13 +65,11 @@ export async function GET(
           return;
         }
 
-        // If ride is already completed or cancelled, terminate stream immediately
         if (isRideTerminal(initialRide.status)) {
           cleanup();
           return;
         }
 
-        // 2. Continuous authoritative sync interval (every 2000ms)
         const interval = setInterval(async () => {
           if (isClosed || req.signal.aborted) {
             clearInterval(interval);
@@ -132,12 +116,10 @@ export async function GET(
                 )
               );
             } else if (ticksSinceKeepalive >= 5 && !isClosed) {
-              // Emit keepalive comment every ~10s to prevent reverse proxy/firewall drops
               ticksSinceKeepalive = 0;
               controller.enqueue(encoder.encode(buildSseKeepalive()));
             }
 
-            // Cleanly close stream when ride reaches a terminal state
             if (snapshot.isTerminal) {
               clearInterval(interval);
               if (!isClosed) {

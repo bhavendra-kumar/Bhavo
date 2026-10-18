@@ -10,19 +10,8 @@ import { getRazorpayWebhookSecret, ConfigurationError } from "@/lib/runtimeConfi
 
 export const dynamic = "force-dynamic";
 
-/**
- * POST /api/webhooks/razorpay
- * 
- * Secure Razorpay Webhook Endpoint
- * - Cryptographically verifies X-Razorpay-Signature over the RAW request body.
- * - Rejects unverified requests before any business processing.
- * - Idempotently processes payment.captured and order.paid events.
- * - Handles payment.failed by marking ride as payment failed without corrupting ride state.
- * - Preserves cash payment mutual exclusivity and ledger integrity.
- */
 export async function POST(req: Request) {
   try {
-    // 1. Read exact raw body as text before any JSON parsing
     const rawBody = await req.text();
     const signature = req.headers.get("x-razorpay-signature");
 
@@ -33,7 +22,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // 2. Cryptographically verify webhook signature against raw body
     let webhookSecret: string;
     try {
       webhookSecret = getRazorpayWebhookSecret();
@@ -60,7 +48,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // 3. Parse JSON safely after verification
     let payload: Record<string, unknown>;
     try {
       payload = JSON.parse(rawBody);
@@ -81,7 +68,6 @@ export async function POST(req: Request) {
 
     await dbConnect();
 
-    // 4. Handle payment capture events
     if (event === "payment.captured" || event === "order.paid") {
       const payloadData = payload.payload as Record<string, Record<string, unknown>> | undefined;
       const paymentEntity = (payloadData?.payment?.entity as RazorpayPaymentOutput) || undefined;
@@ -97,7 +83,6 @@ export async function POST(req: Request) {
         );
       }
 
-      // Reconcile ride by provider orderId or notes
       const notes = (paymentEntity?.notes || orderEntity?.notes || {}) as Record<string, string>;
       const noteRideId = notes.rideId;
 
@@ -107,7 +92,6 @@ export async function POST(req: Request) {
       }
 
       if (!ride) {
-        // Unknown ride: cannot reconcile; acknowledge safely to avoid repeated delivery
         return NextResponse.json(
           { status: "ignored", message: "No matching ride found for provider order" },
           { status: 200 }
@@ -121,7 +105,6 @@ export async function POST(req: Request) {
         );
       }
 
-      // Execute shared idempotent payment confirmation
       const result = await confirmOnlinePayment({
         rideId: ride._id.toString(),
         razorpayOrderId: orderId || ride.razorpayOrderId || "",
@@ -145,7 +128,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // 5. Handle payment failure events
     if (event === "payment.failed") {
       const payloadData = payload.payload as Record<string, Record<string, unknown>> | undefined;
       const paymentEntity = (payloadData?.payment?.entity as RazorpayPaymentOutput) || undefined;
@@ -166,7 +148,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Default: unhandled event types are acknowledged safely
     return NextResponse.json(
       { status: "acknowledged", message: `Event ${event} received` },
       { status: 200 }

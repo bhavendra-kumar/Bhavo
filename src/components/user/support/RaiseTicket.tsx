@@ -31,7 +31,6 @@ export default function RaiseTicket() {
   const [tickets, setTickets] = useState<TicketItem[]>([]);
   const [loadingTickets, setLoadingTickets] = useState(false);
 
-  // Form State
   const [subject, setSubject] = useState("");
   const [category, setCategory] = useState("app_issue");
   const [description, setDescription] = useState("");
@@ -140,7 +139,6 @@ export default function RaiseTicket() {
 
   return (
     <div className="flex flex-col gap-6 pb-10 max-w-4xl">
-      {/* Banner */}
       <div
         className="card p-6 flex flex-col gap-2 relative overflow-hidden text-white"
         style={{ background: "linear-gradient(135deg, #0f766e 0%, #115e59 100%)", borderColor: "#0f766e" }}
@@ -164,7 +162,6 @@ export default function RaiseTicket() {
         </div>
       </div>
 
-      {/* Mode Tabs */}
       <div className="flex gap-2 p-1 rounded-xl bg-slate-100 border border-slate-200 w-full sm:w-max overflow-x-auto no-scrollbar">
         <button
           onClick={() => {
@@ -193,7 +190,6 @@ export default function RaiseTicket() {
         </button>
       </div>
 
-      {/* Tab 1: Raise Ticket */}
       {activeTab === "raise" && (
         <div className="card p-6">
           <h3 className="text-[16px] font-bold tracking-tight mb-5 text-slate-900">
@@ -312,7 +308,6 @@ export default function RaiseTicket() {
         </div>
       )}
 
-      {/* Tab 2: My Tickets List */}
       {activeTab === "list" && (
         <div className="flex flex-col gap-3">
           {loadingTickets ? (

@@ -46,7 +46,7 @@ export default function HowItWorks() {
               margin: 0,
             }}
           >
-            Up &amp; Running in Minutes
+            {"Up & Running in Minutes"}
           </h2>
         </div>
 

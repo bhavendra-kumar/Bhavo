@@ -26,13 +26,9 @@ describe("Phase 5: Payments & Razorpay Lifecycle Tests", () => {
   const TEST_WEBHOOK_SECRET = "test_webhook_secret_32_chars_long";
 
   beforeEach(() => {
-    // Reset mock transport before each test
     __setRazorpayMockTransport(null);
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // 1. Configuration & Fail-Closed Gateways
-  // ─────────────────────────────────────────────────────────────
   describe("1. Configuration & Fail-Closed Gateways", () => {
     it("Razorpay remains disabled when LIVE_PAYMENTS_ENABLED is absent or not 'true'", () => {
       const origFlag = process.env.LIVE_PAYMENTS_ENABLED;
@@ -91,9 +87,6 @@ describe("Phase 5: Payments & Razorpay Lifecycle Tests", () => {
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // 2. Cryptographic Signature Verification
-  // ─────────────────────────────────────────────────────────────
   describe("2. Cryptographic Signature Verification", () => {
     it("Verifies checkout HMAC SHA-256 signature correctly", () => {
       const orderId = "order_O123456789";
@@ -169,7 +162,7 @@ describe("Phase 5: Payments & Razorpay Lifecycle Tests", () => {
         .update(rawBody)
         .digest("hex");
 
-      const tamperedRawBody = JSON.stringify({ event: "payment.captured " }); // extra space
+      const tamperedRawBody = JSON.stringify({ event: "payment.captured " });
 
       const isValid = verifyRazorpayWebhookSignature({
         rawBody: tamperedRawBody,
@@ -180,9 +173,6 @@ describe("Phase 5: Payments & Razorpay Lifecycle Tests", () => {
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // 3. Server-Authoritative Order Creation Logic
-  // ─────────────────────────────────────────────────────────────
   describe("3. Server-Authoritative Order Creation Logic", () => {
     it("Rejects order creation with non-integer or zero paise amount", async () => {
       const origFlag = process.env.LIVE_PAYMENTS_ENABLED;
@@ -259,9 +249,6 @@ describe("Phase 5: Payments & Razorpay Lifecycle Tests", () => {
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // 4. Ride Invariants & Payment State Machine
-  // ─────────────────────────────────────────────────────────────
   describe("4. Ride Invariants & Payment State Machine", () => {
     it("Only COMPLETED rides are eligible for payment order creation", () => {
       const invalidStatuses = ["SEARCHING", "ACCEPTED", "ARRIVED", "IN_PROGRESS", "CANCELLED"];
@@ -312,20 +299,15 @@ describe("Phase 5: Payments & Razorpay Lifecycle Tests", () => {
         fareInPaise: 45000,
       };
 
-      // Server strictly uses fareInPaise or fare * 100
       const serverPaise = ride.fareInPaise || Math.round(ride.fare * 100);
       assert.equal(serverPaise, 45000);
       assert.equal(Number.isInteger(serverPaise), true);
 
-      // Client attempting to send ₹1 is ignored
       const clientAmount = 100;
       assert.notEqual(clientAmount, serverPaise);
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // 5. Mutual Exclusivity between Cash Collection and Online Payment
-  // ─────────────────────────────────────────────────────────────
   describe("5. Mutual Exclusivity between Cash Collection and Online Payment", () => {
     it("Cash collection is blocked if online payment has already settled the ride", () => {
       const ride = {
@@ -334,7 +316,6 @@ describe("Phase 5: Payments & Razorpay Lifecycle Tests", () => {
         paymentStatus: "PAID",
       };
 
-      // In confirmCashCollection:
       const canCollectCash = ride.paymentMethod === "CASH" && ride.paymentStatus !== "PAID";
       assert.equal(canCollectCash, false);
     });
@@ -346,13 +327,11 @@ describe("Phase 5: Payments & Razorpay Lifecycle Tests", () => {
         paymentStatus: "COLLECTED",
       };
 
-      // In confirmOnlinePayment:
       const canSettleOnline = ride.paymentStatus !== "COLLECTED";
       assert.equal(canSettleOnline, false);
     });
 
     it("Concurrent race simulation: atomic conditional update permits exactly one winner", () => {
-      // Both cash and online require paymentStatus in their expected pending set
       let currentPaymentStatus = "PENDING_PAYMENT";
 
       function attemptOnlinePayment() {
@@ -371,21 +350,16 @@ describe("Phase 5: Payments & Razorpay Lifecycle Tests", () => {
         return "CASH_REJECTED";
       }
 
-      // Online succeeds first
       const first = attemptOnlinePayment();
       assert.equal(first, "ONLINE_SETTLED");
       assert.equal(currentPaymentStatus, "PAID");
 
-      // Cash collection immediately rejected
       const second = attemptCashCollection();
       assert.equal(second, "CASH_REJECTED");
       assert.equal(currentPaymentStatus, "PAID");
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // 6. Payment Capture Invariants & Idempotency
-  // ─────────────────────────────────────────────────────────────
   describe("6. Payment Capture Invariants & Idempotency", () => {
     it("Authorized-but-uncaptured payment is rejected and does not mark ride paid", () => {
       const providerPayment: Partial<RazorpayPaymentOutput> = {
@@ -413,7 +387,7 @@ describe("Phase 5: Payments & Razorpay Lifecycle Tests", () => {
 
     it("Amount mismatch between provider and stored fare is rejected", () => {
       const storedFarePaise: number = 45000;
-      const providerReportedAmount: number = 35000; // Tampered or discounted
+      const providerReportedAmount: number = 35000;
 
       const amountsMatch = storedFarePaise === providerReportedAmount;
       assert.equal(amountsMatch, false);
@@ -450,13 +424,10 @@ describe("Phase 5: Payments & Razorpay Lifecycle Tests", () => {
       const secondCall = simulateVerification("PAID");
       assert.equal(secondCall.alreadyPaid, true);
       assert.equal(secondCall.transactionCreated, false);
-      assert.equal(transactionCount, 1); // No double transaction
+      assert.equal(transactionCount, 1);
     });
   });
 
-  // ─────────────────────────────────────────────────────────────
-  // 7. Security & IDOR Protection
-  // ─────────────────────────────────────────────────────────────
   describe("7. Security & IDOR Protection", () => {
     it("Rider cannot check payment status of another rider's ride (IDOR rejection)", () => {
       const ride = {

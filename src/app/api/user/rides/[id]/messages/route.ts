@@ -19,13 +19,11 @@ export async function GET(
     }
 
     await dbConnect();
-    // Resource ownership: only the rider who booked the ride can read messages
     const ride = await Ride.findOne({ _id: id, rider: user._id });
     if (!ride) {
       return NextResponse.json({ status: "error", message: "Ride not found" }, { status: 404 });
     }
 
-    // If no messages yet, seed an initial friendly driver message
     if (!ride.messages || ride.messages.length === 0) {
       const driverName = ride.driverDetails?.name || "Your Driver";
       const initialGreeting = {
@@ -67,7 +65,6 @@ export async function POST(
     }
 
     await dbConnect();
-    // Resource ownership: only the rider who booked the ride can post messages
     const ride = await Ride.findOne({ _id: id, rider: user._id });
     if (!ride) {
       return NextResponse.json({ status: "error", message: "Ride not found" }, { status: 404 });

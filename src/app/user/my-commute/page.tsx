@@ -7,5 +7,3 @@ export const metadata = {
 export default function Page() {
   return <MyCommutePage />;
 }
-
-// Force IDE cache refresh

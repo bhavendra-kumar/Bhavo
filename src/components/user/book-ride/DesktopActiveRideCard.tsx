@@ -45,7 +45,6 @@ export default function DesktopActiveRideCard({
         </span>
       </div>
 
-      {/* Driver Details Card */}
       {activeRide.status === "SEARCHING" ? (
         <div className="p-6 rounded-2xl bg-white border border-teal-100 shadow-sm flex flex-col items-center justify-center text-center gap-3">
           <div className="relative flex items-center justify-center w-14 h-14 rounded-full bg-teal-50 text-teal-600">
@@ -89,7 +88,6 @@ export default function DesktopActiveRideCard({
             )}
           </div>
 
-          {/* OTP Pin */}
           <div className="flex items-center justify-between p-3 rounded-lg bg-teal-50 border border-teal-200">
             <div>
               <p className="text-[10px] uppercase font-bold text-teal-800 tracking-wider">Start PIN</p>
@@ -100,7 +98,6 @@ export default function DesktopActiveRideCard({
             </div>
           </div>
 
-          {/* Real-Time Calling & Chat Buttons */}
           <div className="grid grid-cols-2 gap-2 pt-1">
             <button
               type="button"
@@ -120,7 +117,6 @@ export default function DesktopActiveRideCard({
         </div>
       )}
 
-      {/* Route Summary */}
       <div className="p-4 rounded-xl bg-white border border-teal-100 flex flex-col gap-3">
         <div className="relative pl-6 flex flex-col gap-3">
           <div className="absolute left-2.5 top-2 bottom-3 w-0.5 bg-teal-200" />
@@ -148,7 +144,6 @@ export default function DesktopActiveRideCard({
         </div>
       </div>
 
-      {/* Controls */}
       <div className="flex items-center gap-2 pt-1">
         <button
           type="button"

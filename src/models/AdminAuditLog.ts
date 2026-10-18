@@ -77,7 +77,6 @@ const AdminAuditLogSchema = new Schema<IAdminAuditLog>(
   }
 );
 
-// Compound indexes for bounded operational queries
 AdminAuditLogSchema.index({ createdAt: -1 });
 AdminAuditLogSchema.index({ targetType: 1, targetId: 1, createdAt: -1 });
 AdminAuditLogSchema.index({ actor: 1, createdAt: -1 });

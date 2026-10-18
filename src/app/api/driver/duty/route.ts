@@ -12,7 +12,6 @@ export async function GET(req: Request) {
     const user = await getDriverUser(req);
     const verification = checkDriverVerification(user);
 
-    // If documents are not verified, driver is never allowed to be online
     if (!verification.isVerified && user.isOnline) {
       user.isOnline = false;
       user.dutyState = "OFFLINE";
@@ -46,7 +45,6 @@ export async function POST(req: Request) {
     const user = await getDriverUser(req);
     const verification = checkDriverVerification(user);
 
-    // STRICT COMPLIANCE CHECK: Prevent driver from coming online if documents are unverified
     if (Boolean(isOnline) && !verification.isVerified) {
       user.isOnline = false;
       user.dutyState = "OFFLINE";
@@ -69,7 +67,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Active trip preservation: If driver has an active ride, retain ON_TRIP dutyState
     const Ride = (await import("@/models/Ride")).default;
     const activeRide = await Ride.findOne({
       driver: user._id,

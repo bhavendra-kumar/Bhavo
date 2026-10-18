@@ -53,7 +53,6 @@ export default function CompletedRideModal({ ride, onClose }: CompletedRideModal
         }),
       });
     } catch {
-      // Graceful error ignore on post-trip rating
     } finally {
       setIsSubmitting(false);
       onClose();
@@ -72,7 +71,6 @@ export default function CompletedRideModal({ ride, onClose }: CompletedRideModal
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-xs animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl border border-teal-200 animate-in zoom-in-95 duration-200 flex flex-col gap-4 text-center">
-        {/* Success Badge */}
         <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
           <CheckCircle2 size={36} className="text-emerald-600" />
         </div>
@@ -84,7 +82,6 @@ export default function CompletedRideModal({ ride, onClose }: CompletedRideModal
           </p>
         </div>
 
-        {/* Fare & Payment Box */}
         <div className="p-4 rounded-2xl bg-teal-50/70 border border-teal-200 flex items-center justify-between">
           <div className="text-left">
             <span className="text-[10px] font-bold text-teal-700 uppercase tracking-wider block">
@@ -104,7 +101,6 @@ export default function CompletedRideModal({ ride, onClose }: CompletedRideModal
           </div>
         </div>
 
-        {/* Driver Info */}
         <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200 text-left">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-teal-700 text-white font-bold flex items-center justify-center text-sm">
@@ -123,7 +119,6 @@ export default function CompletedRideModal({ ride, onClose }: CompletedRideModal
           </div>
         </div>
 
-        {/* Rate Driver Stars */}
         <div className="py-1">
           <span className="text-xs font-bold text-slate-700 block mb-2">Rate your Bhavo Captain</span>
           <div className="flex items-center justify-center gap-2">
@@ -143,7 +138,6 @@ export default function CompletedRideModal({ ride, onClose }: CompletedRideModal
           </div>
         </div>
 
-        {/* Compliment Tags */}
         <div className="flex flex-wrap gap-1.5 justify-center">
           {["Clean Car", "Smooth Route", "Polite Captain", "On Time"].map((comp) => (
             <button
@@ -161,7 +155,6 @@ export default function CompletedRideModal({ ride, onClose }: CompletedRideModal
           ))}
         </div>
 
-        {/* Add Tip Options */}
         <div>
           <span className="text-xs font-bold text-slate-700 block mb-1.5">Add a Tip for Good Service (Optional)</span>
           <div className="grid grid-cols-4 gap-2">
@@ -182,7 +175,6 @@ export default function CompletedRideModal({ ride, onClose }: CompletedRideModal
           </div>
         </div>
 
-        {/* Done Button */}
         <button
           type="button"
           onClick={handleSubmitFeedback}

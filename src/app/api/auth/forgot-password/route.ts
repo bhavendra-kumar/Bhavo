@@ -58,17 +58,14 @@ export async function POST(req: Request) {
       );
     }
 
-    // Cryptographically secure 6-digit OTP generation
     const otp = crypto.randomInt(100000, 1000000).toString();
-    const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const expiry = new Date(Date.now() + 10 * 60 * 1000);
 
     user.resetOtp = otp;
     user.resetOtpExpiry = expiry;
-    // Reset attempt counter
     (user as unknown as { resetOtpAttempts?: number }).resetOtpAttempts = 0;
     await user.save();
 
-    // Send via email service
     const emailResult = await sendOtpEmail({
       to: user.email,
       name: user.name,
@@ -86,8 +83,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Safe fallback response when email server is not configured in development/test
-    // CRITICAL: NEVER leak the plaintext OTP in the response body or production logs!
     return NextResponse.json(
       {
         status: "success",

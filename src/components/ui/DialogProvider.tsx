@@ -91,7 +91,6 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  // Intercept window.alert on client-side so legacy or unmigrated alerts also look native
   useEffect(() => {
     if (typeof window === "undefined") return;
     const originalAlert = window.alert;
@@ -105,7 +104,6 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
     };
   }, [alert]);
 
-  // Auto-focus confirm button and handle Escape key
   useEffect(() => {
     if (dialog?.isOpen) {
       const timer = setTimeout(() => {
@@ -158,7 +156,6 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
             style={{ boxShadow: "0 -4px 40px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.06)" }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Top strip colour based on variant */}
             <div
               className="h-1 w-full"
               style={{
@@ -169,7 +166,6 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
             />
 
             <div className="px-5 pt-5 pb-2">
-              {/* Header row */}
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1">
                   {dialog.title && (
@@ -197,7 +193,6 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
               </div>
             </div>
 
-            {/* Action buttons */}
             <div className="flex gap-2 px-5 pb-5 pt-3">
               {dialog.type === "confirm" ? (
                 <>

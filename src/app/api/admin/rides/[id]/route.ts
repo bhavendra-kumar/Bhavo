@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import dbConnect from "@/lib/mongoose";
 import Ride from "@/models/Ride";
+import Ticket from "@/models/Ticket";
+import AdminAuditLog from "@/models/AdminAuditLog";
 import { requireAdmin, isAuthError, handleAuthError } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -22,10 +24,16 @@ export async function GET(
       );
     }
 
-    const ride = await Ride.findById(id)
-      .populate("rider", "name email phone rating status")
-      .populate("driver", "name email phone rating status isOnline dutyState")
-      .lean();
+    const [ride, relatedAuditLogs] = await Promise.all([
+      Ride.findById(id)
+        .populate("rider", "name email phone rating status")
+        .populate("driver", "name email phone rating status isOnline dutyState driverVehicle")
+        .lean(),
+      AdminAuditLog.find({ targetId: id })
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .lean(),
+    ]);
 
     if (!ride) {
       return NextResponse.json(
@@ -37,10 +45,20 @@ export async function GET(
     const rideRec = ride as unknown as {
       _id: unknown;
       rider?: { _id: unknown; name: string; email: string; phone?: string; rating?: number; status?: string };
-      driver?: { _id: unknown; name: string; email: string; phone?: string; rating?: number; status?: string; isOnline?: boolean; dutyState?: string };
-      driverDetails?: Record<string, unknown>;
-      pickup: { address: string; landmark?: string };
-      dropoff: { address: string; landmark?: string };
+      driver?: {
+        _id: unknown;
+        name: string;
+        email: string;
+        phone?: string;
+        rating?: number;
+        status?: string;
+        isOnline?: boolean;
+        dutyState?: string;
+        driverVehicle?: { model?: string; numberPlate?: string; type?: string };
+      };
+      driverDetails?: { name: string; phone: string; vehicleNumber: string; vehicleModel?: string };
+      pickup: { address: string; landmark?: string; coordinates?: [number, number] };
+      dropoff: { address: string; landmark?: string; coordinates?: [number, number] };
       vehicleType: string;
       distance?: string;
       duration?: string;
@@ -50,14 +68,39 @@ export async function GET(
       status: string;
       paymentMethod: string;
       paymentStatus: string;
-      cashCollectedAt?: Date;
+      cashCollectedAt?: Date | null;
+      cashCollectedBy?: unknown;
+      razorpayOrderId?: string | null;
+      razorpayPaymentId?: string | null;
+      paymentConfirmedAt?: Date | null;
+      petFriendly?: boolean;
+      cancellationReason?: string | null;
+      cancelledBy?: string | null;
+      acceptedAt?: Date | null;
+      arrivedAt?: Date | null;
+      startedAt?: Date | null;
+      completedAt?: Date | null;
+      cancelledAt?: Date | null;
       scheduledFor?: Date | null;
+      commuteId?: unknown;
       autoBookingOccurrenceKey?: string | null;
-      otp?: string;
-      dispatchOffers?: Array<{ driverId: unknown; offeredAt: Date; expiresAt: Date }>;
+      dispatchStatus?: string;
+      dispatchAttempts?: number;
+      currentOffer?: unknown;
       createdAt: Date;
       updatedAt: Date;
     };
+
+    let relatedTickets: unknown[] = [];
+    if (rideRec.rider?._id) {
+      relatedTickets = await Ticket.find({ user: rideRec.rider._id })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .select("ticketId category subject status priority createdAt")
+        .lean();
+    }
+
+    const isCommute = Boolean(rideRec.commuteId || rideRec.autoBookingOccurrenceKey);
 
     return NextResponse.json({
       status: "success",
@@ -84,34 +127,60 @@ export async function GET(
                 status: rideRec.driver.status,
                 isOnline: rideRec.driver.isOnline,
                 dutyState: rideRec.driver.dutyState,
+                vehicleNumber: rideRec.driver.driverVehicle?.numberPlate || "N/A",
+                vehicleModel: rideRec.driver.driverVehicle?.model || "N/A",
+              }
+            : rideRec.driverDetails
+            ? {
+                id: null,
+                name: rideRec.driverDetails.name,
+                phone: rideRec.driverDetails.phone,
+                vehicleNumber: rideRec.driverDetails.vehicleNumber,
+                vehicleModel: rideRec.driverDetails.vehicleModel || "N/A",
               }
             : null,
-          driverDetails: rideRec.driverDetails || null,
-          pickup: {
-            address: rideRec.pickup.address,
-            landmark: rideRec.pickup.landmark || null,
-          },
-          dropoff: {
-            address: rideRec.dropoff.address,
-            landmark: rideRec.dropoff.landmark || null,
-          },
+          pickup: rideRec.pickup,
+          dropoff: rideRec.dropoff,
           vehicleType: rideRec.vehicleType,
           distance: rideRec.distance || "N/A",
           duration: rideRec.duration || "N/A",
           fare: rideRec.fare,
-          fareInPaise: rideRec.fareInPaise,
+          fareInPaise: rideRec.fareInPaise || Math.round((rideRec.fare || 0) * 100),
+          fareInRupees: rideRec.fareInPaise ? rideRec.fareInPaise / 100 : rideRec.fare || 0,
           pricingSnapshot: rideRec.pricingSnapshot || null,
           status: rideRec.status,
           paymentMethod: rideRec.paymentMethod,
           paymentStatus: rideRec.paymentStatus,
           cashCollectedAt: rideRec.cashCollectedAt || null,
-          scheduledFor: rideRec.scheduledFor || null,
-          isAutoBooked: Boolean(rideRec.autoBookingOccurrenceKey),
+          razorpayOrderId: rideRec.razorpayOrderId || null,
+          razorpayPaymentId: rideRec.razorpayPaymentId || null,
+          paymentConfirmedAt: rideRec.paymentConfirmedAt || null,
+          petFriendly: Boolean(rideRec.petFriendly),
+          bookingType: isCommute ? "COMMUTE" : "ON_DEMAND",
+          commuteId: rideRec.commuteId ? rideRec.commuteId.toString() : null,
           autoBookingOccurrenceKey: rideRec.autoBookingOccurrenceKey || null,
-          dispatchOfferCount: Array.isArray(rideRec.dispatchOffers) ? rideRec.dispatchOffers.length : 0,
-          createdAt: rideRec.createdAt,
+          scheduledFor: rideRec.scheduledFor || null,
+          cancellation: {
+            reason: rideRec.cancellationReason || null,
+            by: rideRec.cancelledBy || null,
+            cancelledAt: rideRec.cancelledAt || null,
+          },
+          dispatch: {
+            status: rideRec.dispatchStatus || "N/A",
+            attempts: rideRec.dispatchAttempts || 0,
+          },
+          timeline: {
+            createdAt: rideRec.createdAt,
+            acceptedAt: rideRec.acceptedAt || null,
+            arrivedAt: rideRec.arrivedAt || null,
+            startedAt: rideRec.startedAt || null,
+            completedAt: rideRec.completedAt || null,
+            cancelledAt: rideRec.cancelledAt || null,
+          },
           updatedAt: rideRec.updatedAt,
         },
+        relatedTickets,
+        relatedAuditLogs,
       },
     });
   } catch (error: unknown) {

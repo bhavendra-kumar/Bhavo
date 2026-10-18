@@ -9,18 +9,6 @@ import {
 
 export const dynamic = "force-dynamic";
 
-/**
- * Background Cron Worker for Auto Booking & Recurring Ride Materialization (Phase 1F)
- *
- * Security:
- * - Requires server-configured CRON_SECRET via Bearer token or x-cron-secret header.
- * - Fails closed if CRON_SECRET is unconfigured or mismatch.
- * - Enforces constant-time validation.
- *
- * Operational Cadence:
- * - Recommended cron interval: Every 1 to 5 minutes.
- * - Idempotent and concurrency-safe across multiple instances or overlapping invocations.
- */
 async function handleAutoBookingCron(req: Request) {
   try {
     const isAuthorized = verifyCronSecret(req);
@@ -37,7 +25,6 @@ async function handleAutoBookingCron(req: Request) {
 
     await dbConnect();
 
-    // Parse optional limit and lookahead overrides from query or body
     const url = new URL(req.url);
     const limitQuery = url.searchParams.get("limit");
     const lookaheadQuery = url.searchParams.get("lookahead");
@@ -53,7 +40,6 @@ async function handleAutoBookingCron(req: Request) {
           lookaheadMinutes = body.lookaheadMinutes;
         }
       } catch {
-        // Body is optional; query params or defaults take precedence
       }
     }
 

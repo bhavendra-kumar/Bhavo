@@ -69,7 +69,6 @@ export default function SettingsPage() {
 
       <div className="flex flex-col md:flex-row gap-5">
 
-        {/* Side nav: horizontal scrollable on mobile, vertical sidebar on desktop */}
         <div className="w-full md:w-56 shrink-0 card p-2 flex flex-row md:flex-col gap-1.5 h-max overflow-x-auto no-scrollbar">
           {TABS.map((tab) => {
             const isActive = activeTab === tab.id;
@@ -98,7 +97,6 @@ export default function SettingsPage() {
           </button>
         </div>
 
-        {/* Content */}
         <div className="flex-1 card p-6">
 
           {activeTab === "general" && (

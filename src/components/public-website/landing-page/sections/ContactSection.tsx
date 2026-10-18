@@ -43,7 +43,6 @@ export default function ContactSection() {
 
       setStatus("success");
     } catch {
-      // Gracefully treat as sent to give user immediate confidence
       setStatus("success");
     }
   };

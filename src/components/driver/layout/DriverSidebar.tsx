@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
@@ -97,7 +98,6 @@ export default function DriverSidebar() {
         borderRight: `1px solid ${BORDER}`,
       }}
     >
-      {/* Logo & Driver Brand Header */}
       <div
         className={`h-16 shrink-0 overflow-hidden relative flex items-center ${
           collapsed ? "justify-center px-2" : "px-4"
@@ -105,22 +105,17 @@ export default function DriverSidebar() {
         style={{ borderBottom: `1px solid ${BORDER}` }}
       >
         <div className="flex items-center gap-3 min-w-0">
-          <div
-            onClick={collapsed ? toggleSidebar : undefined}
-            className={`flex items-center justify-center shrink-0 rounded-xl overflow-hidden bg-white shadow-sm transition-all ${
-              collapsed ? "cursor-pointer hover:ring-2 hover:ring-teal-400 hover:scale-105 active:scale-95" : ""
-            }`}
-            style={{ width: 38, height: 38 }}
-            title={collapsed ? "Expand sidebar" : undefined}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/trimmed-logo.png" alt="Bhavo Logo" className="w-full h-full object-contain p-1" />
-          </div>
-
-          {!collapsed && (
+          {!collapsed ? (
             <div className="flex flex-col min-w-0 leading-tight">
               <div className="flex items-center gap-1.5">
-                <span className="font-black text-white text-[18px] tracking-tight">BHAVO</span>
+                <Image
+                  src="/bhavo-title.png"
+                  alt="Bhavo"
+                  width={114}
+                  height={38}
+                  className="bhavo-title-img h-8 w-auto object-contain"
+                  priority
+                />
                 <span className="text-[9.5px] uppercase font-black tracking-wider px-1.5 py-0.5 rounded-md bg-teal-500/20 text-teal-300 border border-teal-500/30 shrink-0">
                   CAPTAIN
                 </span>
@@ -129,11 +124,25 @@ export default function DriverSidebar() {
                 Command Center
               </span>
             </div>
+          ) : (
+            <div
+              onClick={toggleSidebar}
+              className="flex items-center justify-center cursor-pointer w-full py-1"
+              title="Expand sidebar"
+            >
+              <Image
+                src="/bhavo-title.png"
+                alt="Bhavo"
+                width={50}
+                height={17}
+                className="bhavo-title-img h-4 w-auto object-contain"
+                priority
+              />
+            </div>
           )}
         </div>
       </div>
 
-      {/* Navigation Links */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar px-3 py-2 space-y-5">
         {DRIVER_NAV_ITEMS.map((group) => (
           <div key={group.section} className="space-y-1">
@@ -193,7 +202,6 @@ export default function DriverSidebar() {
         ))}
       </div>
 
-      {/* Driver Profile Footer */}
       <div
         className="p-3 shrink-0"
         style={{ borderTop: `1px solid ${BORDER}`, background: "rgba(0,0,0,0.18)" }}

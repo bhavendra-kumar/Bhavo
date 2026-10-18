@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   CarFront, Shield, FileText, HelpCircle,
   MapPin, Bell, BarChart3, Wallet, CalendarClock,
@@ -34,37 +35,31 @@ export default function Footer() {
       className="w-full mt-auto shrink-0"
       style={{ background: "#042f2e", borderTop: "1px solid rgba(255, 255, 255, 0.08)" }}
     >
-      {/* Main footer content */}
-      <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8 grid grid-cols-1 md:grid-cols-4 gap-8">
+      <div className="max-w-7xl mx-auto px-6 lg:px-8 py-5 grid grid-cols-1 md:grid-cols-4 gap-6">
 
-        {/* Brand column */}
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-2.5">
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center"
-              style={{ background: "rgba(255, 255, 255, 0.08)", border: "1px solid rgba(255, 255, 255, 0.1)" }}
-            >
-              <CarFront size={18} style={{ color: "#2dd4bf" }} />
-            </div>
-            <div>
-              <p className="text-[22px] font-black tracking-tight leading-none bg-linear-to-r from-[#5eead4] via-[#ffffff] to-[#5eead4] bg-size-[200%_auto] bg-clip-text text-transparent animate-shine drop-shadow-[0_0_10px_rgba(45,212,191,0.6)]">BHAVO</p>
-              <p className="text-[10px] font-bold uppercase tracking-widest mt-1.5 text-slate-300">Smart Commute</p>
-            </div>
+        <div className="flex flex-col gap-2">
+          <div>
+            <Image
+              src="/bhavo-title.png"
+              alt="Bhavo"
+              width={120}
+              height={40}
+              className="bhavo-title-img h-8.5 w-auto object-contain"
+            />
+            <p className="text-[10px] font-bold uppercase tracking-widest mt-1 text-slate-300">Smart Commute</p>
           </div>
           <p className="text-[12px] font-medium leading-relaxed text-slate-300">
             Your intelligent ride companion. Fast, safe, and sustainable commutes across the city.
           </p>
 
-          {/* Status pill */}
-          <div className="flex items-center gap-2 mt-1">
-            <span className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full text-slate-200" style={{ background: "rgba(255, 255, 255, 0.06)", border: "1px solid rgba(255, 255, 255, 0.1)" }}>
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className="flex items-center gap-1.5 text-[10.5px] font-semibold px-2 py-0.5 rounded-full text-slate-200" style={{ background: "rgba(255, 255, 255, 0.06)", border: "1px solid rgba(255, 255, 255, 0.1)" }}>
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               All systems operational
             </span>
           </div>
         </div>
 
-        {/* Quick Links */}
         <div className="flex flex-col gap-3">
           <p className="text-[11px] font-bold uppercase tracking-wider text-white">Navigate</p>
           <ul className="flex flex-col gap-2">
@@ -85,7 +80,6 @@ export default function Footer() {
           </ul>
         </div>
 
-        {/* Account Links */}
         <div className="flex flex-col gap-3">
           <p className="text-[11px] font-bold uppercase tracking-wider text-white">Account</p>
           <ul className="flex flex-col gap-2">
@@ -106,7 +100,6 @@ export default function Footer() {
           </ul>
         </div>
 
-        {/* Support & Legal */}
         <div className="flex flex-col gap-3">
           <p className="text-[11px] font-bold uppercase tracking-wider text-white">Support</p>
           <ul className="flex flex-col gap-2">
@@ -126,7 +119,6 @@ export default function Footer() {
             ))}
           </ul>
 
-          {/* Contact mini-block */}
           <div className="mt-2 flex flex-col gap-1.5">
             <a href="mailto:support@bhavo.in" className="flex items-center gap-2 text-[12px] font-medium transition-colors" style={{ color: "#cbd5e1" }}
               onMouseEnter={(e) => (e.currentTarget.style.color = "#ffffff")}
@@ -141,7 +133,6 @@ export default function Footer() {
           </div>
         </div>
       </div>
-
 
     </footer>
   );

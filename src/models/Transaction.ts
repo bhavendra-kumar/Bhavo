@@ -132,16 +132,13 @@ const TransactionSchema = new Schema<ITransaction>(
   }
 );
 
-// Idempotency: primary idempotency key must be globally unique
 TransactionSchema.index({ idempotencyKey: 1 }, { unique: true });
 
-// Composite business-event uniqueness: one entity cannot have duplicate events for same sequence
 TransactionSchema.index(
   { entityType: 1, entityId: 1, eventType: 1, sequence: 1 },
   { unique: true }
 );
 
-// Audit queries: chronological transaction history per user
 TransactionSchema.index({ userId: 1, createdAt: -1 });
 
 const Transaction: Model<ITransaction> =

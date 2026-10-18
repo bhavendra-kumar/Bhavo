@@ -53,7 +53,6 @@ export default function WalletPage() {
   return (
     <div className="flex flex-col gap-5 pb-10">
 
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">Bhavo Wallet & Payment Ledger</h2>
@@ -75,7 +74,6 @@ export default function WalletPage() {
         </button>
       </div>
 
-      {/* Pilot Model Notice Banner */}
       <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-start gap-3">
         <AlertCircle size={18} className="text-amber-700 shrink-0 mt-0.5" />
         <div className="text-[12.5px] text-amber-800 leading-relaxed">
@@ -85,20 +83,18 @@ export default function WalletPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
 
-        {/* Left: Balance & Quick Add */}
         <div className="flex flex-col gap-4 sm:gap-5">
 
-          {/* Balance card */}
           <div className="card p-5 sm:p-6 text-white relative overflow-hidden rounded-2xl shadow-sm"
             style={{ background: "linear-gradient(135deg, #064e3b 0%, #042f2e 100%)", borderColor: "#0f766e" }}>
             <div className="absolute -top-8 -right-8 w-28 h-28 rounded-full opacity-10 bg-white" />
             <div className="absolute bottom-0 left-0 w-24 h-24 rounded-full opacity-5 bg-white" style={{ transform: "translate(-30%, 30%)" }} />
-            
+
             <p className="text-teal-200 text-[10.5px] font-bold uppercase tracking-widest mb-1">Available Platform Balance</p>
             <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-5 text-white">
               ₹{walletBalance.toFixed(2)}
             </h2>
-            
+
             <button
               onClick={handleRechargeNotice}
               className="w-full bg-teal-400 hover:bg-teal-300 text-teal-950 font-black py-2.5 sm:py-3 rounded-xl flex items-center justify-center gap-2 active:scale-98 transition-all text-[13.5px] shadow-sm cursor-pointer"
@@ -107,7 +103,6 @@ export default function WalletPage() {
             </button>
           </div>
 
-          {/* Quick add */}
           <div className="card p-5">
             <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-3">Recharge Amounts</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-2">
@@ -138,7 +133,6 @@ export default function WalletPage() {
             )}
           </div>
 
-          {/* Payment methods */}
           <div className="card p-5">
             <div className="flex items-center justify-between mb-4">
               <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Active Payment Mode</p>
@@ -166,9 +160,8 @@ export default function WalletPage() {
           </div>
         </div>
 
-        {/* Right: Transactions, Rewards, Coupons */}
         <div className="lg:col-span-2 flex flex-col gap-5">
-          
+
           <div className="flex gap-1 p-1 rounded-xl w-full sm:w-max overflow-x-auto no-scrollbar bg-slate-100 border border-slate-200">
             {["Transactions", "Coupons", "Rewards"].map((tab) => (
               <button key={tab} onClick={() => setActiveTab(tab)}
@@ -184,7 +177,7 @@ export default function WalletPage() {
           </div>
 
           <div className="card flex-1 min-h-100 overflow-hidden flex flex-col">
-            
+
             {activeTab === "Transactions" && (
               <div className="flex flex-col">
                 <div className="p-5 flex items-center justify-between border-b border-slate-100">

@@ -56,20 +56,16 @@ export default function MobileMenuSheet({ isOpen, onClose }: MobileMenuSheetProp
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-200">
-      {/* Backdrop tap to close */}
       <div className="flex-1 w-full" onClick={onClose} />
 
-      {/* Slide-Up Bottom Sheet */}
       <div
         className="w-full bg-white rounded-t-3xl shadow-2xl border-t border-slate-200 flex flex-col max-h-[88vh] animate-in slide-in-from-bottom duration-300 overflow-hidden"
         style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px), 14px)" }}
       >
-        {/* Drag Pill Handle */}
         <div className="w-full flex items-center justify-center pt-3 pb-1 shrink-0 cursor-pointer" onClick={onClose}>
           <div className="w-10 h-1.5 rounded-full bg-slate-300" />
         </div>
 
-        {/* User Identity Header */}
         <div className="px-5 py-3.5 flex items-center justify-between border-b border-slate-100 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <Avatar className="w-11 h-11 border-2 border-teal-500 shrink-0 shadow-xs">
@@ -125,7 +121,6 @@ export default function MobileMenuSheet({ isOpen, onClose }: MobileMenuSheetProp
           </Link>
         </div>
 
-        {/* Menu Navigation Links List */}
         <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-1 flex flex-col gap-0.5 divide-y divide-slate-100">
           {MENU_ITEMS.map((item) => {
             const Icon = item.icon;
@@ -149,7 +144,6 @@ export default function MobileMenuSheet({ isOpen, onClose }: MobileMenuSheetProp
           })}
         </div>
 
-        {/* Sign Out Action Button */}
         <div className="p-3.5 border-t border-slate-100 shrink-0">
           <button
             type="button"

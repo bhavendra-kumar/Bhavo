@@ -67,7 +67,6 @@ export default function DriverRatings() {
 
   return (
     <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full pb-10">
-      {/* Overview Card */}
       <div className="p-6 md:p-8 rounded-3xl bg-white border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-5">
           <div className="w-20 h-20 rounded-3xl bg-amber-50 border border-amber-200 flex flex-col items-center justify-center text-amber-500">

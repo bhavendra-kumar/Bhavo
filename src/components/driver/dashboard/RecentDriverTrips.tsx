@@ -60,7 +60,6 @@ export default function RecentDriverTrips() {
             key={trip.id || idx}
             className="py-3.5 first:pt-1 last:pb-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3 group hover:bg-slate-50/60 -mx-2 px-2 rounded-xl transition-colors"
           >
-            {/* Left: Rider & Route */}
             <div className="flex items-start gap-3 min-w-0">
               <div className="w-9 h-9 rounded-xl bg-teal-50 text-teal-700 border border-teal-200/60 flex items-center justify-center shrink-0 mt-0.5">
                 <Car size={16} />
@@ -94,7 +93,6 @@ export default function RecentDriverTrips() {
               </div>
             </div>
 
-            {/* Right: Fare, Tip & Payment Method */}
             <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-100">
               <div className="flex items-baseline gap-1">
                 <span className="text-base font-black text-slate-900">

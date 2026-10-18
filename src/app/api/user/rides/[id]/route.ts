@@ -24,7 +24,6 @@ export async function GET(
     }
 
     await dbConnect();
-    // Enforce rider resource ownership: user can only view their own ride
     const ride = await Ride.findOne({ _id: id, rider: user._id });
     if (!ride) {
       return NextResponse.json({ status: "error", message: "Ride not found" }, { status: 404 });
@@ -69,7 +68,6 @@ export async function PATCH(
 
     await dbConnect();
 
-    // RIDER CANCELLATION: delegated to atomic state machine
     if (action === "cancel") {
       const updatedRide = await transitionToCancelledByRider({
         rideId: id,
@@ -84,7 +82,6 @@ export async function PATCH(
       });
     }
 
-    // Rate Trip action (only permitted on completed rides)
     if (action === "rate_trip") {
       const ride = await Ride.findOne({ _id: id, rider: user._id });
       if (!ride) {
@@ -100,7 +97,6 @@ export async function PATCH(
 
       const { rating, tip, compliments } = body;
 
-      // Phase 1C: Prevent unfunded monetary tipping mutations
       if (typeof tip === "number" && tip > 0) {
         return NextResponse.json(
           {

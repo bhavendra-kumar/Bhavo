@@ -37,17 +37,40 @@ export async function GET(req: Request) {
       query.$or = [{ ticketId: regex }, { subject: regex }, { description: regex }];
     }
 
-    const totalMatching = await Ticket.countDocuments(query);
-    const tickets = await Ticket.find(query)
-      .populate("user", "name email phone role")
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .lean();
+    const [
+      totalMatching,
+      tickets,
+      openCount,
+      inProgressCount,
+      highPriorityCount,
+      resolvedCount,
+      closedCount,
+    ] = await Promise.all([
+      Ticket.countDocuments(query),
+      Ticket.find(query)
+        .populate("user", "name email phone role")
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+      Ticket.countDocuments({ status: "OPEN" }),
+      Ticket.countDocuments({ status: "IN_PROGRESS" }),
+      Ticket.countDocuments({ priority: "HIGH", status: { $in: ["OPEN", "IN_PROGRESS"] } }),
+      Ticket.countDocuments({ status: "RESOLVED" }),
+      Ticket.countDocuments({ status: "CLOSED" }),
+    ]);
 
     return NextResponse.json({
       status: "success",
       data: {
+        metrics: {
+          total: openCount + inProgressCount + resolvedCount + closedCount,
+          openCount,
+          inProgressCount,
+          highPriorityCount,
+          resolvedCount,
+          closedCount,
+        },
         tickets: tickets.map((t) => {
           const ticketRec = t as unknown as {
             _id: unknown;

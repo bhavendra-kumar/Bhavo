@@ -73,21 +73,21 @@ export default function CTASection() {
             lineHeight: 1.05,
           }}
         >
-          Your Perfect Commute
+          {"Your Perfect Commute &"}
           <br />
-          Starts Tomorrow.
+          Driving Partner.
         </h2>
         <p
           style={{
             fontSize: 18,
             color: "rgba(255,255,255,0.75)",
-            maxWidth: 500,
+            maxWidth: 520,
             margin: "0 auto 48px",
             lineHeight: 1.6,
           }}
         >
-          Join 50,000+ professionals who&apos;ve made their daily commute the
-          easiest part of their day.
+          Join 50,000+ daily commuters and 10,000+ top-rated captains who&apos;ve made Bhavo
+          their everyday choice for smart urban travel.
         </p>
 
         <div
@@ -132,7 +132,7 @@ export default function CTASection() {
             Get Started Free →
           </Link>
           <Link
-            href="/contact"
+            href="/signup?role=driver"
             style={{
               background: "rgba(255,255,255,0.12)",
               color: "#fff",
@@ -162,7 +162,7 @@ export default function CTASection() {
                 "translateY(0)";
             }}
           >
-            Talk to Sales
+            Become a Driver
           </Link>
         </div>
       </div>

@@ -13,7 +13,6 @@ export async function GET(req: Request) {
     const user = await getDriverUser(req);
     const verification = checkDriverVerification(user);
 
-    // If documents are not verified, driver is strictly not allowed to be online
     if (!verification.isVerified && user.isOnline) {
       user.isOnline = false;
       user.dutyState = "OFFLINE";
@@ -27,7 +26,6 @@ export async function GET(req: Request) {
     startOfWeek.setDate(startOfWeek.getDate() - 7);
     startOfWeek.setHours(0, 0, 0, 0);
 
-    // Calculate real stats from MongoDB
     const todayCompleted = await Ride.find({
       driver: user._id,
       status: "COMPLETED",
@@ -53,7 +51,6 @@ export async function GET(req: Request) {
     const weeklyEarnings = weeklyEarningsFromDb;
     const tripsCompleted = todayCompleted.length;
 
-    // Driver profile from MongoDB
     const driverProfile = {
       id: String(user._id),
       name: user.name,
@@ -67,7 +64,6 @@ export async function GET(req: Request) {
       dutyState: verification.isVerified && user.isOnline ? (user.dutyState || "ONLINE_SEARCHING") : "OFFLINE",
     };
 
-    // Find real active ride assigned to this driver
     const activeRideDoc = await Ride.findOne({
       driver: user._id,
       status: { $in: ["ACCEPTED", "ARRIVED", "IN_PROGRESS"] },
@@ -99,7 +95,6 @@ export async function GET(req: Request) {
         distance: activeRideDoc.distance,
         duration: activeRideDoc.duration,
         status: activeRideDoc.status,
-        // Finding 6 fix: Driver must not receive the rider's secret OTP in dashboard payload
         paymentMethod: activeRideDoc.paymentMethod,
         paymentStatus: activeRideDoc.paymentStatus,
         messages: activeRideDoc.messages || [],
@@ -107,7 +102,6 @@ export async function GET(req: Request) {
       };
     }
 
-    // Fetch real recent trips from MongoDB
     const pastRides = await Ride.find({
       driver: user._id,
       status: { $in: ["COMPLETED", "CANCELLED"] },

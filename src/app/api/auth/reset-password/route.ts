@@ -59,10 +59,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // Hash the new password
     const hashedPassword = await hash(newPassword, 12);
 
-    // Update password, increment tokenVersion (revoking active sessions), and strictly clear OTP fields
     user.password = hashedPassword;
     user.tokenVersion = (user.tokenVersion || 0) + 1;
     user.resetOtp = null;

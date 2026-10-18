@@ -27,7 +27,6 @@ interface IMockTx {
 describe("Phase 1C: Financial Ledger & Transaction Invariant Tests", () => {
   const testUserId = new mongoose.Types.ObjectId();
 
-  // In-memory Ledger simulator for verifying invariants and concurrency
   class MockLedgerStore {
     public transactions: Map<string, IMockTx> = new Map();
     public compositeIndex: Set<string> = new Set();
@@ -60,12 +59,10 @@ describe("Phase 1C: Financial Ledger & Transaction Invariant Tests", () => {
 
       const compositeKey = `${input.entityType}:${input.entityId}:${input.eventType}:${seq}`;
 
-      // 1. Idempotency check
       if (this.transactions.has(key)) {
         return { transaction: this.transactions.get(key), isDuplicate: true };
       }
 
-      // 2. Composite uniqueness check
       if (this.compositeIndex.has(compositeKey)) {
         for (const tx of this.transactions.values()) {
           if (
@@ -104,7 +101,6 @@ describe("Phase 1C: Financial Ledger & Transaction Invariant Tests", () => {
     }
   }
 
-  // 1. Rejects invalid, negative, or non-integer amounts in ledger
   it("Rejects non-integer, negative, or NaN transaction amounts in paise", async () => {
     const ledger = new MockLedgerStore();
 
@@ -115,7 +111,7 @@ describe("Phase 1C: Financial Ledger & Transaction Invariant Tests", () => {
           userRole: "DRIVER",
           type: "CASH_COLLECTED_BY_DRIVER",
           direction: "NON_MONETARY_RECORD",
-          amountInPaise: -500, // Negative
+          amountInPaise: -500,
           entityType: "RIDE",
           entityId: "ride_123",
           eventType: "CASH_COLLECTION",
@@ -131,7 +127,7 @@ describe("Phase 1C: Financial Ledger & Transaction Invariant Tests", () => {
           userRole: "DRIVER",
           type: "CASH_COLLECTED_BY_DRIVER",
           direction: "NON_MONETARY_RECORD",
-          amountInPaise: 450.75, // Fractional
+          amountInPaise: 450.75,
           entityType: "RIDE",
           entityId: "ride_123",
           eventType: "CASH_COLLECTION",
@@ -141,7 +137,6 @@ describe("Phase 1C: Financial Ledger & Transaction Invariant Tests", () => {
     );
   });
 
-  // 2. Canonical idempotency key generation is deterministic
   it("Generates canonical idempotency keys with entity, event, and sequence", () => {
     const key1 = generateLedgerIdempotencyKey("RIDE", "65f123abc456", "CASH_COLLECTION", 1);
     const key2 = generateLedgerIdempotencyKey("RIDE", "65f123abc456", "CASH_COLLECTION", 1);
@@ -152,7 +147,6 @@ describe("Phase 1C: Financial Ledger & Transaction Invariant Tests", () => {
     assert.notEqual(key1, keySeq2);
   });
 
-  // 3. Idempotent recording: duplicate attempt returns existing transaction without duplicating ledger
   it("Duplicate transaction write with same idempotency key returns existing transaction without side effects", async () => {
     const ledger = new MockLedgerStore();
     const rideId = "ride_unique_001";
@@ -162,7 +156,7 @@ describe("Phase 1C: Financial Ledger & Transaction Invariant Tests", () => {
       userRole: "DRIVER",
       type: "CASH_COLLECTED_BY_DRIVER",
       direction: "NON_MONETARY_RECORD",
-      amountInPaise: 35000, // ₹350
+      amountInPaise: 35000,
       entityType: "RIDE",
       entityId: rideId,
       eventType: "CASH_COLLECTION",
@@ -174,7 +168,6 @@ describe("Phase 1C: Financial Ledger & Transaction Invariant Tests", () => {
     assert.equal(res1.transaction.amountInPaise, 35000);
     assert.equal(ledger.transactions.size, 1);
 
-    // Second write with identical event
     const res2 = await ledger.recordEvent({
       userId: testUserId,
       userRole: "DRIVER",
@@ -193,7 +186,6 @@ describe("Phase 1C: Financial Ledger & Transaction Invariant Tests", () => {
     assert.equal(ledger.transactions.size, 1, "Ledger size must strictly remain 1");
   });
 
-  // 4. Physical cash collected by driver is recorded as NON_MONETARY_RECORD
   it("Driver-collected cash is recorded with direction NON_MONETARY_RECORD", async () => {
     const ledger = new MockLedgerStore();
     const res = await ledger.recordEvent({
@@ -215,7 +207,6 @@ describe("Phase 1C: Financial Ledger & Transaction Invariant Tests", () => {
     assert.equal(res.transaction.status, "SETTLED");
   });
 
-  // 5. Distinct event types on the same ride can be recorded independently
   it("Allows distinct event types on the same ride without collision", async () => {
     const ledger = new MockLedgerStore();
     const rideId = "ride_multi_events";

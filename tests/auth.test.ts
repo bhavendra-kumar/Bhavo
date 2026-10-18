@@ -21,7 +21,6 @@ describe("Phase 1A: Authentication & JWT Security Tests", () => {
     process.env.AUTH_SECRET = originalAuthSecret;
   });
 
-  // 1. Valid login token succeeds verification
   it("Scenario 1: Valid signed JWT token succeeds verification and decodes correct payload", async () => {
     const payload = {
       id: "67041a9b4f1234567890abcd",
@@ -38,7 +37,6 @@ describe("Phase 1A: Authentication & JWT Security Tests", () => {
     assert.equal(decoded.role, "RIDER");
   });
 
-  // 2. Invalid credentials verification fails
   it("Scenario 2: Invalid password comparison fails", async () => {
     const bcrypt = await import("bcryptjs");
     const realPassword = "SecurePassword123!";
@@ -49,7 +47,6 @@ describe("Phase 1A: Authentication & JWT Security Tests", () => {
     assert.equal(isValid, false, "Invalid password must not validate against stored hash");
   });
 
-  // 3. Invalid JWT signature fails
   it("Scenario 3: Tampered or invalid JWT signature fails verification", async () => {
     const token = await signAuthToken({
       id: "67041a9b4f1234567890abcd",
@@ -58,7 +55,6 @@ describe("Phase 1A: Authentication & JWT Security Tests", () => {
     });
 
     const parts = token.split(".");
-    // Tamper with payload segment
     const tamperedPayload = Buffer.from(JSON.stringify({ id: "hacked", role: "ADMIN" })).toString("base64url");
     const tamperedToken = `${parts[0]}.${tamperedPayload}.${parts[2]}`;
 
@@ -74,9 +70,7 @@ describe("Phase 1A: Authentication & JWT Security Tests", () => {
     );
   });
 
-  // 4. Expired JWT fails
   it("Scenario 4: Expired JWT fails verification with TOKEN_EXPIRED error", async () => {
-    // Generate token that expired 10 seconds ago
     const expiredToken = await signAuthToken(
       { id: "67041a9b4f1234567890abcd", email: "rider@bhavo.in", role: "RIDER" },
       "-10s"
@@ -95,7 +89,6 @@ describe("Phase 1A: Authentication & JWT Security Tests", () => {
     );
   });
 
-  // 5. Malformed JWT fails
   it("Scenario 5: Malformed JWT tokens fail verification with TOKEN_MALFORMED", async () => {
     const malformedTokens = [
       "not.a.valid.jwt.structure.here",
@@ -119,7 +112,6 @@ describe("Phase 1A: Authentication & JWT Security Tests", () => {
     }
   });
 
-  // 6. Missing token fails
   it("Scenario 6: Empty or missing token fails verification with TOKEN_MISSING", async () => {
     const emptyTokens = ["", "   ", null as unknown as string, undefined as unknown as string];
 
@@ -138,7 +130,6 @@ describe("Phase 1A: Authentication & JWT Security Tests", () => {
     }
   });
 
-  // 7. Missing JWT_SECRET causes secure failure
   it("Scenario 7: Missing JWT_SECRET and AUTH_SECRET causes fail-fast secure failure", () => {
     delete process.env.JWT_SECRET;
     delete process.env.AUTH_SECRET;
@@ -150,11 +141,9 @@ describe("Phase 1A: Authentication & JWT Security Tests", () => {
       /FATAL: JWT_SECRET or AUTH_SECRET is not configured/
     );
 
-    // Restore for subsequent tests
     process.env.JWT_SECRET = "test_super_secure_jwt_secret_for_bhavo_auth_tests_12345";
   });
 
-  // 8. Suspended/disabled account verification
   it("Scenario 8: Suspended or disabled account state is identified and rejected", () => {
     const suspendedUser = {
       _id: "67041a9b4f1234567890abcd",

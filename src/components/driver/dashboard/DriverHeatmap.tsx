@@ -57,7 +57,7 @@ export default function DriverHeatmap() {
   const [showSurge, setShowSurge] = useState(true);
   const { activeRide, surgeAreas, vehicle, driverCoordinates } = useDriverStore();
 
-  const driverPos: [number, number] = driverCoordinates || [28.6139, 77.2090]; // Live synced telemetry
+  const driverPos: [number, number] = driverCoordinates || [28.6139, 77.2090];
 
   useEffect(() => {
     return () => {
@@ -120,7 +120,6 @@ export default function DriverHeatmap() {
     iconAnchor: [14, 14],
   });
 
-  // Calculate polyline if active ride exists
   const routePoints: [number, number][] = activeRide
     ? [driverPos, activeRide.pickup.coordinates, activeRide.dropoff.coordinates]
     : [];
@@ -130,7 +129,6 @@ export default function DriverHeatmap() {
       className="relative rounded-3xl overflow-hidden border border-slate-200/80 shadow-md bg-white flex flex-col z-0 isolate"
       style={{ zIndex: 0 }}
     >
-      {/* Map Control Bar Overlay */}
       <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-between pointer-events-none">
         <div className="pointer-events-auto flex items-center gap-2 bg-white/95 backdrop-blur-md px-3.5 py-1.5 rounded-full shadow-md border border-slate-200/80 text-xs font-bold text-slate-800">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -151,7 +149,6 @@ export default function DriverHeatmap() {
         </div>
       </div>
 
-      {/* Leaflet Map Canvas */}
       <div className="w-full h-88 relative z-0" style={{ zIndex: 0 }}>
         <MapContainer
           key={mapKey}
@@ -168,7 +165,6 @@ export default function DriverHeatmap() {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
-          {/* Driver Marker */}
           <Marker position={driverPos} icon={carIcon}>
             <Popup>
               <div className="p-1 text-xs">
@@ -179,7 +175,6 @@ export default function DriverHeatmap() {
             </Popup>
           </Marker>
 
-          {/* Surge Hot Spots */}
           {showSurge &&
             surgeAreas.map((s) => (
               <React.Fragment key={s.id}>
@@ -204,7 +199,6 @@ export default function DriverHeatmap() {
               </React.Fragment>
             ))}
 
-          {/* Active Trip Markers & Polyline */}
           {activeRide && (
             <>
               <Marker position={activeRide.pickup.coordinates} icon={pickupIcon}>
@@ -239,7 +233,6 @@ export default function DriverHeatmap() {
         </MapContainer>
       </div>
 
-      {/* Map Bottom Legend / Ticker */}
       <div className="px-5 py-3 bg-slate-50 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-1.5 font-bold text-slate-700">

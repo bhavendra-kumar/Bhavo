@@ -22,7 +22,6 @@ export default function DriverMetricsGrid() {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {/* 1. Daily Earnings Card */}
       <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-sm flex flex-col justify-between relative overflow-hidden group hover:border-teal-500/40 transition-all">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
@@ -55,7 +54,6 @@ export default function DriverMetricsGrid() {
         </div>
       </div>
 
-      {/* 2. Daily Quest Bonus Card */}
       <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-sm flex flex-col justify-between relative overflow-hidden group hover:border-amber-500/40 transition-all">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
@@ -77,7 +75,6 @@ export default function DriverMetricsGrid() {
             </span>
           </div>
 
-          {/* Progress Bar */}
           <div className="w-full h-2 bg-slate-100 rounded-full mt-2 overflow-hidden">
             <div
               className="h-full bg-linear-to-r from-amber-400 to-amber-500 rounded-full transition-all duration-500"
@@ -96,7 +93,6 @@ export default function DriverMetricsGrid() {
         </div>
       </div>
 
-      {/* 3. Shift Time & Performance */}
       <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-sm flex flex-col justify-between relative overflow-hidden group hover:border-teal-500/40 transition-all">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
@@ -128,7 +124,6 @@ export default function DriverMetricsGrid() {
         </div>
       </div>
 
-      {/* 4. Vehicle & Compliance Card */}
       <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-sm flex flex-col justify-between relative overflow-hidden group hover:border-teal-500/40 transition-all">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">

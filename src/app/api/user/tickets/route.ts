@@ -20,7 +20,6 @@ export async function GET() {
 
     let tickets = await Ticket.find({ user: user._id }).sort({ createdAt: -1 });
 
-    // Seed default welcome ticket if none exist
     if (tickets.length === 0) {
       tickets = await Ticket.create([
         {

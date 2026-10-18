@@ -59,10 +59,6 @@ export interface IEligibilityResult {
   distanceKm?: number;
 }
 
-/**
- * Calculates straight-line geodesic distance in kilometers between two coordinate pairs using the Haversine formula.
- * Coordinates are [latitude, longitude].
- */
 export function calculateHaversineDistanceKm(
   coord1: [number, number],
   coord2: [number, number]
@@ -88,7 +84,7 @@ export function calculateHaversineDistanceKm(
     return NaN;
   }
 
-  const R = 6371; // Earth's mean radius in km
+  const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
 
@@ -103,12 +99,7 @@ export function calculateHaversineDistanceKm(
   return Math.round(R * c * 1000) / 1000;
 }
 
-/**
- * Canonical vehicle compatibility mapping.
- * Fails closed for unknown or undefined categories.
- */
 const VEHICLE_COMPATIBILITY_MAP: Record<string, string[]> = {
-  // Ride category -> Acceptable Driver Vehicle Types (normalized lowercase)
   "cab economy": [
     "cab economy",
     "economy",
@@ -140,10 +131,6 @@ const VEHICLE_COMPATIBILITY_MAP: Record<string, string[]> = {
   parcel: ["parcel", "bike", "moto", "two wheeler", "auto", "cab economy"],
 };
 
-/**
- * Evaluates whether a driver's vehicle type can fulfill the requested ride category.
- * Unknown or unsupported vehicle categories fail closed (return false).
- */
 export function isVehicleCompatible(
   driverVehicleType?: string | null,
   rideVehicleType?: string | null
@@ -155,17 +142,12 @@ export function isVehicleCompatible(
 
   const allowedTypes = VEHICLE_COMPATIBILITY_MAP[normRide];
   if (!allowedTypes) {
-    // Exact normalized match fallback if not in explicit matrix
     return normRide === normDriver;
   }
 
   return allowedTypes.some((allowed) => normDriver.includes(allowed) || allowed === normDriver);
 }
 
-/**
- * Evaluates whether a driver is pet-compatible with the ride requirement.
- * If the ride requires pet-friendly accommodation, the driver must explicitly accept pets.
- */
 export function isPetCompatible(
   driverSettings?: { petFriendly?: boolean } | null,
   ridePetFriendly?: boolean
@@ -174,10 +156,6 @@ export function isPetCompatible(
   return Boolean(driverSettings?.petFriendly);
 }
 
-/**
- * Validates coordinate pair for finite numeric values and valid geographic boundaries.
- * Latitude must be [-90, 90], Longitude must be [-180, 180]. [0, 0] is valid.
- */
 export function validateDriverCoordinates(coordinates?: unknown): boolean {
   if (!Array.isArray(coordinates) || coordinates.length !== 2) {
     return false;
@@ -192,10 +170,6 @@ export function validateDriverCoordinates(coordinates?: unknown): boolean {
   return true;
 }
 
-/**
- * Validates driver coordinates for finite numeric values, legitimate geographic bounds,
- * and freshness against the configured maximum location age in seconds.
- */
 export function isLocationValidAndFresh(
   coordinates?: [number, number] | null,
   updatedAt?: Date | string | null,
@@ -219,20 +193,6 @@ export function isLocationValidAndFresh(
   return ageSeconds >= 0 && ageSeconds <= maxAgeSeconds;
 }
 
-/**
- * Evaluates complete eligibility of a driver candidate for a specific ride request.
- * Hard binary gates:
- * 1. Role must be DRIVER
- * 2. Account status must be ACTIVE
- * 3. Driver must be isOnline: true
- * 4. Driver dutyState must be ONLINE_SEARCHING (not OFFLINE or ON_TRIP)
- * 5. Driver documents must be 100% verified (checkDriverVerification)
- * 6. Driver vehicle must be compatible with ride vehicleType
- * 7. Driver must be pet-compatible if ride requires petFriendly
- * 8. Driver coordinates must be valid and sufficiently fresh (< maxLocationAge)
- * 9. Driver must be within maxRadiusKm from ride pickup coordinates
- * 10. Driver must not have already rejected or timed out in this dispatch cycle
- */
 export function evaluateDriverEligibility(
   driver: IDriverCandidate,
   ride: IRideRequirements,
@@ -244,22 +204,18 @@ export function evaluateDriverEligibility(
     ? context.maxLocationAgeMs / 1000
     : getDriverLocationMaxAgeMs() / 1000;
 
-  // 1. Role
   if (driver.role !== "DRIVER") {
     return { isEligible: false, code: "INVALID_ROLE", reason: "INVALID_ROLE" };
   }
 
-  // 2. Account Status
   if (driver.status && driver.status !== "ACTIVE") {
     return { isEligible: false, code: "DRIVER_INACTIVE", reason: "DRIVER_INACTIVE" };
   }
 
-  // 3. Online
   if (!driver.isOnline) {
     return { isEligible: false, code: "DRIVER_OFFLINE", reason: "DRIVER_OFFLINE" };
   }
 
-  // 4. Duty State & Active Ride Exclusivity
   if (driver.dutyState === "OFFLINE") {
     return { isEligible: false, code: "DRIVER_OFFLINE", reason: "DRIVER_OFFLINE" };
   }
@@ -267,13 +223,11 @@ export function evaluateDriverEligibility(
     return { isEligible: false, code: "DRIVER_OCCUPIED", reason: "DRIVER_OCCUPIED" };
   }
 
-  // 5. Document Verification
   const verification = checkDriverVerification(driver);
   if (!verification.isVerified) {
     return { isEligible: false, code: "DOCUMENTS_UNVERIFIED", reason: "DOCUMENTS_UNVERIFIED" };
   }
 
-  // 6. Vehicle Compatibility
   if (!isVehicleCompatible(driver.driverVehicle?.type, ride.vehicleType)) {
     return {
       isEligible: false,
@@ -282,17 +236,14 @@ export function evaluateDriverEligibility(
     };
   }
 
-  // 7. Pet Compatibility
   if (ride.petFriendly && !isPetCompatible(driver.driverSettings, true)) {
     return { isEligible: false, code: "PET_INCOMPATIBLE", reason: "PET_INCOMPATIBLE" };
   }
 
-  // 8. Location Freshness
   if (!isLocationValidAndFresh(driver.driverCoordinates, driver.driverCoordinatesUpdatedAt, maxLocationAgeSeconds, atTime)) {
     return { isEligible: false, code: "LOCATION_STALE", reason: "LOCATION_STALE" };
   }
 
-  // 9. Distance & Radius
   const distanceKm = calculateHaversineDistanceKm(
     ride.pickup.coordinates,
     driver.driverCoordinates!
@@ -307,7 +258,6 @@ export function evaluateDriverEligibility(
     };
   }
 
-  // 10. Rejection History (same dispatch cycle)
   if (ride.rejectedDrivers && Array.isArray(ride.rejectedDrivers)) {
     const driverIdStr = driver._id ? driver._id.toString() : "";
     const isRejected = ride.rejectedDrivers.some((d) => d && d.toString() === driverIdStr);

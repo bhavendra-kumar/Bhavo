@@ -146,9 +146,7 @@ export default function DriverTrips() {
 
   return (
     <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full pb-10">
-      {/* Search & Period Filters */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-        {/* Search Input */}
         <div className="relative flex-1 max-w-md">
           <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           <input
@@ -169,7 +167,6 @@ export default function DriverTrips() {
           )}
         </div>
 
-        {/* Filter Tabs */}
         <div className="flex items-center gap-1.5 flex-wrap">
           {["ALL", "TODAY", "THIS WEEK", "COMPLETED", "CANCELLED"].map((tab) => (
             <button
@@ -306,7 +303,6 @@ export default function DriverTrips() {
               ))}
             </div>
 
-            {/* Pagination Controls */}
             {totalCount > 0 && (
               <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
                 <div className="text-slate-500 font-medium">

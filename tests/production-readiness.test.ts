@@ -70,11 +70,9 @@ describe("Phase 1I: Runtime Configuration & Secret Hardening", () => {
 
     assert.equal(isLivePaymentEnabled(), false);
 
-    // Even if LIVE_PAYMENTS_ENABLED is set to true without credentials, it must fail closed
     process.env.LIVE_PAYMENTS_ENABLED = "true";
     assert.equal(isLivePaymentEnabled(), false);
 
-    // Restore
     if (originalEnabled) process.env.LIVE_PAYMENTS_ENABLED = originalEnabled;
     else delete process.env.LIVE_PAYMENTS_ENABLED;
     if (originalKey) process.env.RAZORPAY_KEY_ID = originalKey;
@@ -88,7 +86,6 @@ describe("Phase 1I: Runtime Configuration & Secret Hardening", () => {
     assert.equal(config.cronConfigured, true);
     assert.equal(typeof config.operationalDefaults.dispatchLeadTimeMinutes, "number");
     assert.equal(typeof config.operationalDefaults.autoBookingLookaheadMinutes, "number");
-    // Ensure no secrets are leaked in the config object
     assert.equal("jwtSecret" in config, false);
     assert.equal("authSecret" in config, false);
     assert.equal("cronSecret" in config, false);
@@ -98,7 +95,7 @@ describe("Phase 1I: Runtime Configuration & Secret Hardening", () => {
 
 describe("Phase 1I: Domain Rate Limiting & Sensitive Endpoint Protection", () => {
   it("Enforces attempt limits and blocks after threshold is reached", async () => {
-    const limiter = new InMemoryRateLimiter(3, 1000); // 3 attempts per 1s
+    const limiter = new InMemoryRateLimiter(3, 1000);
     const key = "test:user:1";
 
     const r1 = await limiter.check(key);
@@ -238,8 +235,8 @@ describe("Phase 1I: Structured Logging & Data Sanitization", () => {
 
 describe("Phase 1I: Core Domain Performance & Latency Benchmarks", () => {
   it("Computes 1,000 Haversine distance calculations in under 20ms", () => {
-    const c1: [number, number] = [28.6139, 77.209]; // Connaught Place
-    const c2: [number, number] = [28.5355, 77.391]; // Noida Sector 62
+    const c1: [number, number] = [28.6139, 77.209];
+    const c2: [number, number] = [28.5355, 77.391];
 
     const start = performance.now();
     for (let i = 0; i < 1000; i++) {

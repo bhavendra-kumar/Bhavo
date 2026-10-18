@@ -7,16 +7,6 @@ import { confirmCashCollection, LedgerError } from "@/lib/ledgerService";
 
 export const dynamic = "force-dynamic";
 
-/**
- * POST /api/driver/rides/[id]/cash
- * 
- * Secure Cash Collection Confirmation (Phase 1C)
- * - Accessible ONLY to the authenticated assigned driver.
- * - Allowed ONLY when ride is COMPLETED and paymentMethod is CASH.
- * - Idempotent: repeated calls safely return existing confirmation.
- * - Physical cash collected directly by driver does NOT credit driver platform wallet.
- * - Platform commission deduction remains disabled until approved.
- */
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }

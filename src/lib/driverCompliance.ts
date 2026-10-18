@@ -22,19 +22,7 @@ export interface IVerificationResult {
   reason?: string;
 }
 
-/**
- * EXACT Required Documents as specified:
- * 1. Driving License (DL): A valid two-wheeler driving license (front and back).
- * 2. Vehicle Registration Certificate (RC): The official registration paper for your bike or vehicle. (If the RC is not in your name, an owner NOC and ID copy may be required).
- * 3. Identity Proof: Aadhaar Card or PAN Card for identity verification.
- * 4. Vehicle Insurance: Active insurance papers for your vehicle.
- * 5. Pollution Under Control (PUC) Certificate: Valid pollution check certificate (required in many regions).
- * 6. Bank Account Details: Passbook, canceled cheque, or UPI ID/bank details to receive your daily/weekly earnings.
- * 7. Profile Photo: A clear, recent photograph of yourself.
- * 8. Helmets: Two helmets (one for the driver and an extra one for the customer, mandatory for bike taxis).
- */
 export const DEFAULT_DRIVER_DOCUMENTS: IDriverDoc[] = [
-  // ── Driver Identity & Account Requirements ──
   {
     name: "Driving License (DL)",
     category: "DRIVER",
@@ -69,7 +57,6 @@ export const DEFAULT_DRIVER_DOCUMENTS: IDriverDoc[] = [
     fileUrl: "/avatars/driver.png",
   },
 
-  // ── Vehicle & Safety Requirements ──
   {
     name: "Vehicle Registration Certificate (RC)",
     category: "VEHICLE",
@@ -138,10 +125,6 @@ export function getDocCategory(name: string, explicitCategory?: string): "DRIVER
   return "VEHICLE";
 }
 
-/**
- * Synchronizes driver documents to ensure ONLY the 8 strictly required documents exist,
- * retaining existing verification statuses, IDs, and upload proofs.
- */
 export function syncDriverDocuments(currentDocs?: Partial<IDriverDoc>[]): IDriverDoc[] {
   if (!Array.isArray(currentDocs) || currentDocs.length === 0) {
     return DEFAULT_DRIVER_DOCUMENTS.map((doc) => ({ ...doc }));
@@ -179,14 +162,6 @@ export function syncDriverDocuments(currentDocs?: Partial<IDriverDoc>[]): IDrive
   });
 }
 
-/**
- * Validates whether all required driver and vehicle documents are completely verified.
- * A driver is verified ONLY if:
- * 1. user.driverVehicle.documentsVerified is not false
- * 2. Every document in driverDocuments has status === 'VERIFIED' or 'EXEMPT'
- * 3. Both Driver category documents and Vehicle category documents are verified
- * 4. No document is 'PENDING' or 'REJECTED'
- */
 export function checkDriverVerification(user: { driverVehicle?: { documentsVerified?: boolean }; driverDocuments?: IDriverDoc[] } | null | undefined): IVerificationResult {
   const rawDocs = user?.driverDocuments;
   const normalizedDocs: IDriverDoc[] = syncDriverDocuments(rawDocs);

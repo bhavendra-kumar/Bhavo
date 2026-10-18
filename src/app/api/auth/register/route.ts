@@ -8,8 +8,7 @@ export async function POST(req: Request) {
   try {
     await dbConnect();
     const body = await req.json();
-    
-    // Zod validation
+
     const parsed = registerSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
@@ -17,11 +16,10 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    
+
     const { name, email, password } = parsed.data;
     const normalizedEmail = email.trim().toLowerCase();
 
-    // Check if user exists
     const existingUser = await User.findOne({ email: normalizedEmail });
 
     if (existingUser) {
@@ -31,21 +29,21 @@ export async function POST(req: Request) {
       );
     }
 
-    // Hash password
     const hashedPassword = await hash(password, 12);
 
-    // Finding 4 fix: Normal public signup strictly creates a RIDER.
-    // Client input can NEVER grant DRIVER or ADMIN privileges.
+    const requestedRole = parsed.data.role?.trim().toUpperCase();
+    const assignedRole = requestedRole === "DRIVER" ? "DRIVER" : "RIDER";
+
     const user = await User.create({
       name,
       email: normalizedEmail,
       password: hashedPassword,
-      role: "RIDER",
+      role: assignedRole,
     });
 
     return NextResponse.json(
-      { 
-        status: "success", 
+      {
+        status: "success",
         message: "User registered successfully",
         data: {
           id: user._id,

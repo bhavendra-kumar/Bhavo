@@ -1,26 +1,14 @@
-/**
- * Operational Configuration Defaults for Auto Booking & Recurring Ride Generation (Phase 1F)
- *
- * All values are server-side authoritative and validated against environment variables.
- */
 
 import { getDispatchLeadTimeMinutes } from "@/lib/rideStateMachine";
 
 export const DEFAULT_AUTO_BOOKING_LOOKAHEAD_MINUTES = 180;
 export const DEFAULT_AUTO_BOOKING_BATCH_SIZE = 50;
-export const DEFAULT_AUTO_BOOKING_LEASE_DURATION_MS = 60000; // 60 seconds lease
+export const DEFAULT_AUTO_BOOKING_LEASE_DURATION_MS = 60000;
 export const DEFAULT_AUTO_BOOKING_MAX_ATTEMPTS = 3;
 export const CANONICAL_TIMEZONE = "Asia/Kolkata";
-export const IST_OFFSET_MINUTES = 330; // UTC+05:30
-export const IST_OFFSET_MS = 330 * 60 * 1000; // 19,800,000 ms
+export const IST_OFFSET_MINUTES = 330;
+export const IST_OFFSET_MS = 330 * 60 * 1000;
 
-/**
- * Validates and retrieves the configured auto-booking materialization lookahead in minutes.
- * - Default: 180 minutes.
- * - Must be a positive integer without decimals.
- * - Must be greater than or equal to RIDE_DISPATCH_LEAD_TIME_MINUTES (default 60m)
- *   so rides materialize before the scheduled driver confirmation window.
- */
 export function getAutoBookingLookaheadMinutes(
   rawVal: string | undefined = process.env.AUTO_BOOKING_LOOKAHEAD_MINUTES
 ): number {
@@ -52,11 +40,6 @@ export function getAutoBookingLookaheadMinutes(
   return parsed;
 }
 
-/**
- * Validates and retrieves the configured batch size limit for auto booking executions.
- * - Default: 50.
- * - Upper bound: 200 to prevent unbounded execution loops.
- */
 export function getAutoBookingBatchSize(
   rawVal: string | undefined = process.env.AUTO_BOOKING_BATCH_SIZE
 ): number {

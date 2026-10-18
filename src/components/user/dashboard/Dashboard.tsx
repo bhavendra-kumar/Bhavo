@@ -82,7 +82,6 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-4 flex-1">
-      {/* ── Dedicated Mobile Dashboard (< 1024px) ── */}
       <div className="flex lg:hidden flex-col flex-1">
         <MobileDashboard
           data={data}
@@ -97,9 +96,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* ── Desktop Dashboard (>= 1024px) ── */}
       <div className="hidden lg:flex flex-col gap-6 pb-8 flex-1">
-        {/* ── Active Ride Live Tracker (If Active) ── */}
         {activeRide && activeRide.status !== "COMPLETED" && (
           <div
             className="card p-6 border-2 flex flex-col gap-5 relative overflow-hidden transition-all shadow-md"
@@ -153,7 +150,6 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* If SEARCHING, show dispatch radar broadcasting card */}
             {activeRide.status === "SEARCHING" ? (
               <div className="p-6 rounded-2xl bg-white border border-teal-200 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xs">
                 <div className="flex items-center gap-4">
@@ -196,7 +192,6 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
-                {/* Left: Driver Card */}
                 <div className="p-4 rounded-xl bg-white border border-teal-100 flex flex-col justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-teal-600 border-2 border-teal-500 flex items-center justify-center font-bold text-white text-[15px] shrink-0">
@@ -220,7 +215,6 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  {/* Start Ride PIN / OTP */}
                   <div className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-teal-50 border border-teal-200">
                     <div>
                       <p className="text-[10px] uppercase font-bold text-teal-800 tracking-wider">Start PIN / OTP</p>
@@ -231,7 +225,6 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  {/* Driver Contact Buttons */}
                   <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
                     <button
                       onClick={() => setIsCallOpen(true)}
@@ -262,7 +255,6 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {/* Middle: Route & Stops */}
                 <div className="lg:col-span-2 flex flex-col justify-between gap-4 p-4 rounded-xl bg-white border border-teal-100">
                   <div className="relative pl-6 flex flex-col gap-4">
                     <div className="absolute left-2.5 top-2 bottom-4 w-0.5 bg-teal-200" />
@@ -300,7 +292,6 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* ── 1. Today's Ride Hero ── */}
         <CommuteCommandHero
           userName={user?.name}
           primaryCommute={primaryCommute}
@@ -308,23 +299,18 @@ export default function DashboardPage() {
           onToggleActive={(id, active) => toggleCommute(id, active)}
         />
 
-        {/* ── 2. "Where to?" Search + Quick Destinations ── */}
         <QuickCommuteHub savedPlaces={data?.savedPlaces} />
 
-        {/* ── 3. Compact Stats Bar ── */}
         <CommuterPerksMetrics stats={data?.stats} />
 
-        {/* ── 4. Weekly Commute Strip ── */}
         <WeeklyCommutePlanner
           commutes={commutes}
           onToggleCommute={(id, active) => toggleCommute(id, active)}
         />
 
-        {/* ── 5. Recent Rides ── */}
         <RecentCommutesSnapshot recentRides={data?.recentRides} />
       </div>
 
-      {/* Driver Chat Modal */}
       {activeRide && (
         <DriverChatModal
           rideId={activeRide._id}
@@ -340,7 +326,6 @@ export default function DashboardPage() {
         />
       )}
 
-      {/* Driver Call Modal */}
       {activeRide && (
         <DriverCallModal
           driverName={activeRide.driverDetails?.name || "Bhavo Pilot"}
@@ -353,7 +338,6 @@ export default function DashboardPage() {
         />
       )}
 
-      {/* Celebratory Ride Completed & Payment Receipt Modal */}
       {activeRide && activeRide.status === "COMPLETED" && (
         <CompletedRideModal
           ride={activeRide}

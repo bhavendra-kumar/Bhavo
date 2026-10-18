@@ -21,7 +21,6 @@ async function handleMaintenance(req: Request) {
 
     await dbConnect();
 
-    // Execute expired offer sweep
     const { sweptCount, exhaustedCount } = await sweepExpiredOffers(100);
 
     return NextResponse.json({

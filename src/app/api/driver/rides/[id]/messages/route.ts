@@ -34,12 +34,10 @@ export async function GET(
       return NextResponse.json({ status: "error", message: "Ride not found" }, { status: 404 });
     }
 
-    // Ownership check: driver must be assigned to this ride
     if (ride.driver && ride.driver.toString() !== driverUser._id.toString()) {
       return NextResponse.json({ status: "error", message: "Forbidden: Not assigned to this ride" }, { status: 403 });
     }
 
-    // If no messages yet, seed an initial friendly greeting
     if (!ride.messages || ride.messages.length === 0) {
       ride.messages = [
         {
@@ -92,7 +90,6 @@ export async function POST(
       return NextResponse.json({ status: "error", message: "Ride not found" }, { status: 404 });
     }
 
-    // Ownership check: driver must be assigned to this ride
     if (ride.driver && ride.driver.toString() !== driverUser._id.toString()) {
       return NextResponse.json({ status: "error", message: "Forbidden: Not assigned to this ride" }, { status: 403 });
     }
@@ -106,7 +103,6 @@ export async function POST(
     ride.messages.push(driverMsg);
     await ride.save();
 
-    // Trigger realistic passenger reply after 1.5 seconds in background
     setTimeout(async () => {
       try {
         const currentRide = await Ride.findById(id);

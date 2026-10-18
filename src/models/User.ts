@@ -89,7 +89,6 @@ const UserSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
-    // Driver-specific telemetry and preferences
     isOnline: {
       type: Boolean,
       default: false,
@@ -106,7 +105,7 @@ const UserSchema = new mongoose.Schema(
     },
     driverCoordinates: {
       type: [Number],
-      default: [28.6139, 77.2090], // Delhi NCR center
+      default: [28.6139, 77.2090],
     },
     driverCoordinatesUpdatedAt: {
       type: Date,
@@ -212,11 +211,10 @@ const UserSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true, // Automatically adds createdAt and updatedAt
+    timestamps: true,
   }
 );
 
-// Indexes supporting Phase 1A authentication, Phase 1D driver eligibility, and Phase 1H admin searches
 UserSchema.index({ role: 1, status: 1, isOnline: 1, dutyState: 1 });
 UserSchema.index({ role: 1, status: 1 });
 UserSchema.index({ activeRideId: 1 }, { sparse: true });

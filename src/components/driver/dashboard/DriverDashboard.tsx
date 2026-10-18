@@ -30,7 +30,6 @@ export default function DriverDashboard() {
   const { activeRide, isOnline, pollDispatches, updateLocation, fetchDriverData, verification } = useDriverStore();
   const { alert } = useDialog();
 
-  // Fetch initial real backend data from MongoDB
   useEffect(() => {
     fetchDriverData();
     const refreshTimer = setInterval(() => {
@@ -42,7 +41,6 @@ export default function DriverDashboard() {
     return () => clearInterval(refreshTimer);
   }, [fetchDriverData]);
 
-  // Real-time dispatch listener polling
   useEffect(() => {
     if (!isOnline || activeRide || !verification?.isVerified) return;
 
@@ -64,12 +62,10 @@ export default function DriverDashboard() {
     return () => clearInterval(interval);
   }, [isOnline, activeRide, pollDispatches, verification?.isVerified]);
 
-  // Live telemetry updater during active trip
   useEffect(() => {
     if (!activeRide) return;
 
     const interval = setInterval(() => {
-      // Simulate minor vehicle GPS updates
       const targetCoords =
         activeRide.status === "ACCEPTED" || activeRide.status === "ARRIVED"
           ? activeRide.pickup.coordinates
@@ -85,7 +81,6 @@ export default function DriverDashboard() {
     return () => clearInterval(interval);
   }, [activeRide, updateLocation]);
 
-  // Active ride live stream listener for immediate driver updates
   useEffect(() => {
     if (!activeRide?._id) return;
     if (activeRide.status === "COMPLETED" || activeRide.status === "CANCELLED") return;
@@ -147,10 +142,8 @@ export default function DriverDashboard() {
 
   return (
     <div className="flex flex-col gap-6 flex-1 pb-10">
-      {/* ── Incoming Ride Dispatch Overlay Modal ── */}
       <IncomingDispatchModal />
 
-      {/* ── Document Compliance Warning Banner (When Unverified) ── */}
       {verification && !verification.isVerified && (
         <div className="bg-linear-to-r from-amber-500/15 via-amber-500/10 to-rose-500/10 border border-amber-500/40 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-start gap-3.5">
@@ -192,26 +185,19 @@ export default function DriverDashboard() {
         </div>
       )}
 
-      {/* ── Driver Duty Control & Status Hero ── */}
       <DriverDutyHero />
 
-      {/* ── 4-Bento Driver Shift Metrics Grid (Live from DB) ── */}
       <DriverMetricsGrid />
 
-      {/* ── Active Ride Commander (If Ride in Progress) ── */}
       {activeRide && <ActiveTripManager />}
 
-      {/* ── Main Operations Row: Map & Recent Trips ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Live Surge Radar & Map */}
         <div className="lg:col-span-2 flex flex-col gap-6">
           <DriverHeatmap />
           <RecentDriverTrips />
         </div>
 
-        {/* Right 1 Col: Quick Captain Tools & Safety Hub */}
         <div className="flex flex-col gap-6">
-          {/* Destination Filter Card */}
           <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm flex flex-col justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center shrink-0">
@@ -243,7 +229,6 @@ export default function DriverDashboard() {
             </button>
           </div>
 
-          {/* 24/7 Road Assistance Card */}
           <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">

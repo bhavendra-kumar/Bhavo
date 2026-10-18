@@ -2,7 +2,6 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 describe("Phase 1D: Driver Verification & Security Tests", () => {
-  // Simulates the secured vehicle route handler logic from src/app/api/driver/vehicle/route.ts
   const handleVehicleAction = (
     authenticatedDriver: { _id: string; role: string; documentsVerified: boolean; documents: Array<{ id: string; name: string; status: string; url?: string }> },
     body: Record<string, unknown>
@@ -13,7 +12,6 @@ describe("Phase 1D: Driver Verification & Security Tests", () => {
 
     const { action } = body;
 
-    // 1. Guard against VERIFY_ALL self-approval vulnerability
     if (action === "VERIFY_ALL") {
       return {
         status: 403,
@@ -22,7 +20,6 @@ describe("Phase 1D: Driver Verification & Security Tests", () => {
       };
     }
 
-    // 2. Guard against TOGGLE_DOC_STATUS self-approval vulnerability
     if (action === "TOGGLE_DOC_STATUS") {
       return {
         status: 403,
@@ -31,16 +28,13 @@ describe("Phase 1D: Driver Verification & Security Tests", () => {
       };
     }
 
-    // 3. Document submission: forces status to PENDING for admin review
     if (action === "UPDATE_DOC") {
       const { docId, docName, fileUrl } = body as { docId?: string; docName?: string; fileUrl?: string };
       if (!docId) {
         return { status: 400, error: "DOC_ID_REQUIRED" };
       }
 
-      // Check if trying to force "VERIFIED"
       const requestedStatus = (body as { status?: string }).status;
-      // Protected field override: status must be forced to PENDING
       const safeStatus = "PENDING";
 
       const existingDoc = authenticatedDriver.documents.find((d) => d.id === docId);
@@ -67,10 +61,8 @@ describe("Phase 1D: Driver Verification & Security Tests", () => {
       };
     }
 
-    // 4. Vehicle metadata update: strip protected fields like documentsVerified
     if (action === "UPDATE_VEHICLE") {
       const vehicleUpdate = { ...(body.vehicleUpdate as Record<string, unknown> || {}) };
-      // Strip protected fields
       delete vehicleUpdate.documentsVerified;
       delete vehicleUpdate.verified;
 
@@ -78,7 +70,7 @@ describe("Phase 1D: Driver Verification & Security Tests", () => {
         status: 200,
         data: {
           model: vehicleUpdate.model || "Tata Tigor EV",
-          documentsVerified: authenticatedDriver.documentsVerified, // Preserved, never mutated by client
+          documentsVerified: authenticatedDriver.documentsVerified,
         },
       };
     }
@@ -100,7 +92,6 @@ describe("Phase 1D: Driver Verification & Security Tests", () => {
     const res = handleVehicleAction(driver, { action: "VERIFY_ALL" });
     assert.equal(res.status, 403);
     assert.equal(res.error, "SELF_VERIFICATION_PROHIBITED");
-    // Documents and documentsVerified remain false
     assert.equal(driver.documentsVerified, false);
     assert.equal(driver.documents[0].status, "PENDING");
   });
@@ -136,7 +127,7 @@ describe("Phase 1D: Driver Verification & Security Tests", () => {
       action: "UPDATE_DOC",
       docId: "aadhaar",
       fileUrl: "https://secure.bhavo.in/docs/aadhaar_new.pdf",
-      status: "VERIFIED", // Malicious attempt to self-approve
+      status: "VERIFIED",
     });
 
     assert.equal(res.status, 200);
@@ -157,7 +148,7 @@ describe("Phase 1D: Driver Verification & Security Tests", () => {
       action: "UPDATE_VEHICLE",
       vehicleUpdate: {
         model: "Tata Nexon EV",
-        documentsVerified: true, // Malicious privilege escalation
+        documentsVerified: true,
         verified: true,
       },
     });

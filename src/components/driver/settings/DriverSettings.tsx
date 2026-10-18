@@ -95,14 +95,12 @@ export default function DriverSettings() {
       </div>
 
       <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-sm flex flex-col gap-6">
-        {/* Dispatch Controls */}
         <div>
           <h3 className="text-sm font-extrabold uppercase tracking-wider text-teal-800 flex items-center gap-2 mb-4">
             <Sliders size={16} /> Dispatch Automation & Preferences
           </h3>
 
           <div className="divide-y divide-slate-100">
-            {/* Auto Accept */}
             <div className="py-4 flex items-center justify-between gap-4">
               <div>
                 <h4 className="font-extrabold text-sm text-slate-800">Auto-Accept Rides</h4>
@@ -124,7 +122,6 @@ export default function DriverSettings() {
               </button>
             </div>
 
-            {/* Audio Alerts */}
             <div className="py-4 flex items-center justify-between gap-4">
               <div>
                 <h4 className="font-extrabold text-sm text-slate-800">Loud Dispatch Chime</h4>
@@ -146,7 +143,6 @@ export default function DriverSettings() {
               </button>
             </div>
 
-            {/* Pet Friendly */}
             <div className="py-4 flex items-center justify-between gap-4">
               <div>
                 <h4 className="font-extrabold text-sm text-slate-800">Pet Friendly Commutes</h4>
@@ -168,7 +164,6 @@ export default function DriverSettings() {
               </button>
             </div>
 
-            {/* Maximum Distance Filter */}
             <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h4 className="font-extrabold text-sm text-slate-800">Trip Distance Preference</h4>
@@ -196,7 +191,6 @@ export default function DriverSettings() {
           </div>
         </div>
 
-        {/* Safety & App Preferences */}
         <div className="pt-4 border-t border-slate-100">
           <h3 className="text-sm font-extrabold uppercase tracking-wider text-teal-800 flex items-center gap-2 mb-4">
             <Shield size={16} /> Safety & Contact Sharing

@@ -42,12 +42,10 @@ export default function PlacesPage() {
   const [places, setPlaces] = useState<PlaceItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Editing state
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editAddress, setEditAddress] = useState("");
 
-  // Add Place Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newAddress, setNewAddress] = useState("Connaught Place, New Delhi");
@@ -178,7 +176,6 @@ export default function PlacesPage() {
 
   return (
     <div className="flex flex-col gap-6 pb-10">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-black text-slate-900 tracking-tight">Saved Destinations</h2>
@@ -196,7 +193,6 @@ export default function PlacesPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Saved Places List */}
         <div className="lg:col-span-2 flex flex-col gap-4">
           {loading ? (
             <div className="card p-12 text-center text-slate-500 text-sm">
@@ -321,7 +317,6 @@ export default function PlacesPage() {
                 );
               })}
 
-              {/* Add New Destination Card */}
               <button
                 onClick={() => setIsModalOpen(true)}
                 className="rounded-2xl p-5 flex flex-col items-center justify-center gap-2.5 text-slate-500 hover:text-teal-700 transition-all min-h-35 border-2 border-dashed border-slate-200 bg-slate-50/50 hover:border-teal-400 cursor-pointer"
@@ -335,7 +330,6 @@ export default function PlacesPage() {
           )}
         </div>
 
-        {/* Real Leaflet Map Preview */}
         <div className="flex flex-col gap-4">
           <div className="card overflow-hidden h-90 relative border border-slate-200 shadow-sm flex flex-col">
             <div className="p-3 bg-white border-b border-slate-100 flex items-center justify-between z-10">
@@ -361,7 +355,6 @@ export default function PlacesPage() {
         </div>
       </div>
 
-      {/* ── Modal: Add Place ── */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/60 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200 flex flex-col">

@@ -4,16 +4,6 @@ import { isLivePaymentEnabled } from "@/lib/runtimeConfig";
 
 export const dynamic = "force-dynamic";
 
-/**
- * Operational Health & System Telemetry Endpoint
- *
- * Provides safe operational indicators for platform operators:
- * - Process uptime and execution runtime.
- * - Database connectivity status without credentials.
- * - Configuration presence flags.
- * - Live payment gate indicator (confirming online collection is currently disabled).
- * - Never returns raw secret keys, connection strings, or internal infrastructure details.
- */
 export async function GET() {
   const dbHealth = await checkDatabaseHealth();
 

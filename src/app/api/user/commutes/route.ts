@@ -61,7 +61,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Validate time format with authoritative recurrence engine
     try {
       parseCommuteTime(time);
     } catch {
@@ -75,7 +74,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Validate days array with canonical weekday parser
     if (!Array.isArray(days) || days.length === 0) {
       return NextResponse.json(
         {

@@ -20,13 +20,11 @@ import {
 
 export const dynamic = "force-dynamic";
 
-// GET /api/driver/dispatches - Poll for targeted ride requests
 export async function GET(req: Request) {
   try {
     await dbConnect();
     const user = await getDriverUser(req);
 
-    // 1. Check document verification & online status
     const verification = checkDriverVerification(user);
     if (!verification.isVerified || !user.isOnline) {
       return NextResponse.json({
@@ -36,7 +34,6 @@ export async function GET(req: Request) {
       });
     }
 
-    // 2. Active ride exclusivity check
     const activeRide = await Ride.findOne({
       driver: user._id,
       status: { $in: ["ACCEPTED", "ARRIVED", "IN_PROGRESS"] },
@@ -45,7 +42,6 @@ export async function GET(req: Request) {
       return NextResponse.json({ status: "success", data: null });
     }
 
-    // 3. Driver location freshness validation
     const isLocationFresh = isLocationValidAndFresh(
       user.driverCoordinates,
       user.driverCoordinatesUpdatedAt
@@ -58,19 +54,16 @@ export async function GET(req: Request) {
       });
     }
 
-    // 4. Request-driven sweep of any expired offers
     await sweepExpiredOffers(25);
 
     const now = new Date();
 
-    // 5. Check if THIS driver already has an active, unexpired targeted offer
     let targetedRide = await Ride.findOne({
       status: "SEARCHING",
       "currentOffer.driverId": user._id,
       "currentOffer.expiresAt": { $gt: now },
     }).populate("rider", "name phone rating avatar");
 
-    // 6. If no active offer exists, discover candidate SEARCHING rides needing offers
     if (!targetedRide) {
       const maxDispatchScheduledFor = new Date(Date.now() + getDispatchLeadTimeMs());
       const searchingRides = await Ride.find({
@@ -105,12 +98,10 @@ export async function GET(req: Request) {
           continue;
         }
 
-        // If the top candidate is the polling driver
         if (topCandidate.driver._id.toString() === user._id.toString()) {
           targetedRide = updated;
           break;
         }
-        // If not the polling driver, offer is targeted to that driver; polling driver continues
       }
     }
 
@@ -118,7 +109,6 @@ export async function GET(req: Request) {
       return NextResponse.json({ status: "success", data: null });
     }
 
-    // 7. Format targeted dispatch with truthful Haversine proximity & persistent expiry
     const riderObj = (targetedRide.rider as unknown as {
       name?: string;
       phone?: string;
@@ -167,13 +157,11 @@ export async function GET(req: Request) {
   }
 }
 
-// POST /api/driver/dispatches - Create a real new test ride in MongoDB for simulation (Dev/Test only)
 export async function POST(req: Request) {
   try {
     await dbConnect();
     const user = await getDriverUser(req);
 
-    // Guard: Dispatch simulation ride generation is strictly disabled in production
     if (process.env.NODE_ENV === "production") {
       return NextResponse.json(
         {
@@ -185,7 +173,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // STRICT: Unverified drivers cannot receive dispatches
     const verification = checkDriverVerification(user);
     if (!verification.isVerified) {
       return NextResponse.json(
@@ -201,7 +188,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Ensure or find a rider user to attach as passenger
     let rider = await User.findOne({ role: "RIDER" });
     if (!rider) {
       rider = await User.findOne({ email: { $ne: user.email } });
@@ -242,7 +228,6 @@ export async function POST(req: Request) {
     const offerId = crypto.randomUUID();
     const expiresAt = new Date(now.getTime() + getDispatchOfferTtlMs());
 
-    // Create real ride document in MongoDB with targeted offer
     const createdRide = await Ride.create({
       rider: rider._id,
       pickup: {
