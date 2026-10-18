@@ -54,11 +54,18 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row text-slate-800">
       <div className="md:hidden flex items-center justify-between px-4 py-3 bg-slate-900 text-white border-b border-slate-800">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-white flex items-center justify-center p-0.5 shadow-sm overflow-hidden shrink-0">
-            <Image src="/bhavo-logo.png" alt="Bhavo Admin" width={24} height={24} className="w-full h-full object-contain" priority />
-          </div>
-          <span className="font-bold text-lg tracking-wide text-white">BHAVO ADMIN</span>
+        <div className="flex items-center gap-2">
+          <Image
+            src="/bhavo-title.png"
+            alt="Bhavo Admin"
+            width={84}
+            height={28}
+            className="bhavo-title-img h-6.5 w-auto object-contain"
+            priority
+          />
+          <span className="text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded bg-teal-500/10 text-teal-300 border border-teal-500/20">
+            Admin
+          </span>
         </div>
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -75,16 +82,23 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         } md:block w-full md:w-64 bg-slate-900 text-slate-300 shrink-0 flex flex-col justify-between border-r border-slate-800 z-30`}
       >
         <div>
-          <div className="hidden md:flex items-center gap-3 px-6 py-5 border-b border-slate-800">
-            <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center p-1 shadow-sm shrink-0 overflow-hidden">
-              <Image src="/bhavo-logo.png" alt="Bhavo Logo" width={32} height={32} className="w-full h-full object-contain" priority />
+          <div className="hidden md:flex flex-col gap-1 px-6 py-5 border-b border-slate-800">
+            <div className="flex items-center gap-2">
+              <Image
+                src="/bhavo-title.png"
+                alt="Bhavo Ops"
+                width={120}
+                height={40}
+                className="bhavo-title-img h-8.5 w-auto object-contain"
+                priority
+              />
+              <span className="text-[10px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded bg-teal-500/10 text-teal-400 border border-teal-500/20">
+                Ops
+              </span>
             </div>
-            <div>
-              <h1 className="font-bold text-white text-base tracking-wide">BHAVO OPS</h1>
-              <p className="text-[11px] text-teal-400 font-medium tracking-wider uppercase">
-                Admin Control Room
-              </p>
-            </div>
+            <p className="text-[11px] text-teal-400 font-medium tracking-wider uppercase mt-0.5">
+              Admin Control Room
+            </p>
           </div>
 
           <nav className="p-4 space-y-1">

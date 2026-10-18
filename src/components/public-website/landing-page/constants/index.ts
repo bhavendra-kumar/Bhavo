@@ -214,8 +214,10 @@ export const STATS = [
 ];
 
 export const NAV_LINKS = [
-  { label: "Dual Ecosystem", href: "#dual-dashboard" },
-  { label: "Features", href: "#features" },
-  { label: "How It Works", href: "#how-it-works" },
-  { label: "Reviews", href: "#testimonials" },
+  { label: "About Us", href: "/about" },
+  { label: "Our Services", href: "/our-services" },
+  { label: "How It Works", href: "/how-it-works" },
+  { label: "Why BHAVO", href: "/why-us" },
+  { label: "Terms & Policies", href: "/terms-and-policies" },
+  { label: "Contact Us", href: "/contact" },
 ];

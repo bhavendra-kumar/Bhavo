@@ -314,27 +314,21 @@ export default function Login({ isRegistered = false, initialEmail = "", initial
           ))}
 
           <div style={{ position: "relative", zIndex: 10, padding: "44px 48px 0" }}>
-            <Link href="/" style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 16 }}>
-              <div style={{ width: 56, height: 56, borderRadius: 16, background: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", padding: 6, boxShadow: "0 4px 14px rgba(0,0,0,0.2)", flexShrink: 0 }}>
-                <Image src="/bhavo-logo.png" alt="Bhavo Logo" width={44} height={44} style={{ width: "100%", height: "100%", objectFit: "contain" }} priority />
-              </div>
-              <div>
-                <div className="bhavo-title" style={{
-                  fontSize: "clamp(48px, 5.5vw, 72px)",
-                  fontWeight: 900,
-                  letterSpacing: "-3px",
-                  lineHeight: 1,
-                  background: "linear-gradient(135deg, #ffffff 0%, #5eead4 40%, #34d399 100%)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  marginBottom: 6,
-                }}>
-                  BHAVO
+            <Link href="/" style={{ textDecoration: "none", display: "inline-block" }}>
+              <div className="bhavo-title" style={{ marginBottom: 12 }}>
+                  <Image
+                    src="/bhavo-title.png"
+                    alt="Bhavo"
+                    width={300}
+                    height={100}
+                    className="bhavo-title-img"
+                    style={{ height: "clamp(56px, 6.5vw, 84px)", width: "auto", display: "block" }}
+                    priority
+                  />
                 </div>
                 <p style={{ color: "rgba(94,234,212,0.8)", fontSize: 13, fontWeight: 600, letterSpacing: "3px", textTransform: "uppercase", margin: 0 }}>
                   Your City. Your Ride.
                 </p>
-              </div>
             </Link>
           </div>
 
@@ -451,13 +445,16 @@ export default function Login({ isRegistered = false, initialEmail = "", initial
           <div style={{ position: "absolute", bottom: "-15%", left: "-10%", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(16,185,129,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
 
           <div style={{ display: "none" }} className="mobile-bhavo">
-            <Link href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 28 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, background: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", padding: 4, boxShadow: "0 2px 8px rgba(0,0,0,0.1)", flexShrink: 0 }}>
-                <Image src="/bhavo-logo.png" alt="Bhavo Logo" width={36} height={36} style={{ width: "100%", height: "100%", objectFit: "contain" }} priority />
-              </div>
-              <div style={{ fontSize: 36, fontWeight: 900, letterSpacing: "-1.5px", background: "linear-gradient(135deg, #0d9488 0%, #34d399 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                BHAVO
-              </div>
+            <Link href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 28 }}>
+              <Image
+                src="/bhavo-title.png"
+                alt="Bhavo"
+                width={150}
+                height={50}
+                className="bhavo-title-img"
+                style={{ height: 42, width: "auto", display: "block" }}
+                priority
+              />
             </Link>
           </div>
 

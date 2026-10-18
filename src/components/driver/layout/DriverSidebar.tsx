@@ -105,21 +105,17 @@ export default function DriverSidebar() {
         style={{ borderBottom: `1px solid ${BORDER}` }}
       >
         <div className="flex items-center gap-3 min-w-0">
-          <div
-            onClick={collapsed ? toggleSidebar : undefined}
-            className={`flex items-center justify-center shrink-0 rounded-xl overflow-hidden bg-white shadow-sm transition-all ${
-              collapsed ? "cursor-pointer hover:ring-2 hover:ring-teal-400 hover:scale-105 active:scale-95" : ""
-            }`}
-            style={{ width: 38, height: 38 }}
-            title={collapsed ? "Expand sidebar" : undefined}
-          >
-            <Image src="/bhavo-logo.png" alt="Bhavo Logo" width={38} height={38} className="w-full h-full object-contain p-1" />
-          </div>
-
-          {!collapsed && (
+          {!collapsed ? (
             <div className="flex flex-col min-w-0 leading-tight">
               <div className="flex items-center gap-1.5">
-                <span className="font-black text-white text-[18px] tracking-tight">BHAVO</span>
+                <Image
+                  src="/bhavo-title.png"
+                  alt="Bhavo"
+                  width={114}
+                  height={38}
+                  className="bhavo-title-img h-8 w-auto object-contain"
+                  priority
+                />
                 <span className="text-[9.5px] uppercase font-black tracking-wider px-1.5 py-0.5 rounded-md bg-teal-500/20 text-teal-300 border border-teal-500/30 shrink-0">
                   CAPTAIN
                 </span>
@@ -127,6 +123,21 @@ export default function DriverSidebar() {
               <span className="text-[11px] text-teal-200/70 font-semibold truncate mt-0.5">
                 Command Center
               </span>
+            </div>
+          ) : (
+            <div
+              onClick={toggleSidebar}
+              className="flex items-center justify-center cursor-pointer w-full py-1"
+              title="Expand sidebar"
+            >
+              <Image
+                src="/bhavo-title.png"
+                alt="Bhavo"
+                width={50}
+                height={17}
+                className="bhavo-title-img h-4 w-auto object-contain"
+                priority
+              />
             </div>
           )}
         </div>

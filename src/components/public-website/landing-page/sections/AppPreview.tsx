@@ -8,17 +8,19 @@ export default function AppPreview() {
 
   return (
     <section
-      id="features"
+      id="real-time-platform"
       ref={ref}
       style={{
         background: "#f1f5f9",
         padding: "100px 24px",
         position: "relative",
         overflow: "hidden",
+        scrollMarginTop: 80,
       }}
     >
+      <div id="dual-dashboard" style={{ position: "absolute", top: 0 }} />
       <div style={{ maxWidth: 1160, margin: "0 auto" }}>
-        {/* Header with Dual Platform Content */}
+        {/* Header with Real-Time Platform Content */}
         <div
           style={{
             textAlign: "center",
@@ -38,7 +40,7 @@ export default function AppPreview() {
               marginBottom: 14,
             }}
           >
-            The Dual Platform
+            Real-Time Platform
           </p>
           <h2
             style={{
@@ -49,7 +51,7 @@ export default function AppPreview() {
               margin: 0,
             }}
           >
-            Two Dashboards. One Ecosystem.
+            Two Live Consoles. One Real-Time Platform.
           </h2>
           <p
             style={{
@@ -65,7 +67,7 @@ export default function AppPreview() {
           </p>
         </div>
 
-        {/* Dual Dashboard Preview Grid */}
+        {/* Real-Time Platform Consoles Grid */}
         <div
           style={{
             display: "grid",

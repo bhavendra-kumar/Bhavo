@@ -62,16 +62,18 @@ export default function MobileHeader({ onOpenMenu }: MobileHeaderProps) {
             <ChevronLeft size={19} />
           </button>
         ) : (
-          <Link href="/user/dashboard" className="flex items-center gap-2.5 shrink-0 active:scale-98 transition-transform">
-            <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center p-1 shadow-sm border border-white/20">
-              <Image src="/bhavo-logo.png" alt="Bhavo" width={32} height={32} className="w-full h-full object-contain" />
-            </div>
+          <Link href="/user/dashboard" className="flex items-center gap-2 shrink-0 active:scale-98 transition-transform">
             <div className="flex flex-col leading-none">
-              <span className="text-[17px] font-black tracking-tight bg-linear-to-r from-[#5eead4] via-white to-[#2dd4bf] bg-clip-text text-transparent">
-                BHAVO
-              </span>
-              <span className="text-[9px] font-bold text-teal-400/80 tracking-wider uppercase">
-                Zero-Surge Transit
+              <Image
+                src="/bhavo-title.png"
+                alt="Bhavo"
+                width={105}
+                height={35}
+                className="bhavo-title-img h-7.5 w-auto object-contain"
+                priority
+              />
+              <span className="text-[9px] font-bold text-teal-400/80 tracking-wider uppercase mt-0.5">
+                Smart Commute
               </span>
             </div>
           </Link>

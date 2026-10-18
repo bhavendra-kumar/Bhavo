@@ -109,22 +109,33 @@ export default function Sidebar() {
         className="flex items-center gap-3.5 h-20 px-5 shrink-0 overflow-hidden relative"
         style={{ borderBottom: `1px solid ${BORDER}` }}
       >
-        <div
-          className="flex items-center justify-center shrink-0 rounded-xl overflow-hidden bg-white shadow-sm"
-          style={{ width: 44, height: 44 }}
-        >
-          <Image src="/bhavo-logo.png" alt="Bhavo Logo" width={44} height={44} className="w-full h-full object-contain p-1" />
-        </div>
-
-        {!collapsed && (
+        {!collapsed ? (
           <div className="flex flex-col leading-none overflow-hidden group cursor-default">
-            <span className="text-[26px] font-black tracking-tight flex items-center gap-1 relative bg-linear-to-r from-[#5eead4] via-[#ffffff] to-[#5eead4] bg-size-[200%_auto] bg-clip-text text-transparent animate-shine drop-shadow-[0_0_10px_rgba(45,212,191,0.6)]">
-              BHAVO
+            <div className="flex items-center gap-1 relative">
+              <Image
+                src="/bhavo-title.png"
+                alt="Bhavo"
+                width={135}
+                height={45}
+                className="bhavo-title-img h-9.5 w-auto object-contain"
+                priority
+              />
               <CarFront size={18} className="text-[#2dd4bf] opacity-0 group-hover:opacity-100 transition-opacity absolute left-28 animate-drive" />
-            </span>
+            </div>
             <span className="text-[11px] font-bold tracking-widest uppercase mt-1.5 text-slate-300">
               Smart Commute
             </span>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center w-full">
+            <Image
+              src="/bhavo-title.png"
+              alt="Bhavo"
+              width={60}
+              height={20}
+              className="bhavo-title-img h-4.5 w-auto object-contain"
+              priority
+            />
           </div>
         )}
       </div>

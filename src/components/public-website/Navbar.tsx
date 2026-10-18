@@ -44,7 +44,7 @@ export default function Navbar() {
             maxWidth: 1360,
             margin: "0 auto",
             padding: "0 24px",
-            height: 72,
+            height: 76,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -55,24 +55,19 @@ export default function Navbar() {
           {/* Logo Brand */}
           <Link href="/" style={{ textDecoration: "none", color: "inherit", flexShrink: 0 }}>
             <div
-              style={{ display: "flex", alignItems: "center", gap: 10, transition: "opacity 0.2s" }}
+              style={{ display: "flex", alignItems: "center", transition: "opacity 0.2s" }}
               onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.opacity = "0.8")}
               onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.opacity = "1")}
             >
-              <Image src="/bhavo-logo.png" alt="Bhavo logo" width={36} height={36} style={{ height: 36, width: "auto", display: "block" }} priority />
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                <span
-                  style={{
-                    fontSize: 20,
-                    fontWeight: 900,
-                    letterSpacing: "-0.5px",
-                    color: "#0f172a",
-                    lineHeight: 1.1,
-                  }}
-                >
-                  BHAVO
-                </span>
-              </div>
+              <Image
+                src="/bhavo-title.png"
+                alt="Bhavo"
+                width={150}
+                height={50}
+                className="bhavo-title-img"
+                style={{ height: 48, width: "auto", display: "block" }}
+                priority
+              />
             </div>
           </Link>
 
@@ -130,129 +125,70 @@ export default function Navbar() {
 
           {/* Action Buttons */}
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
-            <div className="desktop-actions" style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              {/* Driver Dashboard / Login */}
+            <div className="desktop-actions" style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              {/* Login as User */}
               <Link
-                href="/driver"
-                title="Login to Driver Dashboard"
-                style={{
-                  background: "transparent",
-                  border: "1px solid rgba(0,0,0,0.08)",
-                  fontSize: 13.5,
-                  fontWeight: 600,
-                  color: "#334155",
-                  cursor: "pointer",
-                  padding: "8px 14px",
-                  borderRadius: 10,
-                  textDecoration: "none",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  transition: "all 0.2s",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "#f1f5f9";
-                  (e.currentTarget as HTMLElement).style.color = "#0f172a";
-                  (e.currentTarget as HTMLElement).style.borderColor = "rgba(0,0,0,0.15)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "transparent";
-                  (e.currentTarget as HTMLElement).style.color = "#334155";
-                  (e.currentTarget as HTMLElement).style.borderColor = "rgba(0,0,0,0.08)";
-                }}
-              >
-                <span>🚗</span> Driver Dashboard
-              </Link>
-
-              {/* User Dashboard */}
-              <Link
-                href="/user/dashboard"
-                title="Login to User Dashboard"
-                style={{
-                  background: "transparent",
-                  border: "1px solid rgba(0,0,0,0.08)",
-                  fontSize: 13.5,
-                  fontWeight: 600,
-                  color: "#334155",
-                  cursor: "pointer",
-                  padding: "8px 14px",
-                  borderRadius: 10,
-                  textDecoration: "none",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  transition: "all 0.2s",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "#f1f5f9";
-                  (e.currentTarget as HTMLElement).style.color = "#0f172a";
-                  (e.currentTarget as HTMLElement).style.borderColor = "rgba(0,0,0,0.15)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "transparent";
-                  (e.currentTarget as HTMLElement).style.color = "#334155";
-                  (e.currentTarget as HTMLElement).style.borderColor = "rgba(0,0,0,0.08)";
-                }}
-              >
-                <span>👤</span> User Dashboard
-              </Link>
-
-              {/* Drive with Bhavo */}
-              <Link
-                href="/signup?role=driver"
-                style={{
-                  background: "transparent",
-                  border: "1.5px solid rgba(13,148,136,0.35)",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: "#0d9488",
-                  cursor: "pointer",
-                  padding: "8px 14px",
-                  borderRadius: 10,
-                  textDecoration: "none",
-                  display: "inline-block",
-                  transition: "all 0.2s",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "rgba(13,148,136,0.08)";
-                  (e.currentTarget as HTMLElement).style.borderColor = "#0d9488";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "transparent";
-                  (e.currentTarget as HTMLElement).style.borderColor = "rgba(13,148,136,0.35)";
-                }}
-              >
-                Drive with Bhavo
-              </Link>
-
-              {/* Start a Ride */}
-              <Link
-                href="/signup"
+                href="/login?role=rider"
+                title="Login as User"
                 className="btn-shimmer"
                 style={{
                   background: "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)",
                   color: "#fff",
-                  border: "none",
-                  borderRadius: 10,
-                  padding: "9px 18px",
                   fontSize: 13.5,
                   fontWeight: 700,
                   cursor: "pointer",
+                  padding: "9px 18px",
+                  borderRadius: 10,
                   textDecoration: "none",
-                  display: "inline-block",
-                  transition: "all 0.25s",
-                  boxShadow: "0 4px 14px rgba(13,148,136,0.35), inset 0 1px 0 rgba(255,255,255,0.15)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+                  boxShadow: "0 4px 14px rgba(13,148,136,0.32), inset 0 1px 0 rgba(255,255,255,0.18)",
                 }}
                 onMouseEnter={(e) => {
                   (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)";
-                  (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 24px rgba(13,148,136,0.45), inset 0 1px 0 rgba(255,255,255,0.2)";
+                  (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 24px rgba(13,148,136,0.45), inset 0 1px 0 rgba(255,255,255,0.25)";
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
-                  (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 14px rgba(13,148,136,0.35), inset 0 1px 0 rgba(255,255,255,0.15)";
+                  (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 14px rgba(13,148,136,0.32), inset 0 1px 0 rgba(255,255,255,0.18)";
                 }}
               >
-                Start a Ride →
+                Login as User
+              </Link>
+
+              {/* Login as Driver */}
+              <Link
+                href="/login?role=driver"
+                title="Login as Driver"
+                style={{
+                  background: "rgba(13,148,136,0.05)",
+                  border: "1.5px solid rgba(13,148,136,0.35)",
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  color: "#0d9488",
+                  cursor: "pointer",
+                  padding: "8.5px 16px",
+                  borderRadius: 10,
+                  textDecoration: "none",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = "rgba(13,148,136,0.12)";
+                  (e.currentTarget as HTMLElement).style.borderColor = "#0d9488";
+                  (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = "rgba(13,148,136,0.05)";
+                  (e.currentTarget as HTMLElement).style.borderColor = "rgba(13,148,136,0.35)";
+                  (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
+                }}
+              >
+                Login as Driver
               </Link>
             </div>
 
@@ -335,66 +271,7 @@ export default function Navbar() {
 
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <Link
-                href="/driver"
-                onClick={() => setMenuOpen(false)}
-                style={{
-                  fontSize: 15,
-                  fontWeight: 600,
-                  color: "#0f172a",
-                  textDecoration: "none",
-                  padding: "12px 16px",
-                  borderRadius: 10,
-                  border: "1px solid #e2e8f0",
-                  textAlign: "center",
-                  background: "#fff",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                }}
-              >
-                <span>🚗</span> Login to Driver Dashboard
-              </Link>
-              <Link
-                href="/user/dashboard"
-                onClick={() => setMenuOpen(false)}
-                style={{
-                  fontSize: 15,
-                  fontWeight: 600,
-                  color: "#0f172a",
-                  textDecoration: "none",
-                  padding: "12px 16px",
-                  borderRadius: 10,
-                  border: "1px solid #e2e8f0",
-                  textAlign: "center",
-                  background: "#fff",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                }}
-              >
-                <span>👤</span> Login to User Dashboard
-              </Link>
-              <Link
-                href="/signup?role=driver"
-                onClick={() => setMenuOpen(false)}
-                style={{
-                  fontSize: 15,
-                  fontWeight: 600,
-                  color: "#0d9488",
-                  textDecoration: "none",
-                  padding: "12px 16px",
-                  borderRadius: 10,
-                  border: "1.5px solid rgba(13,148,136,0.3)",
-                  textAlign: "center",
-                  background: "rgba(13,148,136,0.05)",
-                }}
-              >
-                Drive with Bhavo (Captain Hub)
-              </Link>
-              <Link
-                href="/signup"
+                href="/login?role=rider"
                 onClick={() => setMenuOpen(false)}
                 className="btn-shimmer"
                 style={{
@@ -406,10 +283,33 @@ export default function Navbar() {
                   padding: "12px 16px",
                   borderRadius: 10,
                   textAlign: "center",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   boxShadow: "0 4px 16px rgba(13,148,136,0.35)",
                 }}
               >
-                Start a Ride →
+                Login as User
+              </Link>
+              <Link
+                href="/login?role=driver"
+                onClick={() => setMenuOpen(false)}
+                style={{
+                  fontSize: 15,
+                  fontWeight: 600,
+                  color: "#0d9488",
+                  textDecoration: "none",
+                  padding: "12px 16px",
+                  borderRadius: 10,
+                  border: "1.5px solid rgba(13,148,136,0.35)",
+                  textAlign: "center",
+                  background: "rgba(13,148,136,0.05)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                Login as Driver
               </Link>
             </div>
           </div>

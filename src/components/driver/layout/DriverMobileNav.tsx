@@ -100,7 +100,7 @@ export function DriverMobileHeader({ onOpenMenu }: { onOpenMenu: () => void }) {
         >
           <Menu size={22} />
         </button>
-        <Image src="/bhavo-logo.png" alt="Bhavo" width={28} height={28} className="h-7 w-auto object-contain" />
+        <Image src="/bhavo-title.png" alt="Bhavo" width={96} height={32} className="bhavo-title-img h-7.5 w-auto object-contain" priority />
         <span className="text-[10px] font-black tracking-wider uppercase px-1.5 py-0.5 rounded bg-teal-50 text-teal-700 border border-teal-200">
           CAPTAIN
         </span>

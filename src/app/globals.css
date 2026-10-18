@@ -136,4 +136,9 @@
     animation: shine 3s linear infinite;
     background-size: 200% auto;
   }
+
+  .bhavo-title-img {
+    display: inline-block;
+    vertical-align: middle;
+  }
 }
