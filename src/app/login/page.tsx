@@ -8,7 +8,7 @@ export const metadata = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ registered?: string; email?: string; role?: string }>;
+  searchParams: Promise<{ registered?: string; email?: string; role?: string; redirect?: string }>;
 }) {
   const params = await searchParams;
   const initialRole = params.role?.toUpperCase() === "DRIVER" ? "DRIVER" : "RIDER";
@@ -18,6 +18,7 @@ export default async function LoginPage({
       isRegistered={params.registered === "true"}
       initialEmail={params.email || ""}
       initialRole={initialRole}
+      redirectTo={params.redirect || ""}
     />
   );
 }

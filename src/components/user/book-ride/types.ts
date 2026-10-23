@@ -1,10 +1,10 @@
 export const BASE_VEHICLES = [
-  { id: "bike", name: "Bike", desc: "Beat the city traffic fast", baseRate: 40, perKm: 12, capacity: 1, type: "bike", rating: 4.8 },
-  { id: "auto", name: "Auto", desc: "Everyday doorstep rides", baseRate: 50, perKm: 16, capacity: 3, type: "auto", rating: 4.6 },
-  { id: "economy", name: "Cab Economy", desc: "Affordable, air-conditioned compacts", baseRate: 80, perKm: 22, capacity: 4, type: "economy", rating: 4.7 },
-  { id: "premium", name: "Cab Premium", desc: "Top-rated sedans, extra legroom", baseRate: 120, perKm: 32, capacity: 4, type: "premium", rating: 4.9 },
-  { id: "large", name: "Cab Large", desc: "Spacious 6-seater for group travel", baseRate: 160, perKm: 42, capacity: 6, type: "large", rating: 4.8 },
-  { id: "parcel", name: "Parcel Express", desc: "Instant package delivery door-to-door", baseRate: 35, perKm: 10, capacity: 1, type: "parcel", rating: 4.9 },
+  { id: "bike", name: "Bike", desc: "Beat the city traffic fast", baseRate: 10, perKm: 0.5, capacity: 1, type: "bike", rating: 4.8 },
+  { id: "auto", name: "Auto", desc: "Everyday doorstep rides", baseRate: 30, perKm: 0.5, capacity: 3, type: "auto", rating: 4.6 },
+  { id: "economy", name: "Cab Economy", desc: "Affordable, air-conditioned compacts", baseRate: 50, perKm: 0.5, capacity: 4, type: "economy", rating: 4.7 },
+  { id: "premium", name: "Cab Premium", desc: "Top-rated sedans, extra legroom", baseRate: 70, perKm: 0.5, capacity: 4, type: "premium", rating: 4.9 },
+  { id: "large", name: "Cab Large", desc: "Spacious 6-seater for group travel", baseRate: 90, perKm: 0.5, capacity: 6, type: "large", rating: 4.8 },
+  { id: "parcel", name: "Parcel Express", desc: "Instant package delivery door-to-door", baseRate: 20, perKm: 0.5, capacity: 1, type: "parcel", rating: 4.9 },
 ];
 
 export interface SavedPlace {

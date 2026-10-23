@@ -201,6 +201,7 @@ function MapUpdater({
   const prevPickupRef = useRef<string>("");
   const prevDropoffRef = useRef<string>("");
   const prevRouteLenRef = useRef<number>(0);
+  const prevUserRef = useRef<string>("");
 
   useEffect(() => {
     const handleResize = () => {
@@ -230,14 +231,17 @@ function MapUpdater({
 
     const pickupKey = validPickup ? `${validPickup[0].toFixed(5)},${validPickup[1].toFixed(5)}` : "";
     const dropoffKey = validDropoff ? `${validDropoff[0].toFixed(5)},${validDropoff[1].toFixed(5)}` : "";
+    const userKey = validUser ? `${validUser[0].toFixed(5)},${validUser[1].toFixed(5)}` : "";
     const routeLen = validRoute?.length || 0;
 
     const pickupChanged = pickupKey !== prevPickupRef.current;
     const dropoffChanged = dropoffKey !== prevDropoffRef.current;
+    const userChanged = userKey !== prevUserRef.current;
     const routeChanged = routeLen !== prevRouteLenRef.current;
 
     prevPickupRef.current = pickupKey;
     prevDropoffRef.current = dropoffKey;
+    prevUserRef.current = userKey;
     prevRouteLenRef.current = routeLen;
 
     const executeMove = () => {
@@ -264,9 +268,9 @@ function MapUpdater({
           return;
         }
 
-        if (!hasCenteredInitialRef.current && validUser && !validPickup && !validDropoff) {
+        if (validUser && (userChanged || !hasCenteredInitialRef.current) && !validDropoff) {
           hasCenteredInitialRef.current = true;
-          map.setView(validUser, 15, { animate: false });
+          map.setView(validUser, 15, { animate: true });
           return;
         }
 
@@ -300,7 +304,8 @@ function MapClickHandler({
 }) {
   useMapEvents({
     click(e) {
-      if (onMapClick && selectionMode && selectionMode !== "none") {
+      if (onMapClick) {
+        if (selectionMode === "none") return;
         onMapClick([e.latlng.lat, e.latlng.lng]);
       }
     },
@@ -427,26 +432,9 @@ export default function LeafletMap({
   selectionMode = "none",
 }: LeafletMapProps) {
   const [mounted, setMounted] = useState(false);
-  const [mapKey, setMapKey] = useState<number | string>("map");
-  const mapRef = useRef<L.Map | null>(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setMounted(true);
-      setMapKey(Date.now());
-    }, 0);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (mapRef.current) {
-        try {
-          mapRef.current.remove();
-        } catch {}
-        mapRef.current = null;
-      }
-    };
+    setMounted(true);
   }, []);
 
   const defaultCenter: [number, number] = [28.6139, 77.2090];
@@ -481,8 +469,6 @@ export default function LeafletMap({
       }}
     >
       <MapContainer
-        key={mapKey}
-        ref={mapRef}
         center={validCenter}
         zoom={13}
         className={`w-full h-full z-0 ${selectionMode !== "none" ? "cursor-crosshair" : ""}`}

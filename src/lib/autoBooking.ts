@@ -224,16 +224,37 @@ export async function materializeOccurrence(
     return { status: "SKIPPED_PAST", occurrenceKey };
   }
 
-  const pickupCoords = commute.pickup?.coordinates || [28.6139, 77.209];
-  const dropoffCoords = commute.dropoff?.coordinates || [28.5355, 77.391];
+  const pickupCoords = commute.pickup?.coordinates;
+  const dropoffCoords = commute.dropoff?.coordinates;
+
+  if (!pickupCoords || !dropoffCoords || !Array.isArray(pickupCoords) || !Array.isArray(dropoffCoords)) {
+    const errorMessage = "Commute is missing valid pickup or dropoff coordinates";
+    await AutoBookingOccurrence.updateOne(
+      { _id: claimed._id, leaseId },
+      {
+        $set: {
+          status: "FAILED_PERMANENT",
+          lastError: `Pricing error: ${errorMessage}`,
+          leaseId: null,
+          leaseExpiresAt: null,
+        },
+      }
+    );
+    return {
+      status: "FAILED_PERMANENT",
+      occurrenceKey,
+      error: errorMessage,
+    };
+  }
+
   const vehicleType = commute.vehicleType || "Cab Premium";
   const isPetFriendly = Boolean(commute.petFriendly);
 
   let fareResult;
   try {
     fareResult = calculateAuthoritativeFare({
-      pickupCoordinates: pickupCoords,
-      dropoffCoordinates: dropoffCoords,
+      pickupCoordinates: pickupCoords as [number, number],
+      dropoffCoordinates: dropoffCoords as [number, number],
       vehicleType,
       petFriendly: isPetFriendly,
     });

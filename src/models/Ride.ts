@@ -132,12 +132,12 @@ const RideSchema = new Schema<IRide>(
     },
     pickup: {
       address: { type: String, required: true },
-      coordinates: { type: [Number], default: [28.6139, 77.2090] },
+      coordinates: { type: [Number], required: true },
       landmark: { type: String, default: "" },
     },
     dropoff: {
       address: { type: String, required: true },
-      coordinates: { type: [Number], default: [28.5355, 77.3910] },
+      coordinates: { type: [Number], required: true },
       landmark: { type: String, default: "" },
     },
     vehicleType: {
@@ -155,11 +155,11 @@ const RideSchema = new Schema<IRide>(
     },
     distance: {
       type: String,
-      default: "5.2 km",
+      required: true,
     },
     duration: {
       type: String,
-      default: "15 mins",
+      required: true,
     },
     status: {
       type: String,

@@ -4,6 +4,21 @@ import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { signInWithGoogle } from "@/lib/firebase";
+import {
+  User,
+  Phone,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  Car,
+  Navigation,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
+import AuthRoadAnimation from "@/components/auth/AuthRoadAnimation";
 
 interface SignUpProps {
   initialRole?: "RIDER" | "DRIVER";
@@ -12,37 +27,102 @@ interface SignUpProps {
 export default function SignUp({ initialRole = "RIDER" }: SignUpProps) {
   const router = useRouter();
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState<"RIDER" | "DRIVER">(initialRole);
+
   const [focused, setFocused] = useState<string | null>(null);
-  const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string; confirmPassword?: string; form?: string }>({});
+  const [errors, setErrors] = useState<{
+    name?: string;
+    phone?: string;
+    email?: string;
+    password?: string;
+    confirmPassword?: string;
+    form?: string;
+  }>({});
   const [shake, setShake] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const validate = () => {
-    const e: { name?: string; email?: string; password?: string; confirmPassword?: string } = {};
-    if (!name.trim()) {
-      e.name = "Full name is required.";
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let raw = e.target.value.replace(/[^\d\s]/g, "");
+    const digits = raw.replace(/\D/g, "");
+    if (digits.length > 10) {
+      raw = digits.slice(0, 5) + " " + digits.slice(5, 10);
+    } else if (digits.length > 5) {
+      raw = digits.slice(0, 5) + " " + digits.slice(5);
+    } else {
+      raw = digits;
     }
-    if (!email.trim()) {
-      e.email = "Email is required.";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    setPhone(raw);
+    if (errors.phone || errors.form) {
+      setErrors((prev) => ({ ...prev, phone: undefined, form: undefined }));
+    }
+  };
+
+  const validate = () => {
+    const e: {
+      name?: string;
+      phone?: string;
+      email?: string;
+      password?: string;
+      confirmPassword?: string;
+    } = {};
+
+    // Name validation
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      e.name = "Full name is required.";
+    } else if (trimmedName.length < 2) {
+      e.name = "Name must be at least 2 characters.";
+    } else if (!/^[a-zA-Z\s.'-]+$/.test(trimmedName)) {
+      e.name = "Name can only contain letters, spaces, and hyphens.";
+    }
+
+    // Phone validation (10 digit Indian mobile)
+    const rawPhone = phone.trim();
+    const digitsOnly = rawPhone.replace(/\D/g, "");
+    const tenDigits =
+      digitsOnly.length === 12 && digitsOnly.startsWith("91")
+        ? digitsOnly.slice(2)
+        : digitsOnly.length === 11 && digitsOnly.startsWith("0")
+          ? digitsOnly.slice(1)
+          : digitsOnly;
+
+    if (!rawPhone) {
+      e.phone = "Phone number is required.";
+    } else if (tenDigits.length !== 10) {
+      e.phone = "Please enter a valid 10-digit mobile number.";
+    } else if (!/^[6-9]\d{9}$/.test(tenDigits)) {
+      e.phone = "Mobile number must start with 6, 7, 8, or 9.";
+    }
+
+    // Email validation
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      e.email = "Email address is required.";
+    } else if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(trimmedEmail)) {
       e.email = "Please enter a valid email address.";
     }
+
+    // Password validation
     if (!password) {
       e.password = "Password is required.";
     } else if (password.length < 6) {
       e.password = "Password must be at least 6 characters.";
     }
+
+    // Confirm password validation
     if (!confirmPassword) {
       e.confirmPassword = "Confirm password is required.";
     } else if (password !== confirmPassword) {
       e.confirmPassword = "Passwords do not match.";
     }
+
     return e;
   };
 
@@ -59,23 +139,42 @@ export default function SignUp({ initialRole = "RIDER" }: SignUpProps) {
     setLoading(true);
 
     try {
+      const digitsOnly = phone.trim().replace(/\D/g, "");
+      const tenDigits =
+        digitsOnly.length === 12 && digitsOnly.startsWith("91")
+          ? digitsOnly.slice(2)
+          : digitsOnly.length === 11 && digitsOnly.startsWith("0")
+            ? digitsOnly.slice(1)
+            : digitsOnly;
+      const formattedPhone = `+91 ${tenDigits}`;
+
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), email: email.trim().toLowerCase(), password, role }),
+        body: JSON.stringify({
+          name: name.trim(),
+          phone: formattedPhone,
+          email: email.trim().toLowerCase(),
+          password,
+          role,
+        }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        setErrors({ form: data.message || "Registration failed" });
+        setErrors({ form: data.message || "Registration failed. Please try again." });
         setShake(true);
         setTimeout(() => setShake(false), 500);
       } else {
-        router.push(`/login?registered=true&role=${role.toLowerCase()}&email=${encodeURIComponent(email.trim().toLowerCase())}`);
+        router.push(
+          `/login?registered=true&role=${role.toLowerCase()}&email=${encodeURIComponent(
+            email.trim().toLowerCase()
+          )}`
+        );
       }
     } catch {
-      setErrors({ form: "Something went wrong. Please try again." });
+      setErrors({ form: "Something went wrong. Please check your connection and try again." });
       setShake(true);
       setTimeout(() => setShake(false), 500);
     } finally {
@@ -83,545 +182,937 @@ export default function SignUp({ initialRole = "RIDER" }: SignUpProps) {
     }
   };
 
+  const handleGoogleSignUp = async () => {
+    setErrors({});
+    setGoogleLoading(true);
+    try {
+      const googleUser = await signInWithGoogle();
+      const res = await fetch("/api/auth/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firebaseIdToken: googleUser.firebaseIdToken,
+          googleIdToken: googleUser.googleIdToken,
+          role,
+          clientEmail: googleUser.email,
+          clientName: googleUser.name,
+          clientPhoto: googleUser.photoURL,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setErrors({ form: data.message || "Google sign-up failed." });
+        setShake(true);
+        setTimeout(() => setShake(false), 500);
+      } else {
+        const userRole = data?.data?.role || role;
+        if (userRole === "DRIVER") {
+          router.push("/driver");
+        } else if (userRole === "ADMIN") {
+          router.push("/admin");
+        } else {
+          router.push("/user/dashboard");
+        }
+      }
+    } catch (err: unknown) {
+      const errorMsg =
+        err instanceof Error
+          ? err.message
+          : "Google sign-up was interrupted. Please try again.";
+      setErrors({ form: errorMsg });
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   return (
-    <>
+    <div className="auth-page-root">
       <style>{`
-        @keyframes car-drive {
-          0%   { transform: translateX(-260px); }
-          100% { transform: translateX(calc(50vw + 60px)); }
+        .auth-page-root {
+          min-height: 100vh;
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+          background: radial-gradient(circle at 50% 8%, rgba(13, 148, 136, 0.22) 0%, transparent 60%),
+                      radial-gradient(circle at 85% 85%, rgba(6, 78, 59, 0.25) 0%, transparent 50%),
+                      radial-gradient(circle at 15% 90%, rgba(16, 185, 129, 0.15) 0%, transparent 50%),
+                      #020b0b;
+          font-family: var(--font-outfit), system-ui, -apple-system, sans-serif;
+          padding: 48px 16px 80px;
+          overflow-x: hidden;
+          box-sizing: border-box;
         }
-        @keyframes lane-dash {
-          0%   { transform: translateX(0); }
-          100% { transform: translateX(-96px); }
+
+        /* Ambient Stars */
+        .auth-stars-layer {
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          overflow: hidden;
         }
-        @keyframes wheel-spin {
-          from { transform: rotate(0deg); }
-          to   { transform: rotate(360deg); }
+
+        @keyframes twinkleStar {
+          0%, 100% { opacity: 0.25; transform: scale(0.9); }
+          50% { opacity: 0.95; transform: scale(1.35); }
         }
-        @keyframes headlight-beam {
-          0%, 100% { opacity: 0.55; }
-          50%       { opacity: 0.9; }
+
+        /* Centered Container */
+        .auth-centered-container {
+          width: 100%;
+          max-width: 450px;
+          margin: 0 auto;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          position: relative;
+          z-index: 10;
         }
-        @keyframes title-glow {
-          0%, 100% { filter: drop-shadow(0 0 24px rgba(20,184,166,0.45)); }
-          50%       { filter: drop-shadow(0 0 56px rgba(20,184,166,0.8)); }
+
+        /* Top Brand Header */
+        .auth-brand-header {
+          text-align: center;
+          margin-bottom: 22px;
         }
-        @keyframes twinkle {
-          0%, 100% { opacity: 0.2; transform: scale(1); }
-          50%       { opacity: 1;   transform: scale(1.4); }
+
+        .auth-brand-link {
+          text-decoration: none;
+          display: inline-flex;
+          flex-direction: column;
+          align-items: center;
+          transition: transform 0.2s ease;
         }
-        @keyframes win-blink {
-          0%, 90%, 100% { opacity: 1; }
-          92%, 98%       { opacity: 0; }
+
+        .auth-brand-link:hover {
+          transform: translateY(-2px);
         }
-        @keyframes slideIn {
-          from { opacity: 0; transform: translateX(30px); }
-          to   { opacity: 1; transform: translateX(0); }
+
+        .auth-brand-logo {
+          height: 64px;
+          width: auto;
+          display: block;
+          filter: drop-shadow(0 0 24px rgba(20, 184, 166, 0.5));
         }
-        @keyframes expandDown {
-          from { opacity: 0; max-height: 0; }
-          to   { opacity: 1; max-height: 400px; }
+
+        .auth-brand-tagline {
+          color: rgba(94, 234, 212, 0.85);
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 3px;
+          text-transform: uppercase;
+          margin: 6px 0 0;
         }
-        .car-drive  { animation: car-drive 5.5s linear infinite; }
-        .wheel-spin { animation: wheel-spin 0.4s linear infinite; transform-box: fill-box; transform-origin: center; }
-        .lane-dash  { animation: lane-dash 0.9s linear infinite; }
-        .headlight  { animation: headlight-beam 2s ease-in-out infinite; }
-        .bhavo-title { animation: title-glow 3s ease-in-out infinite; }
-        .form-card  { animation: slideIn 0.7s cubic-bezier(0.22,1,0.36,1) both; }
-        .email-section { animation: expandDown 0.4s ease forwards; overflow: hidden; }
-        @keyframes shake {
+
+        /* Elevated Form Card */
+        .auth-card {
+          width: 100%;
+          background: #ffffff;
+          border-radius: 24px;
+          padding: 32px 30px 28px;
+          box-shadow: 0 25px 65px -12px rgba(0, 0, 0, 0.45),
+                      0 4px 20px rgba(7, 91, 85, 0.12),
+                      0 0 0 1px rgba(226, 232, 240, 0.8);
+          position: relative;
+          box-sizing: border-box;
+          animation: cardSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        @keyframes cardSlideUp {
+          from {
+            opacity: 0;
+            transform: translateY(24px) scale(0.98);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        @keyframes cardShakeAnim {
           0%, 100% { transform: translateX(0); }
-          20%       { transform: translateX(-8px); }
-          40%       { transform: translateX(8px); }
-          60%       { transform: translateX(-5px); }
-          80%       { transform: translateX(5px); }
+          20% { transform: translateX(-7px); }
+          40% { transform: translateX(7px); }
+          60% { transform: translateX(-4px); }
+          80% { transform: translateX(4px); }
         }
-        .form-shake { animation: shake 0.45s cubic-bezier(0.36,0.07,0.19,0.97) both; }
-        .field-error { font-size: 12px; color: #ef4444; margin-top: 5px; display: flex; align-items: center; gap: 4px; }
-        @media (max-width: 1023px) {
-          .auth-scene { display: none !important; }
-          .auth-form-col { background: linear-gradient(135deg, #030f0f 0%, #042f2e 60%, #064e3b 100%) !important; min-height: 100vh !important; }
-          .mobile-bhavo { display: block !important; }
+        .auth-card-shake {
+          animation: cardShakeAnim 0.45s ease both;
         }
-        @media (max-width: 640px) {
-          .auth-form-col { padding: 32px 16px !important; }
-          .form-card { padding: 32px 20px 28px !important; border-radius: 24px !important; }
+
+        /* Segmented Role Switcher */
+        .auth-role-tabs {
+          display: flex;
+          background: #f1f5f9;
+          border-radius: 12px;
+          padding: 3.5px;
+          margin-bottom: 22px;
+          border: 1px solid #e2e8f0;
+          position: relative;
+        }
+
+        .auth-role-tab {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 7px;
+          padding: 9px 12px;
+          border: none;
+          border-radius: 9px;
+          background: transparent;
+          color: #64748b;
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          font-family: inherit;
+        }
+
+        .auth-role-tab.active.rider {
+          background: #075b55;
+          color: #ffffff;
+          box-shadow: 0 3px 10px rgba(7, 91, 85, 0.28);
+        }
+
+        .auth-role-tab.active.driver {
+          background: #ea580c;
+          color: #ffffff;
+          box-shadow: 0 3px 10px rgba(234, 88, 12, 0.28);
+        }
+
+        /* Card Header */
+        .auth-card-header {
+          text-align: center;
+          margin-bottom: 20px;
+        }
+
+        .auth-title {
+          font-size: 22px;
+          font-weight: 800;
+          color: #0f172a;
+          letter-spacing: -0.6px;
+          margin: 0 0 6px;
+        }
+
+        .auth-subtitle {
+          color: #64748b;
+          font-size: 13px;
+          line-height: 1.45;
+          margin: 0;
+        }
+
+        /* Form Layout */
+        .auth-form {
+          display: flex;
+          flex-direction: column;
+          gap: 13px;
+        }
+
+        .form-group {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .form-label {
+          font-size: 11.5px;
+          font-weight: 700;
+          color: #334155;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 6px;
+        }
+
+        .input-wrapper {
+          position: relative;
+          display: flex;
+          align-items: center;
+          width: 100%;
+          box-sizing: border-box;
+          background: #f8fafc;
+          border: 1.5px solid #e2e8f0;
+          border-radius: 12px;
+          transition: all 0.2s ease;
+        }
+
+        .input-wrapper.focused.rider-focused {
+          border-color: #075b55;
+          background: #ffffff;
+          box-shadow: 0 0 0 3px rgba(7, 91, 85, 0.12);
+        }
+
+        .input-wrapper.focused.driver-focused {
+          border-color: #ea580c;
+          background: #ffffff;
+          box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.12);
+        }
+
+        .input-wrapper.has-error {
+          border-color: #ef4444;
+          background: #fef2f2;
+          box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+        }
+
+        .input-icon {
+          position: absolute;
+          left: 13px;
+          color: #94a3b8;
+          pointer-events: none;
+          transition: color 0.2s;
+        }
+        .input-wrapper.focused.rider-focused .input-icon {
+          color: #075b55;
+        }
+        .input-wrapper.focused.driver-focused .input-icon {
+          color: #ea580c;
+        }
+        .input-wrapper.has-error .input-icon {
+          color: #ef4444;
+        }
+
+        .phone-prefix-tag {
+          position: absolute;
+          left: 36px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13.5px;
+          font-weight: 700;
+          color: #475569;
+          pointer-events: none;
+          user-select: none;
+        }
+        .phone-prefix-tag::after {
+          content: "";
+          display: inline-block;
+          height: 16px;
+          width: 1px;
+          background: #cbd5e1;
+        }
+
+        .auth-input {
+          width: 100%;
+          padding: 11px 40px 11px 38px;
+          background: transparent;
+          border: none;
+          outline: none;
+          font-size: 13.5px;
+          font-weight: 500;
+          color: #0f172a;
+          font-family: inherit;
+          box-sizing: border-box;
+        }
+        .auth-input::placeholder {
+          color: #94a3b8;
+          font-weight: 400;
+        }
+
+        .auth-phone-input {
+          padding-left: 78px !important;
+        }
+
+        .password-toggle-btn {
+          position: absolute;
+          right: 12px;
+          background: none;
+          border: none;
+          color: #94a3b8;
+          cursor: pointer;
+          padding: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: color 0.15s;
+        }
+        .password-toggle-btn:hover {
+          color: #334155;
+        }
+
+        .field-error {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 11.5px;
+          color: #dc2626;
+          margin: 4px 0 0;
+          font-weight: 500;
+        }
+
+        .auth-terms-note {
+          font-size: 11.5px;
+          color: #64748b;
+          line-height: 1.5;
+          margin: 4px 0 0;
+          text-align: center;
+        }
+
+        .terms-link {
+          color: #075b55;
+          font-weight: 600;
+          text-decoration: none;
+        }
+        .terms-link.driver-terms {
+          color: #ea580c;
+        }
+        .terms-link:hover {
+          text-decoration: underline;
+        }
+
+        /* Submit Button */
+        .auth-submit-btn {
+          width: 100%;
+          padding: 12px 20px;
+          border: none;
+          border-radius: 12px;
+          font-size: 14px;
+          font-weight: 700;
+          color: #ffffff;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          margin-top: 4px;
+          transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+          font-family: inherit;
+        }
+
+        .auth-submit-btn.rider-btn {
+          background: linear-gradient(135deg, #075b55 0%, #0d9488 100%);
+          box-shadow: 0 6px 18px rgba(7, 91, 85, 0.25);
+        }
+        .auth-submit-btn.rider-btn:hover:not(:disabled) {
+          transform: translateY(-1.5px);
+          box-shadow: 0 10px 24px rgba(7, 91, 85, 0.35);
+        }
+
+        .auth-submit-btn.driver-btn {
+          background: #ea580c;
+          box-shadow: 0 6px 18px rgba(234, 88, 12, 0.28);
+        }
+        .auth-submit-btn.driver-btn:hover:not(:disabled) {
+          background: #c2410c;
+          transform: translateY(-1.5px);
+          box-shadow: 0 10px 24px rgba(234, 88, 12, 0.38);
+        }
+
+        .auth-submit-btn:disabled {
+          opacity: 0.75;
+          cursor: not-allowed;
+          transform: none;
+        }
+
+        .btn-arrow {
+          transition: transform 0.2s ease;
+        }
+        .auth-submit-btn:hover:not(:disabled) .btn-arrow {
+          transform: translateX(3px);
+        }
+
+        /* Divider */
+        .auth-divider {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin: 16px 0 12px;
+        }
+
+        .divider-line {
+          flex: 1;
+          height: 1px;
+          background: #e2e8f0;
+        }
+
+        .divider-text {
+          font-size: 11px;
+          font-weight: 700;
+          color: #94a3b8;
+          text-transform: uppercase;
+          letter-spacing: 0.6px;
+        }
+
+        /* Google OAuth Button */
+        .google-auth-btn {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          padding: 11px 16px;
+          background: #ffffff;
+          border: 1.5px solid #e2e8f0;
+          border-radius: 12px;
+          font-size: 13.5px;
+          font-weight: 700;
+          color: #1e293b;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          font-family: inherit;
+        }
+        .google-auth-btn:hover:not(:disabled) {
+          border-color: #cbd5e1;
+          background: #f8fafc;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+          transform: translateY(-1px);
+        }
+        .google-auth-btn:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+
+        /* Alerts */
+        .auth-alert {
+          display: flex;
+          align-items: flex-start;
+          gap: 8px;
+          padding: 10px 12px;
+          border-radius: 10px;
+          font-size: 12.5px;
+          margin-bottom: 14px;
+        }
+        .auth-alert.error {
+          background: #fef2f2;
+          border: 1px solid #fca5a5;
+          color: #b91c1c;
+        }
+        .alert-icon {
+          flex-shrink: 0;
+          margin-top: 1px;
+        }
+
+        /* Footer Nav */
+        .auth-footer-nav {
+          margin-top: 18px;
+          text-align: center;
+          font-size: 13px;
+          color: #64748b;
+        }
+
+        .footer-link {
+          color: #075b55;
+          font-weight: 700;
+          text-decoration: none;
+          transition: color 0.15s;
+        }
+        .footer-link:hover {
+          color: #0f766e;
+          text-decoration: underline;
+        }
+
+        .footer-link.driver-link {
+          color: #ea580c;
+        }
+        .footer-link.driver-link:hover {
+          color: #c2410c;
+        }
+
+        /* Trust Footer */
+        .auth-trust-footer {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          font-size: 11px;
+          color: rgba(148, 163, 184, 0.7);
+          margin-top: 20px;
+        }
+
+        @media (max-width: 480px) {
+          .auth-card {
+            padding: 24px 20px 22px;
+            border-radius: 20px;
+          }
+          .auth-title {
+            font-size: 20px;
+          }
+          .auth-page-root {
+            padding: 32px 12px 60px;
+          }
         }
       `}</style>
 
-      <div style={{ display: "flex", minHeight: "100vh", fontFamily: "var(--font-outfit), system-ui, sans-serif", alignItems: "flex-start" }}>
+      {/* Ambient Twinkling Stars */}
+      <div className="auth-stars-layer">
+        {[
+          { x: 10, y: 12, d: "2.1s" },
+          { x: 25, y: 22, d: "1.8s" },
+          { x: 42, y: 8, d: "2.7s" },
+          { x: 65, y: 15, d: "1.9s" },
+          { x: 82, y: 24, d: "2.3s" },
+          { x: 92, y: 10, d: "2.5s" },
+          { x: 18, y: 70, d: "2.0s" },
+          { x: 80, y: 75, d: "2.2s" },
+        ].map((s, i) => (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              left: `${s.x}%`,
+              top: `${s.y}%`,
+              width: 3,
+              height: 3,
+              borderRadius: "50%",
+              background: "#5eead4",
+              animation: `twinkleStar ${s.d} ease-in-out infinite`,
+            }}
+          />
+        ))}
+      </div>
 
-        <div className="auth-scene" style={{
-          position: "sticky", top: 0, width: "52%", flexShrink: 0, height: "100vh",
-          background: "linear-gradient(180deg, #020b0b 0%, #021a1a 45%, #042f2e 100%)",
-          overflow: "hidden", display: "flex", flexDirection: "column",
-        }}>
-          <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(20,184,166,0.12) 0%, transparent 70%)" }} />
-
-          {[
-            { x: 8, y: 5, d: "2.2s", dl: "0.2s" }, { x: 22, y: 9, d: "1.7s", dl: "0.8s" },
-            { x: 38, y: 3, d: "2.6s", dl: "0s" }, { x: 55, y: 7, d: "1.9s", dl: "1.1s" },
-            { x: 68, y: 12, d: "2.4s", dl: "0.4s" }, { x: 82, y: 6, d: "1.5s", dl: "0.9s" },
-            { x: 91, y: 10, d: "2s", dl: "0.3s" }, { x: 15, y: 14, d: "2.7s", dl: "0.6s" },
-            { x: 45, y: 13, d: "1.8s", dl: "1.3s" }, { x: 75, y: 15, d: "2.3s", dl: "0.1s" },
-            { x: 30, y: 4, d: "3.1s", dl: "1.6s" }, { x: 60, y: 11, d: "1.6s", dl: "0.7s" },
-          ].map((s, i) => (
-            <div key={i} style={{
-              position: "absolute", left: `${s.x}%`, top: `${s.y}%`,
-              width: 3, height: 3, borderRadius: "50%", background: "#fff",
-              animation: `twinkle ${s.d} ease-in-out infinite`,
-              animationDelay: s.dl,
-            }} />
-          ))}
-
-          <div style={{ position: "relative", zIndex: 10, padding: "44px 48px 0" }}>
-            <Link href="/" style={{ textDecoration: "none", display: "inline-block" }}>
-              <div className="bhavo-title" style={{ marginBottom: 12 }}>
-                <Image
-                  src="/bhavo-title.png"
-                  alt="Bhavo"
-                  width={300}
-                  height={100}
-                  className="bhavo-title-img"
-                  style={{ height: "clamp(56px, 6.5vw, 84px)", width: "auto", display: "block" }}
-                  priority
-                />
-              </div>
-              <p style={{ color: "rgba(94,234,212,0.8)", fontSize: 13, fontWeight: 600, letterSpacing: "3px", textTransform: "uppercase", margin: 0 }}>
-                Your City. Your Ride.
-              </p>
-            </Link>
-          </div>
-
-          <div style={{ position: "absolute", bottom: 200, left: 0, right: 0, display: "flex", alignItems: "flex-end" }}>
-            {[
-              { w: 48, h: 200, x: 0, col: "#071f1f", wins: [[14, 30], [14, 65], [14, 100], [14, 140], [14, 175]], d: "2.1s" },
-              { w: 36, h: 140, x: 52, col: "#082020", wins: [[10, 25], [10, 60], [10, 95], [10, 120]], d: "1.7s" },
-              { w: 60, h: 250, x: 92, col: "#062020", wins: [[14, 20], [14, 55], [14, 90], [14, 125], [14, 160], [14, 200], [38, 20], [38, 55], [38, 90], [38, 125], [38, 160], [38, 200]], d: "2.8s" },
-              { w: 40, h: 160, x: 156, col: "#071e1e", wins: [[10, 30], [10, 65], [10, 100], [10, 135]], d: "1.4s" },
-              { w: 52, h: 210, x: 200, col: "#062222", wins: [[14, 30], [14, 65], [14, 100], [14, 135], [14, 170], [34, 30], [34, 65], [34, 100]], d: "3s" },
-              { w: 44, h: 155, x: 256, col: "#071f1f", wins: [[12, 30], [12, 65], [12, 100], [12, 130]], d: "1.9s" },
-              { w: 70, h: 260, x: 304, col: "#061c1c", wins: [[15, 20], [15, 55], [15, 90], [15, 125], [15, 160], [15, 210], [42, 20], [42, 55], [42, 90], [42, 125], [42, 160], [42, 210]], d: "2.4s" },
-              { w: 36, h: 130, x: 378, col: "#082424", wins: [[10, 30], [10, 65], [10, 95]], d: "1.6s" },
-              { w: 48, h: 180, x: 418, col: "#072020", wins: [[12, 30], [12, 65], [12, 100], [12, 145]], d: "2.9s" },
-              { w: 40, h: 220, x: 470, col: "#061e1e", wins: [[12, 30], [12, 65], [12, 100], [12, 140], [12, 180]], d: "1.5s" },
-            ].map((b, bi) => (
-              <div key={bi} style={{ position: "absolute", left: b.x, bottom: 0, width: b.w, height: b.h, background: b.col }}>
-                {b.wins.map(([wx, wy], wi) => (
-                  <div key={wi} style={{
-                    position: "absolute", left: wx, top: b.h - wy - 14,
-                    width: 8, height: 10, background: "rgba(254,249,195,0.65)",
-                    animation: `win-blink ${b.d} ease-in-out infinite`,
-                    animationDelay: `${(bi * 0.3 + wi * 0.7) % 3}s`,
-                  }} />
-                ))}
-              </div>
-            ))}
-            <div style={{ position: "absolute", right: 0, bottom: 0, width: 200, height: 290, background: "#051a1a" }} />
-            <div style={{ position: "absolute", right: 80, bottom: 0, width: 120, height: 210, background: "#062020" }} />
-          </div>
-
-          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 200 }}>
-            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 200, background: "linear-gradient(180deg, #111827 0%, #0d1117 100%)" }} />
-            <div style={{ position: "absolute", bottom: 195, left: 0, right: 0, height: 5, background: "rgba(20,184,166,0.6)" }} />
-
-            <div className="lane-dash" style={{ position: "absolute", bottom: 90, left: 0, display: "flex", gap: 48 }}>
-              {Array.from({ length: 20 }).map((_, i) => (
-                <div key={i} style={{ width: 48, height: 5, background: "rgba(255,255,255,0.25)", borderRadius: 3, flexShrink: 0 }} />
-              ))}
-            </div>
-
-            <div className="headlight" style={{
-              position: "absolute", bottom: 50, left: "12%",
-              width: 200, height: 80,
-              background: "radial-gradient(ellipse 100% 60% at 0% 50%, rgba(254,249,195,0.25) 0%, transparent 100%)",
-            }} />
-
-            <div className="car-drive" style={{ position: "absolute", bottom: 88, left: 0 }}>
-              <svg viewBox="0 0 220 72" width="220" height="72" style={{ display: "block", overflow: "visible", transform: "scaleX(-1)" }}>
-                <rect x="228" y="26" width="72" height="3" rx="2" fill="rgba(20,184,166,0.5)" opacity="0.7" />
-                <rect x="228" y="36" width="52" height="2" rx="1" fill="rgba(20,184,166,0.3)" opacity="0.5" />
-                <rect x="228" y="44" width="80" height="2" rx="1" fill="rgba(20,184,166,0.4)" opacity="0.6" />
-
-                <ellipse cx="110" cy="70" rx="88" ry="5" fill="rgba(0,0,0,0.5)" />
-
-                <path d="M12 44 Q12 32 26 32 L78 32 Q92 10 120 10 L160 10 Q178 10 188 32 L198 32 Q208 32 208 44 L208 58 Q203 64 196 64 L24 64 Q16 64 12 58 Z" fill="#0d9488" />
-                <path d="M78 32 Q90 12 118 12 L158 12 Q174 12 182 32" fill="#0a7a6e" />
-                <path d="M82 32 Q92 14 117 14 L152 14 Q166 14 174 32" fill="rgba(186,230,253,0.45)" stroke="rgba(186,230,253,0.2)" strokeWidth="1" />
-                <rect x="84" y="16" width="32" height="14" rx="3" fill="rgba(186,230,253,0.3)" />
-                <rect x="120" y="16" width="30" height="14" rx="3" fill="rgba(186,230,253,0.3)" />
-                <line x1="120" y1="34" x2="120" y2="62" stroke="rgba(0,0,0,0.25)" strokeWidth="1.5" />
-                <rect x="96" y="46" width="14" height="3" rx="1.5" fill="rgba(255,255,255,0.25)" />
-                <rect x="128" y="46" width="14" height="3" rx="1.5" fill="rgba(255,255,255,0.25)" />
-                <rect x="2" y="38" width="14" height="7" rx="2" fill="#fef9c3" />
-                <ellipse cx="0" cy="41" rx="16" ry="8" fill="rgba(254,249,195,0.35)" className="headlight" />
-                <rect x="200" y="38" width="10" height="7" rx="2" fill="#f87171" />
-                <rect x="12" y="53" width="196" height="3" rx="1" fill="rgba(20,184,166,0.4)" />
-
-                <circle cx="54" cy="64" r="14" fill="#111827" />
-                <g className="wheel-spin" style={{ transformOrigin: "54px 64px" }}>
-                  <circle cx="54" cy="64" r="9" fill="#1e293b" />
-                  <line x1="54" y1="56" x2="54" y2="72" stroke="#374151" strokeWidth="2" />
-                  <line x1="46" y1="64" x2="62" y2="64" stroke="#374151" strokeWidth="2" />
-                  <circle cx="54" cy="64" r="3" fill="#475569" />
-                </g>
-
-                <circle cx="168" cy="64" r="14" fill="#111827" />
-                <g className="wheel-spin" style={{ transformOrigin: "168px 64px" }}>
-                  <circle cx="168" cy="64" r="9" fill="#1e293b" />
-                  <line x1="168" y1="56" x2="168" y2="72" stroke="#374151" strokeWidth="2" />
-                  <line x1="160" y1="64" x2="176" y2="64" stroke="#374151" strokeWidth="2" />
-                  <circle cx="168" cy="64" r="3" fill="#475569" />
-                </g>
-              </svg>
-            </div>
-
-            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 80, background: "linear-gradient(180deg, transparent 0%, rgba(20,184,166,0.04) 100%)" }} />
-          </div>
-
-          <div className="noise-overlay" style={{ opacity: 0.035, zIndex: 5 }} />
+      {/* Centered Form Wrapper */}
+      <div className="auth-centered-container">
+        {/* Top Centered Brand */}
+        <div className="auth-brand-header">
+          <Link href="/" className="auth-brand-link">
+            <Image
+              src="/bhavo-title.png"
+              alt="Bhavo"
+              width={200}
+              height={70}
+              className="auth-brand-logo"
+              priority
+            />
+            <p className="auth-brand-tagline">YOUR CITY. YOUR RIDE.</p>
+          </Link>
         </div>
 
-        <div className="auth-form-col" style={{
-          flex: 1, minWidth: 0, display: "flex", flexDirection: "column",
-          alignItems: "center", justifyContent: "center",
-          padding: "40px 24px",
-          background: "#f0fdf9",
-          position: "relative", overflowY: "auto", overflowX: "hidden",
-        }}>
-          <div style={{ position: "absolute", top: "-15%", right: "-10%", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, rgba(20,184,166,0.08) 0%, transparent 70%)", pointerEvents: "none" }} />
-          <div style={{ position: "absolute", bottom: "-15%", left: "-10%", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(16,185,129,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
-
-          <div style={{ display: "none" }} className="mobile-bhavo">
-            <Link href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 28 }}>
-              <Image
-                src="/bhavo-title.png"
-                alt="Bhavo"
-                width={150}
-                height={50}
-                className="bhavo-title-img"
-                style={{ height: 42, width: "auto", display: "block" }}
-                priority
-              />
-            </Link>
-          </div>
-
-          <div className={`form-card${shake ? " form-shake" : ""}`} style={{
-            width: "100%", maxWidth: 400,
-            background: "#ffffff", borderRadius: 28,
-            padding: "44px 40px 40px",
-            boxShadow: "0 0 0 1px rgba(20,184,166,0.08), 0 4px 6px rgba(0,0,0,0.03), 0 16px 48px rgba(0,0,0,0.07), 0 40px 80px rgba(0,0,0,0.05)",
-            position: "relative", zIndex: 10,
-          }}>
-            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 4, background: "linear-gradient(90deg, #0d9488, #34d399, #0d9488)", borderRadius: "28px 28px 0 0", backgroundSize: "200% 100%", animation: "lane-dash 3s linear infinite" }} />
-
-            <div style={{ marginBottom: 24 }}>
-              <div style={{
-                display: "flex",
-                background: "#f1f5f9",
-                borderRadius: 16,
-                padding: 4,
-                position: "relative",
-                border: "1px solid #e2e8f0"
-              }}>
-                <div style={{
-                  position: "absolute",
-                  top: 4,
-                  bottom: 4,
-                  left: role === "RIDER" ? 4 : "50%",
-                  right: role === "RIDER" ? "50%" : 4,
-                  background: "#ffffff",
-                  borderRadius: 12,
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                  border: role === "RIDER" ? "1px solid rgba(13,148,136,0.25)" : "1px solid rgba(217,119,6,0.25)"
-                }} />
-
-                <button
-                  type="button"
-                  id="tab-register-rider"
-                  onClick={() => setRole("RIDER")}
-                  style={{
-                    flex: 1,
-                    padding: "11px 8px",
-                    border: "none",
-                    background: "transparent",
-                    cursor: "pointer",
-                    position: "relative",
-                    zIndex: 1,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 7,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: role === "RIDER" ? "#0f766e" : "#64748b",
-                    transition: "color 0.2s",
-                    fontFamily: "inherit",
-                  }}
-                >
-                  <span style={{ fontSize: 16 }}>🚗</span>
-                  <span>Register as Rider</span>
-                </button>
-
-                <button
-                  type="button"
-                  id="tab-register-driver"
-                  onClick={() => setRole("DRIVER")}
-                  style={{
-                    flex: 1,
-                    padding: "11px 8px",
-                    border: "none",
-                    background: "transparent",
-                    cursor: "pointer",
-                    position: "relative",
-                    zIndex: 1,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 7,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: role === "DRIVER" ? "#b45309" : "#64748b",
-                    transition: "color 0.2s",
-                    fontFamily: "inherit",
-                  }}
-                >
-                  <span style={{ fontSize: 16 }}>🚖</span>
-                  <span>Register as Driver</span>
-                </button>
-              </div>
-            </div>
-
-            <div style={{ marginBottom: 22 }}>
-              <div style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "4px 10px",
-                borderRadius: 20,
-                fontSize: 11,
-                fontWeight: 800,
-                letterSpacing: "0.5px",
-                textTransform: "uppercase",
-                marginBottom: 10,
-                background: role === "RIDER" ? "rgba(13,148,136,0.1)" : "rgba(245,158,11,0.14)",
-                color: role === "RIDER" ? "#0f766e" : "#b45309"
-              }}>
-                <span style={{ width: 6, height: 6, borderRadius: "50%", background: role === "RIDER" ? "#0d9488" : "#f59e0b" }} />
-                {role === "RIDER" ? "Passenger Registration" : "Captain Onboarding"}
-              </div>
-              <h2 style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.8px", marginBottom: 6 }}>
-                {role === "RIDER" ? "Register as Rider" : "Register as Driver"}
-              </h2>
-              <p style={{ color: "#64748b", fontSize: 13.5, lineHeight: 1.5 }}>
-                {role === "RIDER"
-                  ? "Join Bhavo to book fast, safe, and transparent rides across your city."
-                  : "Drive with Bhavo. Zero commission on daily bonuses and instant payouts."}
-              </p>
-
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
-                {role === "RIDER" ? (
-                  <>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: "#0d9488", background: "#f0fdfa", border: "1px solid #ccfbf1", padding: "3px 8px", borderRadius: 6 }}>🛡️ Verified Drivers</span>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: "#0d9488", background: "#f0fdfa", border: "1px solid #ccfbf1", padding: "3px 8px", borderRadius: 6 }}>⚡ Live Tracking</span>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: "#0d9488", background: "#f0fdfa", border: "1px solid #ccfbf1", padding: "3px 8px", borderRadius: 6 }}>💳 Bhavo Wallet</span>
-                  </>
-                ) : (
-                  <>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: "#b45309", background: "#fffbeb", border: "1px solid #fef3c7", padding: "3px 8px", borderRadius: 6 }}>💰 Instant Payouts</span>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: "#b45309", background: "#fffbeb", border: "1px solid #fef3c7", padding: "3px 8px", borderRadius: 6 }}>🚀 0% Promo Cut</span>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: "#b45309", background: "#fffbeb", border: "1px solid #fef3c7", padding: "3px 8px", borderRadius: 6 }}>🛡️ 24/7 Support</span>
-                  </>
-                )}
-              </div>
-            </div>
-
-            <form onSubmit={handleSubmit} noValidate style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 7, letterSpacing: "0.4px", textTransform: "uppercase" }} htmlFor="signup-name">Full name</label>
-                <div style={{ position: "relative" }}>
-                  <span style={{ position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", color: errors.name ? "#ef4444" : focused === "name" ? (role === "RIDER" ? "#0d9488" : "#d97706") : "#94a3b8", transition: "color 0.2s", pointerEvents: "none" }}>
-                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                  </span>
-                  <input id="signup-name" type="text"
-                    value={name}
-                    onChange={(e) => { setName(e.target.value); if (errors.name) setErrors(prev => ({ ...prev, name: undefined })); }}
-                    onFocus={() => setFocused("name")} onBlur={() => setFocused(null)}
-                    placeholder="Enter Your Name"
-                    style={{ width: "100%", paddingLeft: 38, paddingRight: 14, paddingTop: 12, paddingBottom: 12, borderRadius: 12, fontSize: 14, color: "#0f172a", outline: "none", fontFamily: "inherit", border: errors.name ? "1.5px solid #ef4444" : focused === "name" ? (role === "RIDER" ? "1.5px solid #0d9488" : "1.5px solid #d97706") : "1.5px solid #e2e8f0", background: errors.name ? "#fff5f5" : focused === "name" ? "#fff" : "#f8fafc", boxShadow: errors.name ? "0 0 0 4px rgba(239,68,68,0.1)" : focused === "name" ? (role === "RIDER" ? "0 0 0 4px rgba(13,148,136,0.1)" : "0 0 0 4px rgba(217,119,6,0.1)") : "none", transition: "all 0.2s ease", boxSizing: "border-box" }} />
-                </div>
-                {errors.name && <p className="field-error"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" /></svg>{errors.name}</p>}
-              </div>
-
-              <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 7, letterSpacing: "0.4px", textTransform: "uppercase" }} htmlFor="signup-email">Email</label>
-                <div style={{ position: "relative" }}>
-                  <span style={{ position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", color: errors.email ? "#ef4444" : focused === "email" ? (role === "RIDER" ? "#0d9488" : "#d97706") : "#94a3b8", transition: "color 0.2s", pointerEvents: "none" }}>
-                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                  </span>
-                  <input id="signup-email" type="email"
-                    value={email}
-                    onChange={(e) => { setEmail(e.target.value); if (errors.email) setErrors(prev => ({ ...prev, email: undefined })); }}
-                    onFocus={() => setFocused("email")} onBlur={() => setFocused(null)}
-                    placeholder="Enter your Email"
-                    style={{ width: "100%", paddingLeft: 38, paddingRight: 14, paddingTop: 12, paddingBottom: 12, borderRadius: 12, fontSize: 14, color: "#0f172a", outline: "none", fontFamily: "inherit", border: errors.email ? "1.5px solid #ef4444" : focused === "email" ? (role === "RIDER" ? "1.5px solid #0d9488" : "1.5px solid #d97706") : "1.5px solid #e2e8f0", background: errors.email ? "#fff5f5" : focused === "email" ? "#fff" : "#f8fafc", boxShadow: errors.email ? "0 0 0 4px rgba(239,68,68,0.1)" : focused === "email" ? (role === "RIDER" ? "0 0 0 4px rgba(13,148,136,0.1)" : "0 0 0 4px rgba(217,119,6,0.1)") : "none", transition: "all 0.2s ease", boxSizing: "border-box" }} />
-                </div>
-                {errors.email && <p className="field-error"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" /></svg>{errors.email}</p>}
-              </div>
-
-              <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 7, letterSpacing: "0.4px", textTransform: "uppercase" }} htmlFor="signup-password">Password</label>
-                <div style={{ position: "relative" }}>
-                  <span style={{ position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", color: errors.password ? "#ef4444" : focused === "password" ? (role === "RIDER" ? "#0d9488" : "#d97706") : "#94a3b8", transition: "color 0.2s", pointerEvents: "none" }}>
-                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                  </span>
-                  <input id="signup-password" type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => { setPassword(e.target.value); if (errors.password) setErrors(prev => ({ ...prev, password: undefined })); }}
-                    onFocus={() => setFocused("password")} onBlur={() => setFocused(null)}
-                    placeholder="Enter Your Password"
-                    style={{ width: "100%", paddingLeft: 38, paddingRight: 40, paddingTop: 12, paddingBottom: 12, borderRadius: 12, fontSize: 14, color: "#0f172a", outline: "none", fontFamily: "inherit", border: errors.password ? "1.5px solid #ef4444" : focused === "password" ? (role === "RIDER" ? "1.5px solid #0d9488" : "1.5px solid #d97706") : "1.5px solid #e2e8f0", background: errors.password ? "#fff5f5" : focused === "password" ? "#fff" : "#f8fafc", boxShadow: errors.password ? "0 0 0 4px rgba(239,68,68,0.1)" : focused === "password" ? (role === "RIDER" ? "0 0 0 4px rgba(13,148,136,0.1)" : "0 0 0 4px rgba(217,119,6,0.1)") : "none", transition: "all 0.2s ease", boxSizing: "border-box" }} />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)}
-                    style={{ position: "absolute", right: 13, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 0, display: "flex" }}>
-                    {showPassword ? (
-                      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
-                    ) : (
-                      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                    )}
-                  </button>
-                </div>
-                {errors.password
-                  ? <p className="field-error"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" /></svg>{errors.password}</p>
-                  : <p style={{ marginTop: 6, fontSize: 11, color: "#94a3b8" }}>Must be at least 8 characters long.</p>
-                }
-              </div>
-
-              <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 7, letterSpacing: "0.4px", textTransform: "uppercase" }} htmlFor="signup-confirm-password">Confirm Password</label>
-                <div style={{ position: "relative" }}>
-                  <span style={{ position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", color: errors.confirmPassword ? "#ef4444" : focused === "confirmPassword" ? (role === "RIDER" ? "#0d9488" : "#d97706") : "#94a3b8", transition: "color 0.2s", pointerEvents: "none" }}>
-                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                  </span>
-                  <input id="signup-confirm-password" type={showConfirmPassword ? "text" : "password"}
-                    value={confirmPassword}
-                    onChange={(e) => { setConfirmPassword(e.target.value); if (errors.confirmPassword) setErrors(prev => ({ ...prev, confirmPassword: undefined })); }}
-                    onFocus={() => setFocused("confirmPassword")} onBlur={() => setFocused(null)}
-                    placeholder="Confirm Your Password"
-                    style={{ width: "100%", paddingLeft: 38, paddingRight: 40, paddingTop: 12, paddingBottom: 12, borderRadius: 12, fontSize: 14, color: "#0f172a", outline: "none", fontFamily: "inherit", border: errors.confirmPassword ? "1.5px solid #ef4444" : focused === "confirmPassword" ? (role === "RIDER" ? "1.5px solid #0d9488" : "1.5px solid #d97706") : "1.5px solid #e2e8f0", background: errors.confirmPassword ? "#fff5f5" : focused === "confirmPassword" ? "#fff" : "#f8fafc", boxShadow: errors.confirmPassword ? "0 0 0 4px rgba(239,68,68,0.1)" : focused === "confirmPassword" ? (role === "RIDER" ? "0 0 0 4px rgba(13,148,136,0.1)" : "0 0 0 4px rgba(217,119,6,0.1)") : "none", transition: "all 0.2s ease", boxSizing: "border-box" }} />
-                  <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    style={{ position: "absolute", right: 13, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 0, display: "flex" }}>
-                    {showConfirmPassword ? (
-                      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
-                    ) : (
-                      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                    )}
-                  </button>
-                </div>
-                {errors.confirmPassword && (
-                  <p className="field-error"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" /></svg>{errors.confirmPassword}</p>
-                )}
-              </div>
-
-              {errors.form && (
-                <div style={{ padding: "10px 12px", background: "#fef2f2", border: "1px solid #f87171", borderRadius: 8, color: "#b91c1c", fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  {errors.form}
-                </div>
-              )}
-
-              <p style={{ fontSize: 11, color: "#94a3b8", lineHeight: 1.6 }}>
-                By registering as a {role === "RIDER" ? "Rider" : "Driver"} you agree to our{" "}
-                <Link href="/terms" style={{ color: role === "RIDER" ? "#0d9488" : "#b45309", fontWeight: 600, textDecoration: "none" }}>Terms</Link>
-                {" "}and{" "}
-                <Link href="/privacy" style={{ color: role === "RIDER" ? "#0d9488" : "#b45309", fontWeight: 600, textDecoration: "none" }}>Privacy Policy</Link>.
-              </p>
-
-              <button type="submit" disabled={loading} className="btn-shimmer"
-                style={{
-                  width: "100%", padding: "13px 20px",
-                  background: loading
-                    ? (role === "RIDER" ? "#6ee7df" : "#fed7aa")
-                    : (role === "RIDER"
-                        ? "linear-gradient(135deg, #0d9488 0%, #059669 100%)"
-                        : "linear-gradient(135deg, #0f766e 0%, #0d9488 40%, #b45309 100%)"),
-                  color: "#fff", border: "none", borderRadius: 13, fontSize: 14, fontWeight: 700,
-                  cursor: loading ? "not-allowed" : "pointer",
-                  boxShadow: role === "RIDER" ? "0 4px 20px rgba(13,148,136,0.3), inset 0 1px 0 rgba(255,255,255,0.15)" : "0 4px 20px rgba(180,83,9,0.25), inset 0 1px 0 rgba(255,255,255,0.15)",
-                  transition: "all 0.25s ease", fontFamily: "inherit",
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: loading ? 0.8 : 1
-                }}
-                onMouseEnter={(e) => {
-                  if (!loading) {
-                    (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)";
-                    (e.currentTarget as HTMLElement).style.boxShadow = role === "RIDER" ? "0 8px 28px rgba(13,148,136,0.4)" : "0 8px 28px rgba(180,83,9,0.35)";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
-                  (e.currentTarget as HTMLElement).style.boxShadow = role === "RIDER" ? "0 4px 20px rgba(13,148,136,0.3)" : "0 4px 20px rgba(180,83,9,0.25)";
-                }}
-              >
-                {loading ? (
-                  <>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} style={{ animation: "wheel-spin 0.7s linear infinite" }}><path strokeLinecap="round" d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" /></svg>
-                    Creating account…
-                  </>
-                ) : (
-                  <>
-                    {role === "RIDER" ? "Register as Rider" : "Register as Driver"}
-                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-                  </>
-                )}
-              </button>
-            </form>
-
-            <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "22px 0 18px" }}>
-              <div style={{ flex: 1, height: 1, background: "#f1f5f9" }} />
-              <span style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", letterSpacing: "0.5px", textTransform: "uppercase" }}>or continue with</span>
-              <div style={{ flex: 1, height: 1, background: "#f1f5f9" }} />
-            </div>
-
+        {/* Elevated Form Card */}
+        <div className={`auth-card ${shake ? "auth-card-shake" : ""}`}>
+          {/* Role Switcher Tabs */}
+          <div className="auth-role-tabs" role="tablist">
             <button
               type="button"
-              onClick={() => setErrors({ form: "Google Sign-Up is currently in private preview. Please register with email and password." })}
-              style={{
-                width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
-                padding: "13px 20px",
-                background: "#fff", border: "1.5px solid #e2e8f0",
-                borderRadius: 14, fontSize: 14, fontWeight: 700, color: "#1e293b",
-                cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-                transition: "all 0.2s ease", fontFamily: "inherit",
+              id="tab-signup-rider"
+              role="tab"
+              aria-selected={role === "RIDER"}
+              onClick={() => {
+                setRole("RIDER");
+                setErrors({});
               }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.borderColor = role === "RIDER" ? "#0d9488" : "#b45309";
-                (e.currentTarget as HTMLElement).style.boxShadow = role === "RIDER" ? "0 4px 20px rgba(13,148,136,0.15)" : "0 4px 20px rgba(180,83,9,0.15)";
-                (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.borderColor = "#e2e8f0";
-                (e.currentTarget as HTMLElement).style.boxShadow = "0 2px 8px rgba(0,0,0,0.06)";
-                (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
-              }}
+              className={`auth-role-tab ${role === "RIDER" ? "active rider" : ""}`}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24">
-                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-              </svg>
-              Sign up as {role === "RIDER" ? "Rider" : "Driver"} with Google
+              <Car size={15} />
+              <span>Sign Up as Rider</span>
             </button>
+            <button
+              type="button"
+              id="tab-signup-driver"
+              role="tab"
+              aria-selected={role === "DRIVER"}
+              onClick={() => {
+                setRole("DRIVER");
+                setErrors({});
+              }}
+              className={`auth-role-tab ${role === "DRIVER" ? "active driver" : ""}`}
+            >
+              <Navigation size={15} />
+              <span>Sign Up as Driver</span>
+            </button>
+          </div>
 
-            <div style={{ marginTop: 22, textAlign: "center", color: "#64748b", fontSize: 13.5 }}>
-              Already registered as {role === "RIDER" ? "a Rider" : "a Driver"}?{" "}
-              <Link href={`/login?role=${role.toLowerCase()}`} style={{ color: role === "RIDER" ? "#0d9488" : "#b45309", fontWeight: 700, textDecoration: "none" }}>
-                Log in as {role === "RIDER" ? "Rider" : "Driver"} →
-              </Link>
+          {/* Card Header */}
+          <div className="auth-card-header">
+            <h1 className="auth-title">
+              {role === "RIDER" ? "Create Rider Account" : "Join as Captain / Driver"}
+            </h1>
+            <p className="auth-subtitle">
+              {role === "RIDER"
+                ? "Fast, transparent, and fair rides across your city."
+                : "Drive on your terms with daily bonuses and instant payouts."}
+            </p>
+          </div>
+
+          {/* Form Alert */}
+          {errors.form && (
+            <div className="auth-alert error">
+              <AlertCircle size={16} className="alert-icon" />
+              <span>{errors.form}</span>
             </div>
+          )}
+
+          {/* Sign Up Form */}
+          <form onSubmit={handleSubmit} noValidate className="auth-form">
+            {/* Full Name */}
+            <div className="form-group">
+              <label htmlFor="signup-name" className="form-label">
+                Full Name
+              </label>
+              <div
+                className={`input-wrapper ${focused === "name" ? (role === "RIDER" ? "focused rider-focused" : "focused driver-focused") : ""} ${errors.name ? "has-error" : ""}`}
+              >
+                <User size={16} className="input-icon" />
+                <input
+                  id="signup-name"
+                  type="text"
+                  autoComplete="name"
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    if (errors.name || errors.form) {
+                      setErrors((prev) => ({ ...prev, name: undefined, form: undefined }));
+                    }
+                  }}
+                  onFocus={() => setFocused("name")}
+                  onBlur={() => setFocused(null)}
+                  placeholder="Enter Your Name"
+                  className="auth-input"
+                />
+              </div>
+              {errors.name && (
+                <p className="field-error">
+                  <AlertCircle size={12} />
+                  <span>{errors.name}</span>
+                </p>
+              )}
+            </div>
+
+            {/* Phone Number */}
+            <div className="form-group">
+              <label htmlFor="signup-phone" className="form-label">
+                Phone Number
+              </label>
+              <div
+                className={`input-wrapper ${focused === "phone" ? (role === "RIDER" ? "focused rider-focused" : "focused driver-focused") : ""} ${errors.phone ? "has-error" : ""}`}
+              >
+                <Phone size={16} className="input-icon" />
+                <span className="phone-prefix-tag">+91</span>
+                <input
+                  id="signup-phone"
+                  type="tel"
+                  autoComplete="tel"
+                  maxLength={11}
+                  value={phone}
+                  onChange={handlePhoneChange}
+                  onFocus={() => setFocused("phone")}
+                  onBlur={() => setFocused(null)}
+                  placeholder="Enter Your Number"
+                  className="auth-input auth-phone-input"
+                />
+              </div>
+              {errors.phone && (
+                <p className="field-error">
+                  <AlertCircle size={12} />
+                  <span>{errors.phone}</span>
+                </p>
+              )}
+            </div>
+
+            {/* Email Address */}
+            <div className="form-group">
+              <label htmlFor="signup-email" className="form-label">
+                Email Address
+              </label>
+              <div
+                className={`input-wrapper ${focused === "email" ? (role === "RIDER" ? "focused rider-focused" : "focused driver-focused") : ""} ${errors.email ? "has-error" : ""}`}
+              >
+                <Mail size={16} className="input-icon" />
+                <input
+                  id="signup-email"
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (errors.email || errors.form) {
+                      setErrors((prev) => ({ ...prev, email: undefined, form: undefined }));
+                    }
+                  }}
+                  onFocus={() => setFocused("email")}
+                  onBlur={() => setFocused(null)}
+                  placeholder="Enter your Email"
+                  className="auth-input"
+                />
+              </div>
+              {errors.email && (
+                <p className="field-error">
+                  <AlertCircle size={12} />
+                  <span>{errors.email}</span>
+                </p>
+              )}
+            </div>
+
+            {/* Password */}
+            <div className="form-group">
+              <label htmlFor="signup-password" className="form-label">
+                Password
+              </label>
+              <div
+                className={`input-wrapper ${focused === "password" ? (role === "RIDER" ? "focused rider-focused" : "focused driver-focused") : ""} ${errors.password ? "has-error" : ""}`}
+              >
+                <Lock size={16} className="input-icon" />
+                <input
+                  id="signup-password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (errors.password || errors.form) {
+                      setErrors((prev) => ({ ...prev, password: undefined, form: undefined }));
+                    }
+                  }}
+                  onFocus={() => setFocused("password")}
+                  onBlur={() => setFocused(null)}
+                  placeholder="At least 6 characters"
+                  className="auth-input"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="password-toggle-btn"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              {errors.password && (
+                <p className="field-error">
+                  <AlertCircle size={12} />
+                  <span>{errors.password}</span>
+                </p>
+              )}
+            </div>
+
+            {/* Confirm Password */}
+            <div className="form-group">
+              <label htmlFor="signup-confirm-password" className="form-label">
+                Confirm Password
+              </label>
+              <div
+                className={`input-wrapper ${focused === "confirmPassword" ? (role === "RIDER" ? "focused rider-focused" : "focused driver-focused") : ""} ${errors.confirmPassword ? "has-error" : ""}`}
+              >
+                <Lock size={16} className="input-icon" />
+                <input
+                  id="signup-confirm-password"
+                  type={showConfirmPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    if (errors.confirmPassword || errors.form) {
+                      setErrors((prev) => ({ ...prev, confirmPassword: undefined, form: undefined }));
+                    }
+                  }}
+                  onFocus={() => setFocused("confirmPassword")}
+                  onBlur={() => setFocused(null)}
+                  placeholder="Confirm Your Password"
+                  className="auth-input"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="password-toggle-btn"
+                  aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                >
+                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              {errors.confirmPassword && (
+                <p className="field-error">
+                  <AlertCircle size={12} />
+                  <span>{errors.confirmPassword}</span>
+                </p>
+              )}
+            </div>
+
+            {/* Terms notice */}
+            <p className="auth-terms-note">
+              By registering as a {role === "RIDER" ? "Rider" : "Driver"}, you agree to Bhavo&apos;s{" "}
+              <Link href="/terms" className={`terms-link ${role === "DRIVER" ? "driver-terms" : ""}`}>
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" className={`terms-link ${role === "DRIVER" ? "driver-terms" : ""}`}>
+                Privacy Policy
+              </Link>.
+            </p>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              id="signup-submit-btn"
+              disabled={loading || googleLoading}
+              className={`auth-submit-btn ${role === "RIDER" ? "rider-btn" : "driver-btn"}`}
+            >
+              {loading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>Creating Account...</span>
+                </>
+              ) : (
+                <>
+                  <span>{role === "RIDER" ? "Register as Rider" : "Register as Driver"}</span>
+                  <ArrowRight size={16} className="btn-arrow" />
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Divider */}
+          <div className="auth-divider">
+            <span className="divider-line" />
+            <span className="divider-text">OR CONTINUE WITH</span>
+            <span className="divider-line" />
+          </div>
+
+          {/* Google Sign Up Button */}
+          <button
+            type="button"
+            id="google-signup-btn"
+            onClick={handleGoogleSignUp}
+            disabled={loading || googleLoading}
+            className="google-auth-btn"
+          >
+            {googleLoading ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Loader2 size={16} className="animate-spin" />
+                <span>Connecting to Google...</span>
+              </div>
+            ) : (
+              <>
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    fill="#4285F4"
+                  />
+                  <path
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    fill="#34A853"
+                  />
+                  <path
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                    fill="#FBBC05"
+                  />
+                  <path
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                    fill="#EA4335"
+                  />
+                </svg>
+                <span>Continue with Google</span>
+              </>
+            )}
+          </button>
+
+          {/* Footer Switcher */}
+          <div className="auth-footer-nav">
+            Already registered?{" "}
+            <Link
+              href={`/login?role=${role.toLowerCase()}`}
+              className={`footer-link ${role === "DRIVER" ? "driver-link" : ""}`}
+            >
+              Log in as {role === "RIDER" ? "Rider" : "Driver"} →
+            </Link>
           </div>
         </div>
+
       </div>
-    </>
+
+      {/* Animated Bottom Road with Specialized Cab and Auto */}
+      <AuthRoadAnimation />
+    </div>
   );
 }

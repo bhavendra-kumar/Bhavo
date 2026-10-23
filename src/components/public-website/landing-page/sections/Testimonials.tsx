@@ -17,6 +17,10 @@ export default function Testimonials() {
     return () => clearInterval(timer);
   }, []);
 
+  if (!TESTIMONIALS || TESTIMONIALS.length === 0) {
+    return null;
+  }
+
   const t = TESTIMONIALS[active];
 
   return (
