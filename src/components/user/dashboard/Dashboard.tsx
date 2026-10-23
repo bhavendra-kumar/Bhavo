@@ -37,6 +37,72 @@ export default function DashboardPage() {
     fetchDashboard();
   }, [fetchDashboard]);
 
+  // Auto-book pending ride from landing page hero after login
+  useEffect(() => {
+    let pendingRaw: string | null = null;
+    try {
+      pendingRaw =
+        sessionStorage.getItem("bhavo_pending_ride_booking") ||
+        localStorage.getItem("bhavo_pending_ride_booking");
+    } catch {}
+
+    if (!pendingRaw) return;
+
+    let pending: {
+      pickup?: { address: string; coordinates: [number, number] };
+      dropoff?: { address: string; coordinates: [number, number] };
+      vehicleType?: string;
+      fare?: number;
+      distance?: string;
+      duration?: string;
+      petFriendly?: boolean;
+    } | null = null;
+
+    try {
+      pending = JSON.parse(pendingRaw);
+    } catch {
+      return;
+    }
+
+    if (!pending?.pickup?.coordinates || !pending?.dropoff?.coordinates) return;
+
+    // Clear immediately to prevent multiple submissions
+    try {
+      sessionStorage.removeItem("bhavo_pending_ride_booking");
+      localStorage.removeItem("bhavo_pending_ride_booking");
+    } catch {}
+
+    async function triggerAutoBooking() {
+      try {
+        const res = await fetch("/api/user/rides", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pickup: pending!.pickup,
+            dropoff: pending!.dropoff,
+            vehicleType: pending!.vehicleType || "Cab Premium",
+            fare: pending!.fare || 250,
+            distance: pending!.distance || "8.5 km",
+            duration: pending!.duration || "20 mins",
+            scheduledFor: null,
+            petFriendly: pending!.petFriendly || false,
+          }),
+        });
+
+        if (res.ok) {
+          fetchDashboard();
+        } else {
+          const err = await res.json();
+          alert("Auto-booking could not be completed: " + (err.message || "Unknown error"));
+        }
+      } catch (err) {
+        console.error("Auto-booking error in Dashboard:", err);
+      }
+    }
+
+    triggerAutoBooking();
+  }, [fetchDashboard, alert]);
+
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 

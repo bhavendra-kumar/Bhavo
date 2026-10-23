@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 import dbConnect from "@/lib/mongoose";
 import Ride from "@/models/Ride";
 import { requireRole, isAuthError, handleAuthError } from "@/lib/auth";
-import { calculateAuthoritativeFare, PricingError } from "@/lib/pricingEngine";
+import { calculateAuthoritativeFare, validateCoordinates, PricingError } from "@/lib/pricingEngine";
 
 export const dynamic = "force-dynamic";
 
@@ -108,8 +108,29 @@ export async function POST(req: Request) {
       claimedDistKm = distance;
     }
 
-    const pickupCoords = pickup.coordinates || [28.6139, 77.209];
-    const dropoffCoords = dropoff.coordinates || [28.5355, 77.391];
+    let pickupCoords: [number, number];
+    let dropoffCoords: [number, number];
+    try {
+      if (!pickup?.coordinates || !dropoff?.coordinates) {
+        return NextResponse.json(
+          { status: "error", code: "INVALID_COORDINATES", message: "Valid pickup and dropoff coordinates are required." },
+          { status: 400 }
+        );
+      }
+      pickupCoords = validateCoordinates(pickup.coordinates, "pickup");
+      dropoffCoords = validateCoordinates(dropoff.coordinates, "dropoff");
+    } catch (coordErr) {
+      if (coordErr instanceof PricingError) {
+        return NextResponse.json(
+          { status: "error", code: coordErr.code, message: coordErr.message },
+          { status: coordErr.statusCode }
+        );
+      }
+      return NextResponse.json(
+        { status: "error", code: "INVALID_COORDINATES", message: "Invalid coordinates provided." },
+        { status: 400 }
+      );
+    }
 
     let fareResult;
     try {

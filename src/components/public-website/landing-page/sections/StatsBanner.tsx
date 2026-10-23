@@ -6,6 +6,10 @@ import { STATS } from "../constants";
 export default function StatsBanner() {
   const { ref, inView } = useInView();
 
+  if (!STATS || STATS.length === 0) {
+    return null;
+  }
+
   return (
     <section
       ref={ref}

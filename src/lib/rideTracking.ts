@@ -144,12 +144,12 @@ export function formatTrackingSnapshot(
     status: ride.status,
     pickup: {
       address: ride.pickup?.address || "",
-      coordinates: ride.pickup?.coordinates || [28.6139, 77.209],
+      coordinates: (ride.pickup?.coordinates as [number, number]) || [0, 0],
       landmark: ride.pickup?.landmark || "",
     },
     dropoff: {
       address: ride.dropoff?.address || "",
-      coordinates: ride.dropoff?.coordinates || [28.5355, 77.391],
+      coordinates: (ride.dropoff?.coordinates as [number, number]) || [0, 0],
       landmark: ride.dropoff?.landmark || "",
     },
     vehicleType: ride.vehicleType || "Cab Premium",

@@ -17,7 +17,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { name, email, password } = parsed.data;
+    const { name, email, password, phone } = parsed.data;
     const normalizedEmail = email.trim().toLowerCase();
 
     const existingUser = await User.findOne({ email: normalizedEmail });
@@ -39,6 +39,7 @@ export async function POST(req: Request) {
       email: normalizedEmail,
       password: hashedPassword,
       role: assignedRole,
+      ...(phone?.trim() ? { phone: phone.trim() } : {}),
     });
 
     return NextResponse.json(
@@ -49,6 +50,7 @@ export async function POST(req: Request) {
           id: user._id,
           name: user.name,
           email: user.email,
+          phone: user.phone,
           role: user.role
         }
       },

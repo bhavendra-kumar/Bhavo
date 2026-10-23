@@ -39,11 +39,11 @@ const CommuteSchema = new Schema<ICommute>(
     },
     pickup: {
       address: { type: String, required: true },
-      coordinates: { type: [Number], default: [28.6139, 77.2090] },
+      coordinates: { type: [Number], required: true },
     },
     dropoff: {
       address: { type: String, required: true },
-      coordinates: { type: [Number], default: [28.5355, 77.3910] },
+      coordinates: { type: [Number], required: true },
     },
     time: {
       type: String,

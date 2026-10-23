@@ -163,55 +163,9 @@ export const DRIVER_STEPS: Step[] = [
   },
 ];
 
-export const TESTIMONIALS: Testimonial[] = [
-  {
-    name: "Priya Sharma",
-    role: "Product Lead",
-    company: "Infosys Bangalore",
-    type: "rider",
-    avatar: "PS",
-    quote:
-      "Bhavo's Commuter Portal completely transformed my mornings. The recurring schedule means my EV is waiting at 8:40 AM sharp, and I arrive relaxed.",
-    rating: 5,
-  },
-  {
-    name: "Vikram Rathore",
-    role: "Elite Fleet Captain (4.98★)",
-    company: "Bhavo Captain Network",
-    type: "driver",
-    avatar: "VR",
-    quote:
-      "The Captain Hub is hands-down the best driver dashboard I've used. Chained commute bookings give me ₹52,000/month with zero dry mileage and instant daily payouts.",
-    rating: 5,
-  },
-  {
-    name: "Rahul Mehta",
-    role: "VP Operations",
-    company: "FinEdge Capital",
-    type: "rider",
-    avatar: "RM",
-    quote:
-      "Having our whole tech team onboarded with locked monthly fares reduced our corporate commute logistics overhead by 34% in one quarter.",
-    rating: 5,
-  },
-  {
-    name: "Sunil K. Desai",
-    role: "Full-Time Captain",
-    company: "Pune City Fleet",
-    type: "driver",
-    avatar: "SD",
-    quote:
-      "The live heatmaps and direct dispatch radar keep me busy during rush hours without endless roaming. Transparent fares make all the difference.",
-    rating: 5,
-  },
-];
+export const TESTIMONIALS: Testimonial[] = [];
 
-export const STATS = [
-  { value: "50,000+", label: "Daily Active Commuters", glow: "#0d9488" },
-  { value: "12,500+", label: "Verified Captains", glow: "#14b8a6" },
-  { value: "99.8%", label: "On-Time Dispatch Precision", glow: "#38bdf8" },
-  { value: "0%", label: "Surge Penalty Guarantee", glow: "#818cf8" },
-];
+export const STATS: Array<{ value: string; label: string; glow: string }> = [];
 
 export const NAV_LINKS = [
   { label: "About Us", href: "/about" },

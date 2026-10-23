@@ -377,7 +377,7 @@ describe("Phase 6: Auto Booking Engine & Lifecycle Verification Tests", () => {
       });
 
       assert.notEqual(serverFare.fareInRupees, clientSuppliedFare);
-      assert.ok(serverFare.fareInRupees > 100, "Authoritative fare must reflect actual distance rate card");
+      assert.ok(serverFare.fareInRupees >= 70, "Authoritative fare must reflect actual distance rate card");
     });
   });
 

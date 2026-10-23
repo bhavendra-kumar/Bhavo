@@ -4,6 +4,7 @@ import User from "@/models/User";
 import Commute from "@/models/Commute";
 import { getSession } from "@/lib/auth";
 import { parseCommuteTime, getCanonicalWeekdayName } from "@/lib/recurrenceEngine";
+import { validateCoordinates, PricingError } from "@/lib/pricingEngine";
 
 export async function GET() {
   try {
@@ -112,6 +113,31 @@ export async function POST(req: Request) {
     }
     const uniqueDays = Array.from(new Set(canonicalDays));
 
+    if (!pickup?.coordinates || !dropoff?.coordinates) {
+      return NextResponse.json(
+        { status: "error", code: "INVALID_COORDINATES", message: "Valid pickup and dropoff coordinates are required." },
+        { status: 400 }
+      );
+    }
+
+    let validatedPickupCoords: [number, number];
+    let validatedDropoffCoords: [number, number];
+    try {
+      validatedPickupCoords = validateCoordinates(pickup.coordinates, "pickup");
+      validatedDropoffCoords = validateCoordinates(dropoff.coordinates, "dropoff");
+    } catch (coordErr) {
+      if (coordErr instanceof PricingError) {
+        return NextResponse.json(
+          { status: "error", code: coordErr.code, message: coordErr.message },
+          { status: coordErr.statusCode }
+        );
+      }
+      return NextResponse.json(
+        { status: "error", code: "INVALID_COORDINATES", message: "Invalid coordinates provided." },
+        { status: 400 }
+      );
+    }
+
     const sanitizedPaymentMethod = ["CASH", "WALLET", "UPI", "ONLINE"].includes(paymentMethod)
       ? paymentMethod
       : "CASH";
@@ -121,11 +147,11 @@ export async function POST(req: Request) {
       title: title.trim(),
       pickup: {
         address: pickup.address.trim(),
-        coordinates: pickup.coordinates || [28.6139, 77.2090],
+        coordinates: validatedPickupCoords,
       },
       dropoff: {
         address: dropoff.address.trim(),
-        coordinates: dropoff.coordinates || [28.5355, 77.3910],
+        coordinates: validatedDropoffCoords,
       },
       time: time.trim(),
       days: uniqueDays,
