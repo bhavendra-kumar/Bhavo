@@ -415,39 +415,125 @@ export default function FleetSection() {
 
         @media (max-width: 640px) {
           .fleet-section {
-            padding: 48px 16px 56px;
+            padding: 40px 14px 48px;
           }
 
+          .fleet-title {
+            font-size: 22px;
+            letter-spacing: -0.5px;
+            margin-bottom: 10px;
+          }
+
+          .fleet-subtitle {
+            font-size: 13px;
+            line-height: 1.5;
+          }
+
+          /* Side by side vehicle cards on mobile */
           .fleet-cards-grid {
-            grid-template-columns: 1fr;
-            gap: 14px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
           }
 
           .horizontal-fleet-card {
-            padding: 18px 20px;
-            min-height: 98px;
+            padding: 12px 10px;
+            min-height: 76px;
+            border-radius: 14px;
+            gap: 6px;
+          }
+
+          .card-info-col {
+            padding-right: 4px;
           }
 
           .card-vehicle-title {
-            font-size: 19px;
+            font-size: 14px;
+            letter-spacing: -0.2px;
+            margin: 0 0 2px;
           }
 
           .card-vehicle-desc {
-            font-size: 13.5px;
+            font-size: 11px;
+            line-height: 1.25;
           }
 
           .card-artwork-col {
-            width: 82px;
-            height: 54px;
+            width: 48px;
+            height: 36px;
           }
 
           .card-vehicle-illustration {
-            width: 80px;
-            height: 50px;
+            width: 46px;
+            height: 32px;
+          }
+
+          .affordability-strip {
+            padding: 14px 14px;
+            gap: 12px;
+            margin-bottom: 20px;
+          }
+
+          .strip-heading {
+            font-size: 15px;
+            margin-bottom: 2px;
+          }
+
+          .strip-body {
+            font-size: 11.5px;
+            line-height: 1.4;
           }
 
           .strip-pills {
-            grid-template-columns: 1fr;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+          }
+
+          .strip-pill {
+            padding: 6px 8px;
+            gap: 6px;
+            border-radius: 10px;
+          }
+
+          .pill-icon {
+            width: 14px;
+            height: 14px;
+          }
+
+          .pill-title {
+            font-size: 10.5px;
+          }
+
+          .pill-sub {
+            font-size: 9px;
+          }
+        }
+
+        @media (max-width: 360px) {
+          .fleet-cards-grid {
+            gap: 6px;
+          }
+
+          .horizontal-fleet-card {
+            padding: 10px 8px;
+            min-height: 70px;
+          }
+
+          .card-vehicle-title {
+            font-size: 12.5px;
+          }
+
+          .card-vehicle-desc {
+            font-size: 9.5px;
+          }
+
+          .card-artwork-col {
+            width: 40px;
+            height: 30px;
+          }
+
+          .card-vehicle-illustration {
+            width: 38px;
+            height: 26px;
           }
         }
       `}</style>

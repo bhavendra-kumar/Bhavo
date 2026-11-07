@@ -18,9 +18,9 @@ import VehicleSelector from "./VehicleSelector";
 import { useDialog } from "@/components/ui/DialogProvider";
 
 import { VehicleIcon } from "./VehicleIcons";
-import MobileBookRide, { type RecommendedPlace } from "../mobile/MobileBookRide";
-import type { AreaMarker } from "./LeafletMap";
+import MobileBookRide from "../mobile/MobileBookRide";
 import { BASE_VEHICLES, type SavedPlace, type ActiveRide } from "./types";
+import type { IRideData } from "@/hooks/user/useDashboardStore";
 
 const LeafletMap = dynamic(() => import("./LeafletMap"), { ssr: false });
 
@@ -92,23 +92,10 @@ export default function BookRidePage() {
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsNotice, setGpsNotice] = useState<string | null>(null);
   const [mapSelectionMode, setMapSelectionMode] = useState<"none" | "pickup" | "dropoff">("none");
-  const [areaMarkers, setAreaMarkers] = useState<AreaMarker[]>([]);
-  const [recommendedPlaces, setRecommendedPlaces] = useState<RecommendedPlace[]>([]);
-  const [recsLoading, setRecsLoading] = useState(false);
-  const [desktopRecFilter, setDesktopRecFilter] = useState<string>("all");
+  const [recentRides, setRecentRides] = useState<IRideData[]>([]);
   const watchIdRef = React.useRef<number | null>(null);
   const isFetchingAddressRef = React.useRef(false);
   const hasInitializedLocationRef = React.useRef(false);
-
-  const handleSelectAreaPickup = (coords: [number, number], name: string) => {
-    setPickupCoords(coords);
-    setPickupAddress(name);
-  };
-
-  const handleSelectAreaDropoff = (coords: [number, number], name: string) => {
-    setDropoffCoords(coords);
-    setDropoffAddress(name);
-  };
 
   const fetchAddressFromCoords = async (lat: number, lon: number) => {
     try {
@@ -270,67 +257,13 @@ export default function BookRidePage() {
           if (json.data?.activeRide) {
             setActiveRide(json.data.activeRide);
           }
-        }
-      })
-      .catch(() => { });
-
-    fetch("/api/places?nearby=true")
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          const markers: AreaMarker[] = data.map((item) => ({
-            id: item.id || `area-${item.place_id || item.short_name}`,
-            name: item.short_name || item.display_name?.split(",")[0] || "Transit",
-            category: item.category || "locality",
-            categoryLabel: item.categoryLabel || "Transit",
-            coordinates: [parseFloat(item.lat), parseFloat(item.lon)],
-            city: item.city || "NCR",
-            subtext: item.subtext,
-          }));
-          setAreaMarkers(markers);
+          if (Array.isArray(json.data?.recentRides)) {
+            setRecentRides(json.data.recentRides);
+          }
         }
       })
       .catch(() => { });
   }, []);
-
-  useEffect(() => {
-    const centerCoords = pickupCoords || userCoords;
-    if (!centerCoords) return;
-
-    let isCancelled = false;
-    Promise.resolve().then(() => {
-      if (!isCancelled) setRecsLoading(true);
-    });
-
-    fetch(`/api/places?nearby=true&lat=${centerCoords[0]}&lon=${centerCoords[1]}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (!isCancelled && Array.isArray(data) && data.length > 0) {
-          setRecommendedPlaces(data);
-          const markers: AreaMarker[] = data.map((item) => ({
-            id: item.id || `area-${item.place_id || item.short_name}`,
-            name: item.short_name || item.name || item.display_name?.split(",")[0] || "Transit",
-            category: item.category || "locality",
-            categoryLabel: item.categoryLabel || "Transit",
-            coordinates: [
-              typeof item.lat === "number" ? item.lat : parseFloat(item.lat),
-              typeof item.lon === "number" ? item.lon : parseFloat(item.lon),
-            ],
-            city: item.city || "",
-            subtext: item.subtext,
-          }));
-          setAreaMarkers(markers);
-        }
-      })
-      .catch(() => { })
-      .finally(() => {
-        if (!isCancelled) setRecsLoading(false);
-      });
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [pickupCoords, userCoords]);
 
   useEffect(() => {
     if (pickupAddress && !pickupCoords) {
@@ -558,7 +491,7 @@ export default function BookRidePage() {
             }
           }
         }
-      } catch {}
+      } catch { }
     };
     checkActiveRide();
     return () => {
@@ -577,14 +510,24 @@ export default function BookRidePage() {
 
     const handleRideUpdate = (updated: ActiveRide) => {
       if (!isMounted) return;
+      const incomingId = updated._id || updated.rideId || updated.id || "";
       setActiveRide((current) => {
-        if (!current) return updated;
+        if (!current) {
+          return {
+            ...updated,
+            _id: incomingId,
+          };
+        }
         const curVer = current.trackingVersion ?? 0;
         const newVer = updated.trackingVersion ?? 0;
         if (newVer < curVer) {
           return current;
         }
-        return updated;
+        return {
+          ...current,
+          ...updated,
+          _id: incomingId || current._id || "",
+        };
       });
 
       if (updated.status === "COMPLETED") {
@@ -732,11 +675,7 @@ export default function BookRidePage() {
           dynamicVehicles={dynamicVehicles}
           selectedVehicle={selectedVehicle}
           driverPosition={driverPosition}
-          areaMarkers={areaMarkers}
-          onSelectAreaPickup={handleSelectAreaPickup}
-          onSelectAreaDropoff={handleSelectAreaDropoff}
-          recommendedPlaces={recommendedPlaces}
-          recsLoading={recsLoading}
+          recentRides={recentRides}
         />
       </div>
 
@@ -775,13 +714,12 @@ export default function BookRidePage() {
 
               <div className="absolute top-4 left-4 z-10 bg-white/95 backdrop-blur px-3.5 py-2 rounded-xl border border-slate-200 shadow-md flex items-center gap-2">
                 <span
-                  className={`w-2.5 h-2.5 rounded-full ${
-                    activeRide.locationStatus === "FRESH"
+                  className={`w-2.5 h-2.5 rounded-full ${activeRide.locationStatus === "FRESH"
                       ? "bg-teal-500 animate-pulse"
                       : activeRide.locationStatus === "STALE"
-                      ? "bg-amber-500 animate-pulse"
-                      : "bg-slate-400"
-                  }`}
+                        ? "bg-amber-500 animate-pulse"
+                        : "bg-slate-400"
+                    }`}
                 />
                 <span className="text-[13px] font-bold text-slate-900">
                   {activeRide.locationStatus === "FRESH"
@@ -789,10 +727,10 @@ export default function BookRidePage() {
                       ? `Driver live GPS (${activeRide.locationAgeSeconds}s ago)`
                       : "Driver live GPS active"
                     : activeRide.locationStatus === "STALE"
-                    ? `GPS delayed (${activeRide.locationAgeSeconds ?? 120}s ago)`
-                    : activeRide.locationStatus === "TERMINAL"
-                    ? "Trip ended"
-                    : "Driver GPS unavailable"}
+                      ? `GPS delayed (${activeRide.locationAgeSeconds ?? 120}s ago)`
+                      : activeRide.locationStatus === "TERMINAL"
+                        ? "Trip ended"
+                        : "Driver GPS unavailable"}
                 </span>
               </div>
             </div>
@@ -926,7 +864,7 @@ export default function BookRidePage() {
                   </div>
                 </div>
 
-                {savedPlaces.length > 0 && (
+                {hasTrip && savedPlaces.length > 0 && (
                   <div className="flex items-center gap-2 mt-1 overflow-x-auto no-scrollbar">
                     <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
                       Saved:
@@ -959,13 +897,19 @@ export default function BookRidePage() {
 
               {!hasTrip ? (
                 <RecommendedDestinationsSection
-                  recsLoading={recsLoading}
-                  recommendedPlaces={recommendedPlaces}
-                  desktopRecFilter={desktopRecFilter}
-                  setDesktopRecFilter={setDesktopRecFilter}
+                  savedPlaces={savedPlaces}
+                  recentRides={recentRides}
                   onSelectDestination={(address, coords) => {
                     setDropoffAddress(address);
-                    setDropoffCoords(coords);
+                    if (coords) setDropoffCoords(coords);
+                  }}
+                  onSelectTrip={(pAddr, pCoords, dAddr, dCoords) => {
+                    if (!pickupAddress && pAddr) {
+                      setPickupAddress(pAddr);
+                      if (pCoords) setPickupCoords(pCoords);
+                    }
+                    if (dAddr) setDropoffAddress(dAddr);
+                    if (dCoords) setDropoffCoords(dCoords);
                   }}
                 />
               ) : (
@@ -1080,9 +1024,6 @@ export default function BookRidePage() {
                 userCoords={userCoords}
                 routeCoords={hasTrip ? routeCoords : []}
                 vehicleType={selectedVehicle.type}
-                areaMarkers={areaMarkers}
-                onSelectAreaPickup={handleSelectAreaPickup}
-                onSelectAreaDropoff={handleSelectAreaDropoff}
                 isDraggable={true}
                 onPickupDrag={handlePickupDrag}
                 onDropoffDrag={handleDropoffDrag}

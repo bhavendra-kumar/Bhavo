@@ -39,6 +39,8 @@ export default function MobileDashboard({
   const { confirm, alert } = useDialog();
   const user = data?.user;
   const activeRide = data?.activeRide;
+  const activeRideId = String(activeRide?._id || activeRide?.id || activeRide?.rideId || "");
+  const activeRideShortId = activeRideId ? activeRideId.slice(-6).toUpperCase() : "ACTIVE";
   const commutes = data?.commutes || [];
   const primaryCommute = commutes[0];
 
@@ -49,7 +51,7 @@ export default function MobileDashboard({
           <div className="flex items-center justify-between">
             {getStatusBadge(activeRide.status)}
             <span className="text-[11px] font-mono font-bold text-slate-500">
-              #{activeRide._id.slice(-6).toUpperCase()}
+              #{activeRideShortId}
             </span>
           </div>
 
@@ -144,13 +146,13 @@ export default function MobileDashboard({
               <div className="absolute left-2 top-1.5 bottom-2 w-0.5 bg-teal-200" />
               <div className="relative flex items-start gap-2">
                 <div className="absolute -left-5 top-1 w-3 h-3 rounded-full border-2 border-teal-500 bg-white" />
-                <p className="font-semibold text-slate-900 line-clamp-1">{activeRide.pickup.address}</p>
+                <p className="font-semibold text-slate-900 line-clamp-1">{activeRide.pickup?.address || "Pickup location"}</p>
               </div>
               <div className="relative flex items-start gap-2">
                 <div className="absolute -left-5 top-1 w-3 h-3 rounded-full bg-teal-600 flex items-center justify-center">
                   <MapPin size={7} className="text-white" />
                 </div>
-                <p className="font-semibold text-slate-900 line-clamp-1">{activeRide.dropoff.address}</p>
+                <p className="font-semibold text-slate-900 line-clamp-1">{activeRide.dropoff?.address || "Destination"}</p>
               </div>
             </div>
 
@@ -170,7 +172,7 @@ export default function MobileDashboard({
             </Link>
             <button
               type="button"
-              onClick={() => (refreshActiveRide ? refreshActiveRide(activeRide._id) : advanceRideStatus(activeRide._id))}
+              onClick={() => (refreshActiveRide ? refreshActiveRide(activeRideId) : advanceRideStatus(activeRideId))}
               className="py-2 px-3 rounded-lg bg-teal-100 active:bg-teal-200 text-teal-900 text-[11.5px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               title="Refresh authoritative ride status from server"
             >
@@ -186,7 +188,7 @@ export default function MobileDashboard({
                   cancelText: "Keep ride",
                   variant: "danger",
                 });
-                if (confirmed) await cancelRide(activeRide._id);
+                if (confirmed) await cancelRide(activeRideId);
               }}
               className="py-2 px-3 rounded-lg bg-rose-50 active:bg-rose-100 text-rose-600 border border-rose-200 text-[11.5px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
             >

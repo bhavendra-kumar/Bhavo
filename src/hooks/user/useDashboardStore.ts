@@ -2,6 +2,8 @@ import { create } from "zustand";
 
 export interface IRideData {
   _id: string;
+  id?: string;
+  rideId?: string;
   rider: string;
   driver?: string | null;
   driverDetails?: {
@@ -207,7 +209,14 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
           ) {
             get().fetchDashboard();
           } else {
-            set({ data: { ...current, activeRide: updatedRide } });
+            const currentActive = current.activeRide;
+            const rideId = updatedRide._id || updatedRide.rideId || updatedRide.id || currentActive?._id || id;
+            const mergedRide: IRideData = {
+              ...(currentActive || {}),
+              ...updatedRide,
+              _id: rideId,
+            } as IRideData;
+            set({ data: { ...current, activeRide: mergedRide } });
           }
         }
         return true;
@@ -248,12 +257,15 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
     if (typeof window === "undefined") return;
 
-    const applyRideUpdate = (updatedRide: IRideData) => {
+    const applyRideUpdate = (updatedRide: Partial<IRideData> & { _id?: string; rideId?: string; id?: string }) => {
       const current = get().data;
       if (!current) return;
 
       const currentActive = current.activeRide;
-      if (currentActive && currentActive._id === updatedRide._id) {
+      const incomingId = updatedRide._id || updatedRide.rideId || updatedRide.id || currentActive?._id || "";
+      const currentId = currentActive?._id || currentActive?.rideId || currentActive?.id || "";
+
+      if (currentActive && currentId && incomingId && currentId === incomingId) {
         const curVer = currentActive.trackingVersion ?? 0;
         const newVer = updatedRide.trackingVersion ?? 0;
         if (newVer < curVer) {
@@ -262,24 +274,31 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       }
 
       if (
-        current.activeRide &&
-        typeof current.activeRide.trackingVersion === "number" &&
+        currentActive &&
+        typeof currentActive.trackingVersion === "number" &&
         typeof updatedRide.trackingVersion === "number" &&
-        updatedRide.trackingVersion < current.activeRide.trackingVersion &&
-        !["COMPLETED", "CANCELLED"].includes(updatedRide.status)
+        updatedRide.trackingVersion < currentActive.trackingVersion &&
+        !["COMPLETED", "CANCELLED"].includes(updatedRide.status || "")
       ) {
         return;
       }
 
+      const mergedActiveRide: IRideData = {
+        ...(currentActive || ({} as IRideData)),
+        ...updatedRide,
+        _id: incomingId,
+        rideId: incomingId,
+      } as IRideData;
+
       if (updatedRide.status === "COMPLETED") {
-        set({ data: { ...current, activeRide: updatedRide } });
+        set({ data: { ...current, activeRide: mergedActiveRide } });
         get().unsubscribeFromActiveRide();
       } else if (updatedRide.status === "CANCELLED") {
         set({ data: { ...current, activeRide: null } });
         get().unsubscribeFromActiveRide();
         get().fetchDashboard();
       } else {
-        set({ data: { ...current, activeRide: updatedRide } });
+        set({ data: { ...current, activeRide: mergedActiveRide } });
       }
     };
 
@@ -323,7 +342,11 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
       const handleSseMessage = (event: MessageEvent) => {
         try {
-          const updatedRide = JSON.parse(event.data) as IRideData;
+          const raw = JSON.parse(event.data);
+          const updatedRide: IRideData = {
+            ...raw,
+            _id: raw._id || raw.rideId || raw.id || "",
+          };
           applyRideUpdate(updatedRide);
         } catch (err) {
           console.error("[SSE parse error]", err);

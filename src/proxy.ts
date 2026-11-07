@@ -7,20 +7,51 @@ export async function proxy(req: NextRequest) {
   const token = req.cookies.get(AUTH_COOKIE_NAME)?.value;
 
   if (req.nextUrl.pathname.startsWith("/admin")) {
+    const isRootAdmin = req.nextUrl.pathname === "/admin";
+    const isLoginPage = req.nextUrl.pathname === "/admin/login";
+
     if (!token) {
-      return NextResponse.redirect(new URL("/login", req.url));
+      if (isRootAdmin || isLoginPage) {
+        const response = NextResponse.next();
+        response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+        return response;
+      }
+      return NextResponse.redirect(
+        new URL(`/admin?redirect=${encodeURIComponent(req.nextUrl.pathname)}`, req.url)
+      );
     }
+
     try {
       const secret = getJwtSecret();
       const { payload } = await jwtVerify(token, secret);
-      if (payload.role !== "ADMIN") {
-        return NextResponse.redirect(new URL("/user/dashboard", req.url));
+
+      if (payload.role === "ADMIN") {
+        if (isLoginPage) {
+          return NextResponse.redirect(new URL("/admin", req.url));
+        }
+        const response = NextResponse.next();
+        response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+        return response;
       }
-      const response = NextResponse.next();
-      response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
-      return response;
+
+      if (isRootAdmin || isLoginPage) {
+        const response = NextResponse.next();
+        response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+        return response;
+      }
+
+      return NextResponse.redirect(
+        new URL(`/admin?redirect=${encodeURIComponent(req.nextUrl.pathname)}`, req.url)
+      );
     } catch {
-      const response = NextResponse.redirect(new URL("/login", req.url));
+      if (isRootAdmin || isLoginPage) {
+        const response = NextResponse.next();
+        response.cookies.set(AUTH_COOKIE_NAME, "", { maxAge: 0, path: "/", httpOnly: true });
+        return response;
+      }
+      const response = NextResponse.redirect(
+        new URL(`/admin?redirect=${encodeURIComponent(req.nextUrl.pathname)}`, req.url)
+      );
       response.cookies.set(AUTH_COOKIE_NAME, "", { maxAge: 0, path: "/", httpOnly: true });
       return response;
     }

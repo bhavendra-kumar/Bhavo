@@ -10,7 +10,8 @@
     "lint": "eslint",
     "test": "node scripts/run-tests.cjs",
     "test:smoke": "tsx --test tests/e2e-ride-journey.test.ts",
-    "db:indexes": "tsx scripts/deployIndexes.ts"
+    "db:indexes": "tsx scripts/deployIndexes.ts",
+    "admin:create": "tsx scripts/seedAdmin.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

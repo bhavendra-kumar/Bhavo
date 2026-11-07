@@ -21,6 +21,71 @@ export default function AuthRoadAnimation() {
           box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(45, 212, 191, 0.15);
         }
 
+        @media (max-width: 640px) {
+          .auth-bottom-road {
+            height: 72px;
+            box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.45);
+          }
+          .auth-road-stripes {
+            bottom: 20px;
+          }
+          .cab-runner {
+            bottom: 9px;
+            width: 86px;
+            height: 52px;
+          }
+          .auto-runner {
+            bottom: 10px;
+            width: 78px;
+            height: 48px;
+          }
+          .cab-headlight-projection {
+            left: 66px;
+            bottom: 9px;
+            width: 85px;
+            height: 28px;
+          }
+          .auto-headlight-projection {
+            left: 58px;
+            bottom: 9px;
+            width: 75px;
+            height: 26px;
+          }
+        }
+
+        @media (max-width: 380px) {
+          .auth-bottom-road {
+            height: 64px;
+          }
+          .auth-road-stripes {
+            bottom: 17px;
+          }
+          .cab-runner {
+            bottom: 7px;
+            width: 76px;
+            height: 46px;
+          }
+          .auto-runner {
+            bottom: 8px;
+            width: 68px;
+            height: 42px;
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .auth-road-stripes,
+          .cab-runner,
+          .auto-runner,
+          .vehicle-body-bounce,
+          .auto-body-bounce,
+          .cab-headlight-projection,
+          .auto-headlight-projection,
+          .veh-wheel-front,
+          .veh-wheel-rear {
+            animation: none !important;
+          }
+        }
+
         /* Subtle asphalt texture */
         .auth-road-asphalt {
           position: absolute;

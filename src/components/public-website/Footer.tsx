@@ -35,6 +35,7 @@ const NAV_GROUPS = [
 export default function Footer() {
   return (
     <footer
+      className="public-footer"
       style={{
         background: "#0d1f1d",
         borderTop: "1px solid rgba(255,255,255,0.08)",
@@ -55,7 +56,7 @@ export default function Footer() {
           }}
         >
           {/* Brand Info */}
-          <div>
+          <div className="footer-brand-col">
             <Link href="/" style={{ textDecoration: "none", display: "inline-block", marginBottom: 14 }}>
               <Image
                 src="/bhavo-title.png"
@@ -66,15 +67,16 @@ export default function Footer() {
                 style={{ height: 44, width: "auto", display: "block" }}
               />
             </Link>
-            <p style={{ fontSize: 13.5, color: "#94a3b8", lineHeight: 1.6, maxWidth: 320, margin: 0 }}>
+            <p className="footer-brand-desc" style={{ fontSize: 13.5, color: "#94a3b8", lineHeight: 1.6, maxWidth: 320, margin: 0 }}>
               Connecting passengers with verified drivers for convenient everyday trips and automated recurring commutes.
             </p>
           </div>
 
           {/* Links Columns */}
           {NAV_GROUPS.map((group) => (
-            <div key={group.heading}>
+            <div key={group.heading} className="footer-link-col">
               <h4
+                className="footer-heading"
                 style={{
                   fontSize: 11.5,
                   fontWeight: 800,
@@ -86,11 +88,12 @@ export default function Footer() {
               >
                 {group.heading}
               </h4>
-              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+              <ul className="footer-links-list" style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 10 }}>
                 {group.links.map((link) => (
                   <li key={link.label}>
                     <Link
                       href={link.href}
+                      className="footer-link-item"
                       style={{
                         fontSize: 13.5,
                         color: "#94a3b8",
@@ -118,6 +121,7 @@ export default function Footer() {
 
         {/* Bottom Legal Bar */}
         <div
+          className="footer-legal-bar"
           style={{
             borderTop: "1px solid rgba(255,255,255,0.08)",
             paddingTop: 22,
@@ -130,11 +134,11 @@ export default function Footer() {
             color: "#64748b",
           }}
         >
-          <div>
+          <div className="footer-legal-copy">
             © {new Date().getFullYear()} BHAVO Technologies. All rights reserved.
           </div>
 
-          <div style={{ display: "flex", gap: 20 }}>
+          <div className="footer-legal-links" style={{ display: "flex", gap: 20 }}>
             <Link
               href="/terms-and-policies#terms"
               style={{ color: "#94a3b8", textDecoration: "none", transition: "color 0.2s" }}
@@ -158,14 +162,65 @@ export default function Footer() {
       <style>{`
         @media (max-width: 900px) {
           .footer-content-grid {
-            grid-template-columns: 1fr 1fr !important;
-            gap: 32px !important;
+            grid-template-columns: 1fr 1fr 1fr !important;
+            gap: 24px !important;
+          }
+          .footer-brand-col {
+            grid-column: 1 / -1;
+            margin-bottom: 6px;
           }
         }
-        @media (max-width: 560px) {
+        @media (max-width: 600px) {
+          .public-footer {
+            padding: 28px 12px 20px !important;
+          }
+          /* All 3 link sections placed side by side on mobile */
           .footer-content-grid {
-            grid-template-columns: 1fr !important;
-            gap: 28px !important;
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 12px 8px !important;
+            margin-bottom: 24px !important;
+          }
+          .footer-brand-col {
+            grid-column: 1 / -1;
+            margin-bottom: 10px;
+          }
+          .bhavo-title-img {
+            height: 34px !important;
+          }
+          .footer-brand-desc {
+            font-size: 11.5px !important;
+            line-height: 1.45 !important;
+          }
+          .footer-heading {
+            font-size: 10px !important;
+            letter-spacing: 0.8px !important;
+            margin: 0 0 8px !important;
+          }
+          .footer-links-list {
+            gap: 6px !important;
+          }
+          .footer-link-item {
+            font-size: 11px !important;
+            line-height: 1.35 !important;
+          }
+          .footer-legal-bar {
+            padding-top: 14px !important;
+            font-size: 10.5px !important;
+            gap: 8px !important;
+          }
+          .footer-legal-links {
+            gap: 12px !important;
+          }
+        }
+        @media (max-width: 360px) {
+          .footer-content-grid {
+            gap: 10px 4px !important;
+          }
+          .footer-heading {
+            font-size: 9px !important;
+          }
+          .footer-link-item {
+            font-size: 10px !important;
           }
         }
       `}</style>

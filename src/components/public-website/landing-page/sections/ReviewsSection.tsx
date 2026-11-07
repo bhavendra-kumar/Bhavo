@@ -55,6 +55,7 @@ export default function ReviewsSection() {
 
         {/* Honest, Elegant Empty State Card */}
         <div
+          className="reviews-card"
           style={{
             background: "#ffffff",
             border: "1.5px solid #e2ece9",
@@ -152,6 +153,18 @@ export default function ReviewsSection() {
           </div>
         </div>
       </div>
+
+      <style>{`
+        @media (max-width: 640px) {
+          #reviews {
+            padding: 48px 16px 52px !important;
+          }
+          .reviews-card {
+            padding: 22px 16px 24px !important;
+            border-radius: 20px !important;
+          }
+        }
+      `}</style>
     </section>
   );
 }

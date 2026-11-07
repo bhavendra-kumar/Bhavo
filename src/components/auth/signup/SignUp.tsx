@@ -721,16 +721,88 @@ export default function SignUp({ initialRole = "RIDER" }: SignUpProps) {
           margin-top: 20px;
         }
 
-        @media (max-width: 480px) {
+        @media (max-width: 768px) {
+          .auth-input {
+            font-size: 16px;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .auth-page-root {
+            min-height: 100dvh;
+            padding: 24px 16px max(96px, calc(80px + env(safe-area-inset-bottom, 20px)));
+            justify-content: flex-start;
+          }
+          .auth-brand-header {
+            margin-bottom: 18px;
+            margin-top: 6px;
+          }
+          .auth-brand-logo {
+            height: 48px;
+          }
+          .auth-brand-tagline {
+            font-size: 10px;
+            letter-spacing: 2px;
+          }
           .auth-card {
-            padding: 24px 20px 22px;
+            padding: 22px 18px 20px;
             border-radius: 20px;
+            box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.4);
           }
           .auth-title {
             font-size: 20px;
           }
+          .auth-subtitle {
+            font-size: 12.5px;
+          }
+          .auth-role-tab {
+            padding: 9px 8px;
+            font-size: 12.5px;
+            min-height: 42px;
+          }
+          .input-wrapper {
+            min-height: 46px;
+          }
+          .auth-input {
+            min-height: 46px;
+            font-size: 16px;
+          }
+          .auth-phone-input {
+            padding-left: 78px !important;
+          }
+          .password-toggle-btn {
+            min-width: 44px;
+            min-height: 44px;
+            right: 4px;
+          }
+          .auth-submit-btn {
+            min-height: 48px;
+            font-size: 14.5px;
+          }
+          .google-auth-btn {
+            min-height: 48px;
+            font-size: 14px;
+          }
+        }
+
+        @media (max-width: 360px) {
           .auth-page-root {
-            padding: 32px 12px 60px;
+            padding: 16px 12px max(84px, calc(72px + env(safe-area-inset-bottom, 16px)));
+          }
+          .auth-card {
+            padding: 18px 14px 16px;
+            border-radius: 16px;
+          }
+          .auth-brand-logo {
+            height: 42px;
+          }
+          .auth-title {
+            font-size: 18px;
+          }
+          .auth-role-tab {
+            font-size: 11.5px;
+            padding: 7px 4px;
+            gap: 4px;
           }
         }
       `}</style>

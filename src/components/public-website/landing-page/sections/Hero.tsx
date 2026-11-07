@@ -388,14 +388,17 @@ export default function Hero() {
         }
 
         @media (max-width: 960px) {
+          .hero-section {
+            padding: 84px 20px 40px;
+          }
           .hero-container {
             grid-template-columns: 1fr;
-            gap: 40px;
+            gap: 36px;
           }
           .hero-content {
             text-align: center;
           }
-          .hero-eyebrow {
+          .hero-kicker-badge {
             margin-left: auto;
             margin-right: auto;
           }
@@ -413,21 +416,107 @@ export default function Hero() {
 
         @media (max-width: 600px) {
           .hero-section {
-            padding: 96px 16px 50px;
+            padding: 76px 14px 32px;
+          }
+          .hero-kicker-badge {
+            max-width: 100%;
+            box-sizing: border-box;
+            padding: 4px 10px 4px 5px;
+            gap: 8px;
+            margin-bottom: 16px;
+          }
+          .hero-kicker-tag {
+            font-size: 9.5px;
+            padding: 3px 7px;
+          }
+          .hero-kicker-text {
+            font-size: 11.5px;
           }
           .hero-headline {
-            min-height: 4.8em;
+            font-size: clamp(25px, 6.5vw, 34px);
+            min-height: 4.2em;
+            line-height: 1.22;
+            margin-bottom: 14px;
+            letter-spacing: -0.8px;
           }
           .hero-dynamic-row {
-            min-height: 3.6em;
+            min-height: 2.8em;
+          }
+          .hero-subheading {
+            font-size: 14px;
+            line-height: 1.58;
+            margin-bottom: 22px;
           }
           .hero-btn-group {
             flex-direction: column;
             width: 100%;
+            gap: 10px;
+            margin-bottom: 22px;
           }
           .hero-primary-btn, .hero-secondary-btn {
             width: 100%;
             justify-content: center;
+            min-height: 48px;
+            padding: 13px 20px;
+            font-size: 14.5px;
+            box-sizing: border-box;
+          }
+          .hero-trust-bar {
+            gap: 6px;
+            justify-content: center;
+            flex-wrap: nowrap;
+            width: 100%;
+          }
+          .hero-trust-pill {
+            font-size: 10px;
+            padding: 5px 6px;
+            gap: 4px;
+            flex: 1 1 0;
+            min-width: 0;
+            justify-content: center;
+            white-space: nowrap;
+          }
+          .trust-icon-box {
+            width: 17px;
+            height: 17px;
+            flex-shrink: 0;
+          }
+          .trust-icon-box svg {
+            width: 11px;
+            height: 11px;
+          }
+        }
+
+        @media (max-width: 360px) {
+          .hero-section {
+            padding: 72px 8px 28px;
+          }
+          .hero-kicker-badge {
+            flex-direction: column;
+            gap: 4px;
+            padding: 6px 10px;
+          }
+          .hero-trust-bar {
+            flex-wrap: nowrap;
+            gap: 3px;
+            width: 100%;
+          }
+          .hero-trust-pill {
+            font-size: 8.5px;
+            padding: 4px 4px;
+            gap: 3px;
+            flex: 1 1 0;
+            min-width: 0;
+            justify-content: center;
+            box-sizing: border-box;
+          }
+          .trust-icon-box {
+            width: 14px;
+            height: 14px;
+          }
+          .trust-icon-box svg {
+            width: 9px;
+            height: 9px;
           }
         }
       `}</style>

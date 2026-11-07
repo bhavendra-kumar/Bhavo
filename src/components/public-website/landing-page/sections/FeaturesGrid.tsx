@@ -124,6 +124,7 @@ export default function FeaturesGrid() {
 
         {/* Grid */}
         <div
+          className="features-cards-grid"
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(3, 1fr)",
@@ -140,6 +141,24 @@ export default function FeaturesGrid() {
           ))}
         </div>
       </div>
+
+      <style>{`
+        @media (max-width: 960px) {
+          .features-cards-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 16px !important;
+          }
+        }
+        @media (max-width: 640px) {
+          #how-it-works {
+            padding: 56px 16px !important;
+          }
+          .features-cards-grid {
+            grid-template-columns: 1fr !important;
+            gap: 14px !important;
+          }
+        }
+      `}</style>
     </section>
   );
 }

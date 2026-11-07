@@ -17,6 +17,8 @@ export interface SavedPlace {
 
 export interface ActiveRide {
   _id: string;
+  id?: string;
+  rideId?: string;
   status: "SEARCHING" | "ACCEPTED" | "ARRIVED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
   pickup: { address: string; coordinates: [number, number] };
   dropoff: { address: string; coordinates: [number, number] };

@@ -163,7 +163,7 @@ export default function DriverChatModal({
           <span className="flex items-center gap-1">
             <ShieldCheck size={12} className="text-teal-600" /> End-to-end Bhavo Secure Chat
           </span>
-          <span className="text-slate-400">Ride #{rideId.slice(-6).toUpperCase()}</span>
+          <span className="text-slate-400">Ride #{String(rideId || "").slice(-6).toUpperCase() || "ACTIVE"}</span>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-slate-50/50">
