@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Radio,
@@ -35,6 +35,7 @@ const NAV_ITEMS = [
 
 export function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -42,9 +43,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     setIsLoggingOut(true);
     try {
       await fetch("/api/auth/logout", { method: "POST" });
-      window.location.href = "/admin";
+      router.push("/admin");
+      router.refresh();
     } catch {
-      window.location.href = "/admin";
+      router.push("/admin");
+      router.refresh();
     } finally {
       setIsLoggingOut(false);
     }
