@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Mail,
   Lock,
@@ -24,6 +25,7 @@ export default function AdminLogin({
   redirectUrl = "/admin",
   currentRole,
 }: AdminLoginProps) {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -71,8 +73,9 @@ export default function AdminLogin({
         return;
       }
 
-      // Hard redirect to refresh server layout and cookie session
-      window.location.href = redirectUrl || "/admin";
+      // Redirect to refresh server layout and cookie session
+      router.push(redirectUrl || "/admin");
+      router.refresh();
     } catch {
       setError("A network error occurred while connecting to authentication service.");
       setLoading(false);
