@@ -228,6 +228,7 @@ export default function CommuteScheduleAnimatic() {
 
   return (
     <div
+      className="commute-animatic-card"
       style={{
         background: "#ffffff",
         border: "1px solid #e2ece9",
@@ -817,7 +818,7 @@ export default function CommuteScheduleAnimatic() {
         </div>
 
         {/* 5-step interactive clickable scrubber */}
-        <div style={{ display: "flex", gap: 6 }}>
+        <div className="animatic-scrubber-row" style={{ display: "flex", gap: 6 }}>
           {phases.map((p, idx) => {
             const isCurrent = idx === currentPhaseIndex;
             return (
@@ -874,6 +875,24 @@ export default function CommuteScheduleAnimatic() {
           <span>{currentPhase.bannerMessage}</span>
         </motion.div>
       </AnimatePresence>
+
+      <style>{`
+        @media (max-width: 960px) {
+          .commute-animatic-card {
+            padding: 22px 18px 20px !important;
+            border-radius: 20px !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .commute-animatic-card {
+            padding: 16px 14px 16px !important;
+            border-radius: 18px !important;
+          }
+          .animatic-scrubber-row {
+            display: none !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

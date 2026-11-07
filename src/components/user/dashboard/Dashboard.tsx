@@ -108,6 +108,8 @@ export default function DashboardPage() {
 
   const user = data?.user;
   const activeRide = data?.activeRide;
+  const activeRideId = String(activeRide?._id || activeRide?.id || activeRide?.rideId || "");
+  const activeRideShortId = activeRideId ? activeRideId.slice(-6).toUpperCase() : "ACTIVE";
   const commutes = data?.commutes || [];
   const primaryCommute = commutes[0];
 
@@ -172,7 +174,7 @@ export default function DashboardPage() {
               <div className="flex items-center gap-3">
                 {getStatusBadge(activeRide.status)}
                 <span className="text-[12px] font-semibold text-slate-500 font-mono">
-                  Ride #{activeRide._id.slice(-6).toUpperCase()}
+                  Ride #{activeRideShortId}
                 </span>
               </div>
 
@@ -186,7 +188,7 @@ export default function DashboardPage() {
                 </Link>
 
                 <button
-                  onClick={() => refreshActiveRide(activeRide._id)}
+                  onClick={() => refreshActiveRide(activeRideId)}
                   title="Refresh authoritative ride status from server"
                   className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-teal-100 hover:bg-teal-200 text-teal-800 transition-colors flex items-center gap-1 cursor-pointer"
                 >
@@ -206,7 +208,7 @@ export default function DashboardPage() {
                       variant: "danger",
                     });
                     if (confirmed) {
-                      await cancelRide(activeRide._id);
+                      await cancelRide(activeRideId);
                     }
                   }}
                   className="px-3 py-1 rounded-md text-[12px] font-semibold bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition-colors flex items-center gap-1 cursor-pointer"
@@ -328,7 +330,7 @@ export default function DashboardPage() {
                       <div className="absolute -left-6 top-1 w-3.5 h-3.5 rounded-full border-2 border-teal-500 bg-white" />
                       <div>
                         <p className="text-[11px] font-bold uppercase text-teal-600 tracking-wider">Pickup</p>
-                        <p className="text-[14px] font-bold text-slate-900">{activeRide.pickup.address}</p>
+                        <p className="text-[14px] font-bold text-slate-900">{activeRide.pickup?.address || "Pickup location"}</p>
                       </div>
                     </div>
                     <div className="relative flex items-start gap-3">
@@ -337,7 +339,7 @@ export default function DashboardPage() {
                       </div>
                       <div>
                         <p className="text-[11px] font-bold uppercase text-teal-600 tracking-wider">Destination</p>
-                        <p className="text-[14px] font-bold text-slate-900">{activeRide.dropoff.address}</p>
+                        <p className="text-[14px] font-bold text-slate-900">{activeRide.dropoff?.address || "Destination"}</p>
                       </div>
                     </div>
                   </div>
@@ -379,7 +381,7 @@ export default function DashboardPage() {
 
       {activeRide && (
         <DriverChatModal
-          rideId={activeRide._id}
+          rideId={activeRideId}
           driverName={activeRide.driverDetails?.name || "Bhavo Pilot"}
           driverRating={activeRide.driverDetails?.rating || 4.9}
           vehicleNumber={activeRide.driverDetails?.vehicleNumber || ""}

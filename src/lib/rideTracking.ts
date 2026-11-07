@@ -12,6 +12,8 @@ export interface ILocationFreshnessResult {
 }
 
 export interface ITrackingSnapshot {
+  _id?: string;
+  id?: string;
   rideId: string;
   status: "SEARCHING" | "ACCEPTED" | "ARRIVED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
   pickup: {
@@ -138,9 +140,12 @@ export function formatTrackingSnapshot(
       : null;
 
   const version = typeof ride.trackingVersion === "number" ? ride.trackingVersion : 1;
+  const rideIdStr = ride._id ? ride._id.toString() : String((ride as { id?: string | number }).id || "");
 
   const snapshot: ITrackingSnapshot = {
-    rideId: ride._id ? ride._id.toString() : "",
+    _id: rideIdStr,
+    id: rideIdStr,
+    rideId: rideIdStr,
     status: ride.status,
     pickup: {
       address: ride.pickup?.address || "",

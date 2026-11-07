@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Loader2, X, Navigation } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 
 export interface PlaceResult {
   id?: string;
@@ -11,11 +11,12 @@ export interface PlaceResult {
   short_name?: string;
   lat: string | number;
   lon: string | number;
-  category?: string;
-  categoryLabel?: string;
   glyph?: string;
   city?: string;
+  area?: string;
   subtext?: string;
+  category?: string;
+  categoryLabel?: string;
   distanceKm?: number;
   approxMinutes?: number;
   fareEstimateBike?: number;
@@ -23,7 +24,7 @@ export interface PlaceResult {
 }
 
 interface LocationSearchProps {
-  label: string;
+  label?: string;
   placeholder: string;
   iconBg: string;
   icon: React.ReactNode;
@@ -46,7 +47,6 @@ export default function LocationSearch({
   const [query, setQuery] = useState(defaultValue || "");
   const [prevDefault, setPrevDefault] = useState(defaultValue);
   const [results, setResults] = useState<PlaceResult[]>([]);
-  const [activeFilter, setActiveFilter] = useState<string>("all");
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -56,6 +56,7 @@ export default function LocationSearch({
     setQuery(defaultValue || "");
   }
 
+  // Close suggestions dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -66,61 +67,46 @@ export default function LocationSearch({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const fetchPopularAreas = async () => {
-    setLoading(true);
-    try {
-      const url = userCoords
-        ? `/api/places?nearby=true&lat=${userCoords[0]}&lon=${userCoords[1]}`
-        : "/api/places?nearby=true";
-      const res = await fetch(url);
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        setResults(data);
-        setIsOpen(true);
-      }
-    } catch (err) {
-      console.error("Failed to fetch nearby places", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Debounced search for places like in landing page
   useEffect(() => {
     if (!query || query === defaultValue) {
+      setResults([]);
       return;
     }
 
-    const delayDebounceFn = setTimeout(async () => {
+    const timer = setTimeout(async () => {
       setLoading(true);
       try {
         const url = userCoords
           ? `/api/places?q=${encodeURIComponent(query)}&lat=${userCoords[0]}&lon=${userCoords[1]}`
           : `/api/places?q=${encodeURIComponent(query)}`;
         const res = await fetch(url);
-        const data = await res.json();
-
-        if (Array.isArray(data)) {
-          setResults(data);
-          if (data.length > 0) setIsOpen(true);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            setResults(data);
+            setIsOpen(data.length > 0);
+          }
         }
       } catch (err) {
-        console.error("Failed to fetch places", err);
+        console.error("Failed to fetch location suggestions", err);
+        setResults([]);
       } finally {
         setLoading(false);
       }
-    }, 320);
+    }, 280);
 
-    return () => clearTimeout(delayDebounceFn);
+    return () => clearTimeout(timer);
   }, [query, defaultValue, userCoords]);
 
   const handleSelect = (place: PlaceResult) => {
-    const shortName = place.short_name || place.name || place.display_name.split(",")[0];
-    setQuery(shortName);
+    const name = place.short_name || place.name || place.display_name.split(",")[0];
+    setQuery(name);
     setIsOpen(false);
     onSelect(
       typeof place.lat === "number" ? place.lat : parseFloat(place.lat),
       typeof place.lon === "number" ? place.lon : parseFloat(place.lon),
-      shortName
+      name
     );
   };
 
@@ -151,24 +137,20 @@ export default function LocationSearch({
     }
   };
 
-  const filteredResults = results.filter((place) => {
-    if (!activeFilter || activeFilter === "all") return true;
-    if (activeFilter === "transit") return place.category === "transit" || place.category === "metro_station";
-    if (activeFilter === "railway") return place.category === "railway";
-    if (activeFilter === "hospital") return place.category === "hospital";
-    if (activeFilter === "landmark") return place.category === "landmark";
-    if (activeFilter === "market") return place.category === "market" || place.category === "mall";
-    if (activeFilter === "education") return place.category === "education";
-    return true;
-  });
-
   return (
     <div className="flex items-center gap-3 relative" ref={dropdownRef}>
-      <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 z-10" style={{ background: iconBg }}>
+      <div
+        className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 z-10"
+        style={{ background: iconBg }}
+      >
         {icon}
       </div>
       <div className="flex-1 relative">
-        {label && <label className="text-[11px] font-bold uppercase tracking-widest block mb-1 text-slate-500">{label}</label>}
+        {label && (
+          <label className="text-[11px] font-bold uppercase tracking-widest block mb-1 text-slate-500">
+            {label}
+          </label>
+        )}
         <div className="relative">
           <input
             type="text"
@@ -178,20 +160,18 @@ export default function LocationSearch({
               setQuery(val);
               if (!val) {
                 setResults([]);
+                setIsOpen(false);
                 onClear?.();
-                fetchPopularAreas();
               }
             }}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && filteredResults.length > 0) {
+              if (e.key === "Enter" && results.length > 0) {
                 e.preventDefault();
-                handleSelect(filteredResults[0]);
+                handleSelect(results[0]);
               }
             }}
             onFocus={() => {
-              if (!query) {
-                fetchPopularAreas();
-              } else if (results.length > 0) {
+              if (results.length > 0) {
                 setIsOpen(true);
               }
             }}
@@ -205,8 +185,8 @@ export default function LocationSearch({
                 onClick={() => {
                   setQuery("");
                   setResults([]);
+                  setIsOpen(false);
                   onClear?.();
-                  fetchPopularAreas();
                 }}
                 className="p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-200/60 transition-colors cursor-pointer"
                 title="Clear location"
@@ -218,86 +198,40 @@ export default function LocationSearch({
           </div>
         </div>
 
+        {/* Location Suggestions Dropdown (Styled identically to landing page) */}
         {isOpen && results.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-2xl z-50 border border-slate-200 max-h-80 overflow-y-auto">
-            {!query && (
-              <div className="p-2.5 bg-slate-50 border-b border-slate-100 flex flex-col gap-1.5">
-                <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                  <span className="flex items-center gap-1 text-slate-700">
-                    <Navigation size={11} className="text-teal-600" />
-                    Recommended Spots Near You
+          <div
+            className="absolute top-full left-0 right-0 mt-1.5 bg-white border-[1.5px] border-[#d5e5e2] rounded-xl shadow-[0_10px_25px_rgba(0,0,0,0.1)] z-50 max-h-55 overflow-y-auto"
+            role="listbox"
+          >
+            {results.map((item, idx) => (
+              <div
+                key={item.id || item.place_id || `place-${idx}`}
+                role="option"
+                aria-selected={false}
+                tabIndex={0}
+                onClick={() => handleSelect(item)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleSelect(item);
+                  }
+                }}
+                className="flex items-center gap-2.5 px-3.5 py-2.5 border-b border-[#f1f5f9] last:border-b-0 cursor-pointer hover:bg-[#f0f7f5] transition-colors focus:bg-[#f0f7f5] focus:outline-none"
+              >
+                <span className="text-base select-none shrink-0">
+                  {getCategoryGlyph(item.category, item.glyph)}
+                </span>
+                <div className="flex flex-col gap-px min-w-0 flex-1 overflow-hidden">
+                  <span className="text-[13px] font-bold text-[#142B29] truncate leading-tight">
+                    {item.short_name || item.name || item.display_name.split(",")[0]}
                   </span>
-                  <span className="text-[10px] text-teal-700 font-bold bg-teal-50 border border-teal-200/70 px-2 py-0.5 rounded-full">
-                    Live Real-Time
+                  <span className="text-[11px] text-[#64748b] truncate leading-tight">
+                    {item.city || item.area || item.subtext || item.display_name}
                   </span>
                 </div>
-                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
-                  {[
-                    { id: "all", label: "All" },
-                    { id: "transit", label: "Bus 🚌" },
-                    { id: "railway", label: "Rail 🚆" },
-                    { id: "hospital", label: "Hospital 🏥" },
-                    { id: "landmark", label: "Landmark 🛕" },
-                    { id: "market", label: "Market 🛍️" },
-                    { id: "education", label: "College 🎓" },
-                  ].map((cat) => (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveFilter(cat.id);
-                      }}
-                      className={`text-[10.5px] font-bold px-2 py-0.5 rounded-full shrink-0 transition-all cursor-pointer ${
-                        activeFilter === cat.id
-                          ? "bg-teal-600 text-white shadow-xs"
-                          : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100"
-                      }`}
-                    >
-                      {cat.label}
-                    </button>
-                  ))}
-                </div>
               </div>
-            )}
-            {filteredResults.length === 0 ? (
-              <div className="p-4 text-center text-slate-400 text-xs">
-                No destinations matching this filter.
-              </div>
-            ) : (
-              filteredResults.map((place, idx) => (
-                <button
-                  key={place.id || place.place_id || `place-${idx}`}
-                  type="button"
-                  onClick={() => handleSelect(place)}
-                  className="w-full text-left px-3.5 py-2.5 border-b border-slate-100 last:border-0 flex items-start gap-3 transition-colors hover:bg-teal-50/60 cursor-pointer group"
-                >
-                  <span className="text-base mt-0.5 shrink-0 select-none">
-                    {getCategoryGlyph(place.category, place.glyph)}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-[13px] font-bold text-slate-900 group-hover:text-teal-900 truncate">
-                        {place.short_name || place.name || place.display_name.split(",")[0]}
-                      </p>
-                      {place.categoryLabel && (
-                        <span className="text-[10px] font-bold bg-slate-100 text-slate-600 group-hover:bg-teal-100 group-hover:text-teal-800 px-1.5 py-0.5 rounded shrink-0 transition-colors">
-                          {place.categoryLabel}
-                        </span>
-                      )}
-                      {place.distanceKm !== undefined && (
-                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full shrink-0 ml-auto">
-                          {place.distanceKm} km
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[11.5px] text-slate-500 truncate leading-tight mt-0.5">
-                      {place.subtext || place.display_name}
-                    </p>
-                  </div>
-                </button>
-              ))
-            )}
+            ))}
           </div>
         )}
       </div>

@@ -214,7 +214,7 @@ export default function WalletPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-[14px] font-bold text-slate-900 truncate">
-                              Trip #{ride._id.slice(-6).toUpperCase()} · {ride.vehicleType}
+                              Trip #{String(ride._id || ride.id || "").slice(-6).toUpperCase() || "TRIP"} · {ride.vehicleType}
                             </p>
                             <p className="text-[12px] font-medium text-slate-500 mt-0.5">
                               {dateStr} · {isCollected ? "Cash Collected by Pilot" : "Cash Payment Due"}

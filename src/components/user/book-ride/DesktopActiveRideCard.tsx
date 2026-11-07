@@ -41,7 +41,7 @@ export default function DesktopActiveRideCard({
         </span>
 
         <span className="text-[12px] font-mono text-slate-500">
-          #{activeRide._id.slice(-6).toUpperCase()}
+          #{String(activeRide._id || activeRide.rideId || activeRide.id || "").slice(-6).toUpperCase() || "ACTIVE"}
         </span>
       </div>
 
@@ -124,7 +124,7 @@ export default function DesktopActiveRideCard({
             <div className="absolute -left-6 top-1 w-3.5 h-3.5 rounded-full border-2 border-teal-500 bg-white" />
             <div>
               <p className="text-[11px] font-bold uppercase text-teal-600">Pickup</p>
-              <p className="text-[13px] font-semibold text-slate-900 line-clamp-1">{activeRide.pickup.address}</p>
+              <p className="text-[13px] font-semibold text-slate-900 line-clamp-1">{activeRide.pickup?.address || "Pickup location"}</p>
             </div>
           </div>
           <div className="relative flex items-start gap-2">
@@ -133,7 +133,7 @@ export default function DesktopActiveRideCard({
             </div>
             <div>
               <p className="text-[11px] font-bold uppercase text-teal-600">Destination</p>
-              <p className="text-[13px] font-semibold text-slate-900 line-clamp-1">{activeRide.dropoff.address}</p>
+              <p className="text-[13px] font-semibold text-slate-900 line-clamp-1">{activeRide.dropoff?.address || "Destination"}</p>
             </div>
           </div>
         </div>

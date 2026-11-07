@@ -32,9 +32,10 @@ export default function RecentCommutesSnapshot({
   };
 
   const handleDownloadTripReceipt = (rideId: string) => {
+    const shortId = rideId ? String(rideId).slice(-6).toUpperCase() : "RECEIPT";
     alert({
       title: "Trip Receipt",
-      message: `Receipt record for Ride #${rideId.slice(-6).toUpperCase()} has been saved to your downloads.`,
+      message: `Receipt record for Ride #${shortId} has been saved to your downloads.`,
       variant: "info",
     });
   };
@@ -108,8 +109,8 @@ export default function RecentCommutesSnapshot({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-[13px] font-bold text-slate-900">
-                      {ride.pickup.address.split(",")[0]} →{" "}
-                      {ride.dropoff.address.split(",")[0]}
+                      {(ride.pickup?.address || "Pickup").split(",")[0]} →{" "}
+                      {(ride.dropoff?.address || "Destination").split(",")[0]}
                     </p>
                     <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-teal-50 text-teal-700 border border-teal-100">
                       {ride.vehicleType}

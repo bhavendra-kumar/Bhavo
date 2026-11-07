@@ -108,6 +108,17 @@ export async function POST(req: Request) {
           { status: 403 }
         );
       }
+      if (normalizedReqRole === "ADMIN" && trustedRole !== "ADMIN") {
+        return NextResponse.json(
+          {
+            status: "error",
+            code: "ROLE_MISMATCH",
+            message: "Access denied. This account does not have administrator privileges.",
+            accountRole: trustedRole,
+          },
+          { status: 403 }
+        );
+      }
     }
 
     const userTokenVersion = (userAny.tokenVersion as number) ?? 0;

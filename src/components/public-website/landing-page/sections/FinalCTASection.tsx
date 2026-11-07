@@ -16,6 +16,7 @@ export default function FinalCTASection() {
     >
       <div style={{ maxWidth: 1000, margin: "0 auto", textAlign: "center" }}>
         <div
+          className="final-cta-card"
           style={{
             background: "#F5F8F7",
             border: "1.5px solid #e2ece9",
@@ -45,7 +46,7 @@ export default function FinalCTASection() {
 
           <h2
             style={{
-              fontSize: "clamp(30px, 4.5vw, 48px)",
+              fontSize: "clamp(26px, 4.5vw, 48px)",
               fontWeight: 900,
               color: "#142B29",
               letterSpacing: "-1.5px",
@@ -58,17 +59,18 @@ export default function FinalCTASection() {
 
           <p
             style={{
-              fontSize: 16.5,
+              fontSize: 16,
               color: "#475569",
               lineHeight: 1.65,
               maxWidth: 580,
-              margin: "0 auto 40px",
+              margin: "0 auto 36px",
             }}
           >
             Whether you need a point-to-point ride today or want to automate your upcoming weekday route, BHAVO connects you with verified drivers.
           </p>
 
           <div
+            className="final-cta-btn-group"
             style={{
               display: "flex",
               gap: 16,
@@ -79,6 +81,7 @@ export default function FinalCTASection() {
           >
             <Link
               href="/user/book-ride"
+              className="final-cta-primary-btn"
               style={{
                 background: "#075B55",
                 color: "#ffffff",
@@ -109,6 +112,7 @@ export default function FinalCTASection() {
 
             <Link
               href="/user/my-commute"
+              className="final-cta-secondary-btn"
               style={{
                 background: "#ffffff",
                 color: "#142B29",
@@ -140,6 +144,30 @@ export default function FinalCTASection() {
           </div>
         </div>
       </div>
+
+      <style>{`
+        @media (max-width: 640px) {
+          #cta {
+            padding: 44px 16px 48px !important;
+          }
+          .final-cta-card {
+            padding: 30px 18px !important;
+            border-radius: 20px !important;
+          }
+          .final-cta-btn-group {
+            flex-direction: column !important;
+            width: 100% !important;
+            gap: 12px !important;
+          }
+          .final-cta-primary-btn,
+          .final-cta-secondary-btn {
+            width: 100% !important;
+            justify-content: center !important;
+            min-height: 48px !important;
+            box-sizing: border-box !important;
+          }
+        }
+      `}</style>
     </section>
   );
 }

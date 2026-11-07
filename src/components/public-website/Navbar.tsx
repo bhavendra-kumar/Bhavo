@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { Menu, X, ArrowRight, ChevronRight, Sparkles, Clock } from "lucide-react";
 import { useScrolled } from "./landing-page/hooks";
 import { NAV_LINKS } from "./landing-page/constants";
 
@@ -11,6 +13,34 @@ export default function Navbar() {
   const scrolled = useScrolled();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Close drawer on route change
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
+  // Lock body scroll and listen for Escape when mobile menu is open
+  useEffect(() => {
+    if (menuOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+          setMenuOpen(false);
+        }
+      };
+      window.addEventListener("keydown", handleKeyDown);
+      return () => {
+        document.body.style.overflow = originalOverflow;
+        window.removeEventListener("keydown", handleKeyDown);
+      };
+    }
+  }, [menuOpen]);
 
   const getHref = (link: string | { label: string; href: string }) =>
     typeof link === "string"
@@ -26,6 +56,7 @@ export default function Navbar() {
   return (
     <>
       <nav
+        className={`public-navbar ${menuOpen ? "menu-is-open" : ""}`}
         style={{
           position: "fixed",
           top: 0,
@@ -39,19 +70,7 @@ export default function Navbar() {
           boxShadow: scrolled ? "0 4px 32px rgba(0,0,0,0.06)" : "none",
         }}
       >
-        <div
-          style={{
-            maxWidth: 1360,
-            margin: "0 auto",
-            padding: "0 24px",
-            height: 76,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 16,
-            position: "relative",
-          }}
-        >
+        <div className="navbar-inner">
           {/* Logo Brand */}
           <Link href="/" style={{ textDecoration: "none", color: "inherit", flexShrink: 0 }}>
             <div
@@ -64,14 +83,13 @@ export default function Navbar() {
                 alt="Bhavo"
                 width={150}
                 height={50}
-                className="bhavo-title-img"
-                style={{ height: 48, width: "auto", display: "block" }}
+                className="bhavo-title-img navbar-logo-img"
                 priority
               />
             </div>
           </Link>
 
-          {/* Center Links */}
+          {/* Center Links (Desktop only) */}
           <div
             className="nav-links"
             style={{
@@ -192,137 +210,572 @@ export default function Navbar() {
               </Link>
             </div>
 
-            {/* Mobile Hamburger */}
+            {/* Mobile Hamburger Button */}
             <button
+              type="button"
               onClick={() => setMenuOpen((o) => !o)}
-              aria-label="Toggle menu"
+              aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
+              aria-expanded={menuOpen}
+              aria-controls="mobile-nav-drawer"
               className="hamburger-btn"
-              style={{
-                display: "none",
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                padding: 8,
-                flexDirection: "column",
-                gap: 5,
-              }}
             >
-              {[0, 1, 2].map((i) => (
-                <span
-                  key={i}
-                  style={{
-                    display: "block",
-                    width: 22,
-                    height: 2,
-                    background: "#0f172a",
-                    borderRadius: 2,
-                    transition: "all 0.3s",
-                    transformOrigin: "center",
-                    transform:
-                      menuOpen && i === 0 ? "rotate(45deg) translate(5px, 5px)"
-                        : menuOpen && i === 1 ? "scaleX(0)"
-                          : menuOpen && i === 2 ? "rotate(-45deg) translate(5px, -5px)"
-                            : "none",
-                    opacity: menuOpen && i === 1 ? 0 : 1,
-                  }}
-                />
-              ))}
+              {menuOpen ? <X size={24} color="#0f172a" /> : <Menu size={24} color="#0f172a" />}
             </button>
-          </div>
-        </div>
-
-        {/* Mobile Drawer */}
-        <div
-          style={{
-            maxHeight: menuOpen ? 580 : 0,
-            overflow: "hidden",
-            transition: "max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
-            background: "rgba(255,255,255,0.98)",
-            backdropFilter: "blur(20px)",
-            borderTop: menuOpen ? "1px solid rgba(0,0,0,0.06)" : "none",
-          }}
-        >
-          <div style={{ padding: "16px 28px 24px", display: "flex", flexDirection: "column", gap: 6 }}>
-            {NAV_LINKS.map((link) => {
-              const label = getLabel(link);
-              const href = getHref(link);
-              return (
-                <Link
-                  key={label}
-                  href={href}
-                  onClick={() => setMenuOpen(false)}
-                  style={{
-                    fontSize: 16,
-                    fontWeight: 500,
-                    color: isActive(link) ? "#0d9488" : "#374151",
-                    textDecoration: "none",
-                    padding: "12px 16px",
-                    borderRadius: 10,
-                    background: isActive(link) ? "rgba(13,148,136,0.08)" : "transparent",
-                    transition: "all 0.2s",
-                  }}
-                >
-                  {label}
-                </Link>
-              );
-            })}
-
-            <div style={{ height: 1, background: "rgba(0,0,0,0.06)", margin: "8px 0" }} />
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <Link
-                href="/login?role=rider"
-                onClick={() => setMenuOpen(false)}
-                className="btn-shimmer"
-                style={{
-                  background: "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)",
-                  color: "#fff",
-                  fontSize: 15,
-                  fontWeight: 700,
-                  textDecoration: "none",
-                  padding: "12px 16px",
-                  borderRadius: 10,
-                  textAlign: "center",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: "0 4px 16px rgba(13,148,136,0.35)",
-                }}
-              >
-                Login as User
-              </Link>
-              <Link
-                href="/login?role=driver"
-                onClick={() => setMenuOpen(false)}
-                style={{
-                  fontSize: 15,
-                  fontWeight: 600,
-                  color: "#0d9488",
-                  textDecoration: "none",
-                  padding: "12px 16px",
-                  borderRadius: 10,
-                  border: "1.5px solid rgba(13,148,136,0.35)",
-                  textAlign: "center",
-                  background: "rgba(13,148,136,0.05)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                Login as Driver
-              </Link>
-            </div>
           </div>
         </div>
       </nav>
 
+      {/* Dedicated Mobile Slide-Out Drawer & Full-Viewport Backdrop (Rendered via React Portal directly to body) */}
+      {mounted &&
+        createPortal(
+          <div className={`mobile-nav-portal-root ${menuOpen ? "open" : ""}`}>
+            <div
+              className={`mobile-nav-backdrop ${menuOpen ? "open" : ""}`}
+              onClick={() => setMenuOpen(false)}
+              aria-hidden={!menuOpen}
+            />
+
+            <aside
+              id="mobile-nav-drawer"
+              className={`mobile-nav-drawer ${menuOpen ? "open" : ""}`}
+              role="dialog"
+              aria-modal={menuOpen}
+              aria-label="Mobile Navigation"
+            >
+              {/* Drawer Header */}
+              <div className="mobile-drawer-header">
+                <Link
+                  href="/"
+                  onClick={() => setMenuOpen(false)}
+                  style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}
+                >
+                  <Image
+                    src="/bhavo-title.png"
+                    alt="BHAVO"
+                    width={130}
+                    height={42}
+                    className="bhavo-title-img navbar-logo-img"
+                    style={{ height: 38, width: "auto", display: "block" }}
+                  />
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={() => setMenuOpen(false)}
+                  aria-label="Close menu"
+                  className="drawer-close-btn"
+                >
+                  <X size={24} color="#0f172a" />
+                </button>
+              </div>
+
+              {/* Drawer Body Scrollable Content */}
+              <div className="mobile-drawer-body">
+                {/* Primary CTA: Book a Ride */}
+                <Link
+                  href="/user/book-ride"
+                  onClick={() => setMenuOpen(false)}
+                  className="drawer-primary-cta btn-shimmer"
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <span className="cta-icon-box">
+                      <Sparkles size={16} />
+                    </span>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 15, lineHeight: 1.2 }}>Start a Ride</div>
+                      <div style={{ fontSize: 11.5, opacity: 0.9, fontWeight: 500 }}>Point-to-point city trips</div>
+                    </div>
+                  </div>
+                  <ArrowRight size={18} />
+                </Link>
+
+                {/* Commute CTA */}
+                <Link
+                  href="/user/commutes/new"
+                  onClick={() => setMenuOpen(false)}
+                  className="drawer-secondary-cta"
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <span className="commute-icon-box">
+                      <Clock size={16} />
+                    </span>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a", lineHeight: 1.2 }}>
+                        Schedule Daily Commute
+                      </div>
+                      <div style={{ fontSize: 11, color: "#64748b", fontWeight: 500, marginTop: 2 }}>
+                        Automated weekday office travel
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronRight size={16} color="#94a3b8" />
+                </Link>
+
+                {/* Navigation Links Group */}
+                <div className="drawer-section-heading">EXPLORE BHAVO</div>
+                <div className="drawer-links-list">
+                  {NAV_LINKS.map((link) => {
+                    const label = getLabel(link);
+                    const href = getHref(link);
+                    const active = isActive(link);
+                    return (
+                      <Link
+                        key={label}
+                        href={href}
+                        onClick={() => setMenuOpen(false)}
+                        className={`drawer-nav-link ${active ? "active" : ""}`}
+                      >
+                        <span>{label}</span>
+                        {active ? (
+                          <span className="drawer-active-pill">Current</span>
+                        ) : (
+                          <ChevronRight size={15} color="#cbd5e1" />
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+
+                <div className="drawer-divider" />
+
+                {/* Driver Network */}
+                <div className="drawer-section-heading">CAPTAIN &amp; DRIVER NETWORK</div>
+                <div className="drawer-driver-actions">
+                  <Link
+                    href="/login?role=driver"
+                    onClick={() => setMenuOpen(false)}
+                    className="drawer-driver-signin-btn"
+                  >
+                    <span>Captain Sign-In</span>
+                    <ArrowRight size={15} />
+                  </Link>
+                  <Link
+                    href="/signup?role=driver"
+                    onClick={() => setMenuOpen(false)}
+                    className="drawer-driver-register-btn"
+                  >
+                    <span>Become a Driver Partner</span>
+                    <ArrowRight size={15} />
+                  </Link>
+                </div>
+
+                <div className="drawer-divider" />
+
+                {/* Rider Sign In */}
+                <div className="drawer-section-heading">RIDER ACCOUNT</div>
+                <div className="drawer-rider-actions">
+                  <Link
+                    href="/login?role=rider"
+                    onClick={() => setMenuOpen(false)}
+                    className="drawer-rider-signin-btn"
+                  >
+                    <span>Rider Sign-In</span>
+                    <ArrowRight size={15} />
+                  </Link>
+                  <Link
+                    href="/signup?role=rider"
+                    onClick={() => setMenuOpen(false)}
+                    className="drawer-rider-register-btn"
+                  >
+                    <span>Create Rider Account</span>
+                    <ChevronRight size={15} color="#64748b" />
+                  </Link>
+                </div>
+
+                {/* Footer Note */}
+                <div className="drawer-footer-note">
+                  <div className="drawer-footer-brand">BHAVO Mobility Platform</div>
+                  <div className="drawer-footer-sub">Transparent Upfront Fares • Scheduled Commutes</div>
+                </div>
+              </div>
+            </aside>
+          </div>,
+          document.body
+        )}
+
       <style>{`
-        @media (max-width: 1180px) {
-          .nav-links { display: none !important; }
-          .hamburger-btn { display: flex !important; }
+        .navbar-inner {
+          max-width: 1360px;
+          margin: 0 auto;
+          padding: 0 24px;
+          height: 76px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          position: relative;
         }
+
+        .navbar-logo-img {
+          height: 48px;
+          width: auto;
+          display: block;
+        }
+
+        .hamburger-btn {
+          display: none;
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          padding: 8px;
+          align-items: center;
+          justify-content: center;
+          width: 44px;
+          height: 44px;
+          border-radius: 10px;
+          transition: background 0.2s ease;
+        }
+
+        .hamburger-btn:hover,
+        .hamburger-btn:active {
+          background: rgba(0, 0, 0, 0.05);
+        }
+
+        /* Mobile Portal Root */
+        .mobile-nav-portal-root {
+          position: fixed;
+          inset: 0;
+          z-index: 99998;
+          pointer-events: none;
+        }
+
+        .mobile-nav-portal-root.open {
+          pointer-events: auto;
+        }
+
+        @media (min-width: 1181px) {
+          .mobile-nav-portal-root {
+            display: none !important;
+          }
+        }
+
+        /* Backdrop spanning the full screen */
+        .mobile-nav-backdrop {
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.7);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          z-index: 99998;
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 0.28s ease;
+        }
+
+        .mobile-nav-backdrop.open {
+          opacity: 1;
+          pointer-events: auto;
+        }
+
+        /* Slide-out Drawer */
+        .mobile-nav-drawer {
+          position: fixed;
+          top: 0;
+          right: 0;
+          bottom: 0;
+          height: 100dvh;
+          max-height: 100dvh;
+          width: min(340px, 86vw);
+          background: #ffffff;
+          z-index: 99999;
+          box-shadow: -8px 0 36px rgba(0, 0, 0, 0.25);
+          display: flex;
+          flex-direction: column;
+          transform: translateX(100%);
+          transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+          pointer-events: none;
+          overflow: hidden;
+          box-sizing: border-box;
+        }
+
+        .mobile-nav-drawer.open {
+          transform: translateX(0);
+          pointer-events: auto;
+        }
+
+        .mobile-drawer-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: max(16px, env(safe-area-inset-top, 16px)) 18px 14px;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+          background: #ffffff;
+          flex-shrink: 0;
+        }
+
+        .drawer-close-btn {
+          background: #f1f5f9;
+          border: none;
+          border-radius: 10px;
+          width: 44px;
+          height: 44px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+
+        .drawer-close-btn:active {
+          background: #e2e8f0;
+        }
+
+        .mobile-drawer-body {
+          flex: 1;
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+          padding: 18px 18px max(24px, env(safe-area-inset-bottom, 24px));
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .drawer-primary-cta {
+          background: linear-gradient(135deg, #075b55 0%, #0d9488 100%);
+          color: #ffffff;
+          text-decoration: none;
+          padding: 13px 16px;
+          border-radius: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          box-shadow: 0 4px 18px rgba(7, 91, 85, 0.3);
+          transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .drawer-primary-cta:active {
+          transform: scale(0.98);
+        }
+
+        .cta-icon-box {
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          background: rgba(255, 255, 255, 0.2);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .drawer-secondary-cta {
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          color: #1e293b;
+          text-decoration: none;
+          padding: 11px 14px;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          transition: background 0.15s ease;
+        }
+
+        .drawer-secondary-cta:active {
+          background: #f1f5f9;
+        }
+
+        .commute-icon-box {
+          width: 30px;
+          height: 30px;
+          border-radius: 8px;
+          background: rgba(13, 148, 136, 0.12);
+          color: #0d9488;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .drawer-section-heading {
+          font-size: 10.5px;
+          font-weight: 800;
+          letter-spacing: 1.2px;
+          color: #94a3b8;
+          margin: 6px 0 2px;
+        }
+
+        .drawer-links-list {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .drawer-nav-link {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          font-size: 14.5px;
+          font-weight: 600;
+          color: #1e293b;
+          text-decoration: none;
+          padding: 11px 12px;
+          border-radius: 10px;
+          transition: all 0.15s ease;
+          min-height: 44px;
+          box-sizing: border-box;
+        }
+
+        .drawer-nav-link:active {
+          background: rgba(13, 148, 136, 0.08);
+          color: #075b55;
+        }
+
+        .drawer-nav-link.active {
+          background: rgba(13, 148, 136, 0.12);
+          color: #075b55;
+          font-weight: 700;
+        }
+
+        .drawer-active-pill {
+          font-size: 10px;
+          font-weight: 800;
+          color: #075b55;
+          background: #ccfbf1;
+          padding: 2px 8px;
+          border-radius: 99px;
+          text-transform: uppercase;
+        }
+
+        .drawer-divider {
+          height: 1px;
+          background: #f1f5f9;
+          margin: 2px 0;
+        }
+
+        .drawer-driver-actions,
+        .drawer-rider-actions {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .drawer-driver-signin-btn {
+          font-size: 13.5px;
+          font-weight: 700;
+          color: #ea580c;
+          text-decoration: none;
+          padding: 11px 14px;
+          border-radius: 10px;
+          border: 1.5px solid rgba(234, 88, 12, 0.35);
+          background: rgba(234, 88, 12, 0.05);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          min-height: 44px;
+          box-sizing: border-box;
+        }
+
+        .drawer-driver-register-btn {
+          font-size: 13.5px;
+          font-weight: 700;
+          color: #c2410c;
+          text-decoration: none;
+          padding: 11px 14px;
+          background: #fff7ed;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          min-height: 44px;
+          box-sizing: border-box;
+        }
+
+        .drawer-rider-signin-btn {
+          font-size: 14px;
+          font-weight: 700;
+          color: #075b55;
+          text-decoration: none;
+          padding: 11px 14px;
+          border-radius: 10px;
+          border: 1.5px solid rgba(7, 91, 85, 0.35);
+          background: rgba(7, 91, 85, 0.05);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          min-height: 44px;
+          box-sizing: border-box;
+        }
+
+        .drawer-rider-register-btn {
+          font-size: 13.5px;
+          font-weight: 600;
+          color: #475569;
+          text-decoration: none;
+          padding: 11px 14px;
+          border-radius: 10px;
+          border: 1px solid #e2e8f0;
+          background: #f8fafc;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          min-height: 44px;
+          box-sizing: border-box;
+        }
+
+        .drawer-footer-note {
+          padding-top: 10px;
+          margin-top: 4px;
+          text-align: center;
+        }
+
+        .drawer-footer-brand {
+          font-size: 11.5px;
+          font-weight: 700;
+          color: #64748b;
+        }
+
+        .drawer-footer-sub {
+          font-size: 10.5px;
+          color: #94a3b8;
+          margin-top: 2px;
+        }
+
+        @media (max-width: 1180px) {
+          .public-navbar {
+            background: #ffffff !important;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+            box-shadow: 0 2px 14px rgba(0, 0, 0, 0.05) !important;
+            z-index: 950 !important;
+            transition: opacity 0.25s ease, visibility 0.25s ease !important;
+          }
+          .public-navbar.menu-is-open {
+            opacity: 0 !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+          }
+          .nav-links {
+            display: none !important;
+          }
+          .hamburger-btn {
+            display: flex !important;
+          }
+        }
+
         @media (max-width: 768px) {
-          .desktop-actions { display: none !important; }
+          .desktop-actions {
+            display: none !important;
+          }
+          .navbar-inner {
+            height: 64px !important;
+            padding: 0 16px !important;
+          }
+          .navbar-logo-img {
+            height: 38px !important;
+          }
+          .mobile-drawer-header {
+            height: 64px !important;
+            padding: 0 16px !important;
+            box-sizing: border-box;
+          }
+          .mobile-nav-drawer {
+            width: 100% !important;
+            max-width: 100vw !important;
+            left: 0 !important;
+            right: 0 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+          }
         }
       `}</style>
     </>

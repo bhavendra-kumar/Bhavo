@@ -72,6 +72,7 @@ export default function PetFriendlyAnimatic() {
 
   return (
     <div
+      className="pet-animatic-card"
       style={{
         background: "linear-gradient(135deg, rgba(7, 91, 85, 0.05) 0%, rgba(16, 184, 166, 0.09) 100%)",
         border: "1.5px solid #ccfbf1",
@@ -309,7 +310,7 @@ export default function PetFriendlyAnimatic() {
             >
               Select Pet Companion Type:
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+            <div className="pet-types-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
               {PET_OPTIONS.map((opt) => {
                 const isSelected = selectedPet === opt.type;
                 return (
@@ -486,6 +487,24 @@ export default function PetFriendlyAnimatic() {
           </span>
         </div>
       </div>
+
+      <style>{`
+        @media (max-width: 960px) {
+          .pet-animatic-card {
+            padding: 22px 18px 20px !important;
+            border-radius: 20px !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .pet-animatic-card {
+            padding: 16px 14px 16px !important;
+            border-radius: 18px !important;
+          }
+          .pet-types-grid {
+            gap: 6px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

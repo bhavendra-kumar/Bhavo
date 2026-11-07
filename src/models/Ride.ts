@@ -282,7 +282,7 @@ const RideSchema = new Schema<IRide>(
     },
     autoBookingOccurrenceKey: {
       type: String,
-      default: null,
+      default: undefined,
     },
   },
   {
@@ -296,7 +296,15 @@ RideSchema.index({ _id: 1, rider: 1, status: 1 });
 RideSchema.index({ _id: 1, driver: 1, status: 1 });
 RideSchema.index({ "currentOffer.driverId": 1, "currentOffer.expiresAt": 1 });
 RideSchema.index({ status: 1, dispatchStatus: 1, scheduledFor: 1 });
-RideSchema.index({ autoBookingOccurrenceKey: 1 }, { unique: true, sparse: true });
+RideSchema.index(
+  { autoBookingOccurrenceKey: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      autoBookingOccurrenceKey: { $type: "string" },
+    },
+  }
+);
 RideSchema.index({ status: 1, createdAt: -1 });
 RideSchema.index({ createdAt: -1 });
 

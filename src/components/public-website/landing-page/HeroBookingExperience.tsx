@@ -63,6 +63,7 @@ interface VehicleEstimate {
 
 interface ActiveRideData {
   _id: string;
+  id?: string;
   rideId?: string;
   status: "SEARCHING" | "ACCEPTED" | "ARRIVED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
   pickup: {
@@ -607,12 +608,22 @@ export default function HeroBookingExperience() {
 
     const handleRideUpdate = (updated: ActiveRideData) => {
       if (!isMounted) return;
+      const incomingId = updated._id || updated.rideId || updated.id || "";
       setActiveRide((current) => {
-        if (!current) return updated;
+        if (!current) {
+          return {
+            ...updated,
+            _id: incomingId,
+          };
+        }
         const currentVersion = current.trackingVersion ?? 0;
         const incomingVersion = updated.trackingVersion ?? 0;
         if (incomingVersion < currentVersion) return current;
-        return updated;
+        return {
+          ...current,
+          ...updated,
+          _id: incomingId || current._id || "",
+        };
       });
 
       if (updated.status === "COMPLETED" || updated.status === "CANCELLED") {
@@ -3159,19 +3170,205 @@ export default function HeroBookingExperience() {
           text-decoration: none;
         }
 
+        @media (max-width: 768px) {
+          .location-text-input,
+          .time-text-input,
+          .commute-select-input {
+            font-size: 16px !important;
+          }
+        }
+
         @media (max-width: 640px) {
           .hero-booking-card {
-            padding: 18px 14px;
+            padding: 16px 14px 18px !important;
+            border-radius: 20px !important;
+            max-height: none !important;
+            overflow-y: visible !important;
+            box-shadow: 0 8px 28px rgba(7, 91, 85, 0.08) !important;
           }
+
+          .card-top-header {
+            margin-bottom: 14px !important;
+            padding-bottom: 12px !important;
+            gap: 10px !important;
+          }
+
+          .tabs-container {
+            display: flex !important;
+            width: 100% !important;
+          }
+
+          .booking-tab {
+            flex: 1 !important;
+            justify-content: center !important;
+            padding: 10px 12px !important;
+            min-height: 44px !important;
+            font-size: 13.5px !important;
+          }
+
+          .header-status-badge {
+            width: 100%;
+          }
+
+          .dispatch-telemetry-chip {
+            width: 100%;
+            justify-content: center;
+            box-sizing: border-box;
+          }
+
+          .location-inputs-group {
+            padding: 12px 10px !important;
+            border-radius: 14px !important;
+            margin-bottom: 14px !important;
+          }
+
+          .location-field {
+            gap: 10px !important;
+          }
+
+          .field-icon {
+            width: 30px !important;
+            height: 30px !important;
+          }
+
+          .location-text-input {
+            font-size: 16px !important;
+            padding: 4px 0 !important;
+          }
+
+          .gps-locate-btn {
+            min-height: 32px;
+            padding: 4px 8px;
+          }
+
+          .places-dropdown {
+            max-height: 220px !important;
+            z-index: 100 !important;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16) !important;
+          }
+
+          .place-option {
+            padding: 12px 12px !important;
+            min-height: 44px !important;
+          }
+
+          .route-map-preview {
+            height: 155px !important;
+            border-radius: 12px !important;
+            margin-bottom: 10px !important;
+          }
+
           .vehicle-pills-grid {
-            grid-template-columns: 1fr;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 8px !important;
+            margin-bottom: 10px !important;
           }
-          .commute-row-schedule {
-            grid-template-columns: 1fr;
+
+          .vehicle-card-pill {
+            padding: 8px 8px !important;
+            min-height: 74px !important;
           }
+
+          .veh-name {
+            font-size: 11.5px !important;
+          }
+
+          .veh-fare-num {
+            font-size: 12.5px !important;
+          }
+
           .route-footer-specs {
-            grid-template-columns: 1fr;
-            gap: 8px;
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 6px !important;
+            padding: 10px 10px !important;
+            margin-bottom: 14px !important;
+          }
+
+          .spec-k {
+            font-size: 9px !important;
+          }
+
+          .spec-v {
+            font-size: 11.5px !important;
+          }
+
+          .route-card-action {
+            min-height: 48px !important;
+            font-size: 14.5px !important;
+            padding: 12px 18px !important;
+            border-radius: 12px !important;
+          }
+
+          .commute-row-schedule {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+          }
+
+          .time-text-input,
+          .commute-select-input {
+            font-size: 16px !important;
+            min-height: 44px !important;
+          }
+
+          .days-picker-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+          }
+
+          .day-pill {
+            min-width: 36px;
+            min-height: 36px;
+            font-size: 12px;
+          }
+
+          .auth-prompt-modal-overlay {
+            padding: 12px;
+          }
+
+          .auth-prompt-modal {
+            max-width: 100% !important;
+            padding: 20px 16px !important;
+            border-radius: 18px !important;
+            max-height: 90dvh;
+            overflow-y: auto;
+          }
+
+          .modal-login-btn,
+          .modal-register-btn {
+            min-height: 46px;
+          }
+
+          .tracker-map-container {
+            height: 160px !important;
+          }
+
+          .otp-security-box {
+            padding: 8px 12px !important;
+          }
+
+          .driver-info-card {
+            padding: 8px 10px !important;
+          }
+        }
+
+        @media (max-width: 360px) {
+          .hero-booking-card {
+            padding: 14px 10px 16px !important;
+            border-radius: 16px !important;
+          }
+
+          .vehicle-pills-grid {
+            grid-template-columns: 1fr !important;
+          }
+
+          .route-footer-specs {
+            grid-template-columns: 1fr 1fr !important;
+          }
+
+          .booking-tab {
+            font-size: 12px !important;
+            padding: 8px 8px !important;
           }
         }
       `}</style>

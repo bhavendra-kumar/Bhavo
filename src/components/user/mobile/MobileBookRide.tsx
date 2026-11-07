@@ -6,13 +6,15 @@ import {
   Star, Navigation, Home, Briefcase, CalendarClock, Heart,
   Phone, MessageSquare, XCircle, RefreshCw,
   Radio, Target, Compass, Loader2, Edit2, ShieldAlert,
-  Sparkles, ChevronRight
+  ChevronRight
 } from "lucide-react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import LocationSearch from "../book-ride/LocationSearch";
 import { VehicleIcon } from "../book-ride/VehicleIcons";
 import { useDialog } from "@/components/ui/DialogProvider";
 import type { AreaMarker } from "../book-ride/LeafletMap";
+import type { IRideData } from "@/hooks/user/useDashboardStore";
 
 const LeafletMap = dynamic(() => import("../book-ride/LeafletMap"), { ssr: false });
 
@@ -60,6 +62,8 @@ export interface RecommendedPlace {
 
 interface ActiveRide {
   _id: string;
+  id?: string;
+  rideId?: string;
   status: "SEARCHING" | "ACCEPTED" | "ARRIVED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
   pickup: { address: string; coordinates: [number, number] };
   dropoff: { address: string; coordinates: [number, number] };
@@ -139,6 +143,7 @@ interface MobileBookRideProps {
   onSelectAreaDropoff?: (coords: [number, number], name: string) => void;
   recommendedPlaces?: RecommendedPlace[];
   recsLoading?: boolean;
+  recentRides?: IRideData[];
 }
 
 export default function MobileBookRide(props: MobileBookRideProps) {
@@ -163,11 +168,9 @@ export default function MobileBookRide(props: MobileBookRideProps) {
     mapSelectionMode, setMapSelectionMode,
     handlePickupDrag, handleDropoffDrag, handleMapClick,
     dynamicVehicles, selectedVehicle, driverPosition,
-    areaMarkers = [], onSelectAreaPickup, onSelectAreaDropoff,
-    recommendedPlaces = [], recsLoading = false,
+    recentRides = [],
   } = props;
 
-  const [recCategory, setRecCategory] = useState<string>("all");
   const [isEditingLocations, setIsEditingLocations] = useState(false);
   const isLocationsCollapsed = hasTrip && !isEditingLocations;
   const { confirm, alert } = useDialog();
@@ -187,13 +190,12 @@ export default function MobileBookRide(props: MobileBookRideProps) {
 
           <div className="absolute top-3 left-3 z-10 bg-white/95 backdrop-blur px-3 py-1.5 rounded-full border border-slate-200 shadow-md flex items-center gap-2">
             <span
-              className={`w-2.5 h-2.5 rounded-full ${
-                activeRide.locationStatus === "FRESH"
+              className={`w-2.5 h-2.5 rounded-full ${activeRide.locationStatus === "FRESH"
                   ? "bg-teal-500 animate-pulse"
                   : activeRide.locationStatus === "STALE"
-                  ? "bg-amber-500 animate-pulse"
-                  : "bg-slate-400"
-              }`}
+                    ? "bg-amber-500 animate-pulse"
+                    : "bg-slate-400"
+                }`}
             />
             <span className="text-[11.5px] font-bold text-slate-900">
               {activeRide.locationStatus === "FRESH"
@@ -201,15 +203,15 @@ export default function MobileBookRide(props: MobileBookRideProps) {
                   ? `Live GPS (${activeRide.locationAgeSeconds}s ago)`
                   : "Driver live GPS active"
                 : activeRide.locationStatus === "STALE"
-                ? `GPS delayed (${activeRide.locationAgeSeconds ?? 120}s ago)`
-                : activeRide.locationStatus === "TERMINAL"
-                ? "Trip ended"
-                : "GPS unavailable"}
+                  ? `GPS delayed (${activeRide.locationAgeSeconds ?? 120}s ago)`
+                  : activeRide.locationStatus === "TERMINAL"
+                    ? "Trip ended"
+                    : "GPS unavailable"}
             </span>
           </div>
 
           <div className="absolute top-3 right-3 z-10 bg-[#042f2e] text-white px-2.5 py-1 rounded-full font-mono text-[11px] font-bold shadow-md">
-            #{activeRide._id.slice(-6).toUpperCase()}
+            #{String(activeRide._id || activeRide.rideId || activeRide.id || "").slice(-6).toUpperCase() || "ACTIVE"}
           </div>
         </div>
 
@@ -220,10 +222,10 @@ export default function MobileBookRide(props: MobileBookRideProps) {
               {activeRide.status === "SEARCHING"
                 ? "Searching Nearest Driver..."
                 : activeRide.status === "ACCEPTED"
-                ? "Driver Confirmed (ETA ~3m)"
-                : activeRide.status === "ARRIVED"
-                ? "Driver at Pickup Location"
-                : "Trip In Progress"}
+                  ? "Driver Confirmed (ETA ~3m)"
+                  : activeRide.status === "ARRIVED"
+                    ? "Driver at Pickup Location"
+                    : "Trip In Progress"}
             </span>
 
             <span className="text-[15px] font-black text-teal-800">
@@ -326,7 +328,7 @@ export default function MobileBookRide(props: MobileBookRideProps) {
                 <div className="absolute -left-5 top-1 w-3 h-3 rounded-full border-2 border-teal-500 bg-white" />
                 <div>
                   <p className="text-[10px] font-bold uppercase text-teal-600">Pickup</p>
-                  <p className="text-[12.5px] font-semibold text-slate-900 line-clamp-1">{activeRide.pickup.address}</p>
+                  <p className="text-[12.5px] font-semibold text-slate-900 line-clamp-1">{activeRide.pickup?.address || "Pickup location"}</p>
                 </div>
               </div>
               <div className="relative flex items-start gap-2">
@@ -335,7 +337,7 @@ export default function MobileBookRide(props: MobileBookRideProps) {
                 </div>
                 <div>
                   <p className="text-[10px] font-bold uppercase text-teal-600">Drop-off</p>
-                  <p className="text-[12.5px] font-semibold text-slate-900 line-clamp-1">{activeRide.dropoff.address}</p>
+                  <p className="text-[12.5px] font-semibold text-slate-900 line-clamp-1">{activeRide.dropoff?.address || "Destination"}</p>
                 </div>
               </div>
             </div>
@@ -385,9 +387,6 @@ export default function MobileBookRide(props: MobileBookRideProps) {
           userCoords={userCoords}
           routeCoords={hasTrip ? routeCoords : []}
           vehicleType={selectedVehicle.type}
-          areaMarkers={areaMarkers}
-          onSelectAreaPickup={onSelectAreaPickup}
-          onSelectAreaDropoff={onSelectAreaDropoff}
           isDraggable={true}
           onPickupDrag={handlePickupDrag}
           onDropoffDrag={handleDropoffDrag}
@@ -424,9 +423,8 @@ export default function MobileBookRide(props: MobileBookRideProps) {
           <button
             type="button"
             onClick={handleToggleLiveTracking}
-            className={`w-9 h-9 rounded-full shadow-md flex items-center justify-center active:scale-95 transition-transform cursor-pointer border ${
-              isLiveTracking ? "bg-sky-600 text-white border-sky-700" : "bg-white text-slate-600 border-slate-200"
-            }`}
+            className={`w-9 h-9 rounded-full shadow-md flex items-center justify-center active:scale-95 transition-transform cursor-pointer border ${isLiveTracking ? "bg-sky-600 text-white border-sky-700" : "bg-white text-slate-600 border-slate-200"
+              }`}
             title="Toggle Live GPS Tracking"
             aria-label="Toggle Live GPS Tracking"
           >
@@ -633,138 +631,124 @@ export default function MobileBookRide(props: MobileBookRideProps) {
 
         {!hasTrip ? (
           <div className="flex flex-col gap-2.5">
-            <div className="card p-4 bg-white border border-slate-200/90 rounded-2xl shadow-xs flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-6 h-6 rounded-lg bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600">
-                    <Sparkles size={13} />
+            {recentRides && recentRides.length > 0 ? (
+              <div className="card p-4 bg-white border border-slate-200/90 rounded-2xl shadow-xs flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600">
+                      <Clock size={14} />
+                    </div>
+                    <div>
+                      <h3 className="text-[13px] font-bold text-slate-900 leading-tight">
+                        Recent Destinations
+                      </h3>
+                      <p className="text-[10.5px] text-slate-500">
+                        Tap to rebook a previous drop-off
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-[13px] font-bold text-slate-900 leading-tight">
-                      Recommended Destinations
-                    </h3>
-                    <p className="text-[10.5px] text-slate-500">
-                      Popular spots & transit hubs near your pickup
-                    </p>
-                  </div>
-                </div>
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full shrink-0">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Live Local
-                </span>
-              </div>
-
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
-                {[
-                  { id: "all", label: "All Spots" },
-                  { id: "transit", label: "Bus Stand 🚌" },
-                  { id: "railway", label: "Railway 🚆" },
-                  { id: "hospital", label: "Hospitals 🏥" },
-                  { id: "landmark", label: "Landmarks 🛕" },
-                  { id: "market", label: "Markets 🛍️" },
-                  { id: "education", label: "Colleges 🎓" },
-                ].map((cat) => (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => setRecCategory(cat.id)}
-                    className={`text-[11px] font-bold px-2.5 py-1 rounded-full shrink-0 transition-all cursor-pointer ${
-                      recCategory === cat.id
-                        ? "bg-teal-600 text-white shadow-xs"
-                        : "bg-slate-100/90 text-slate-600 hover:bg-slate-200/70"
-                    }`}
+                  <Link
+                    href="/user/trips"
+                    className="text-[11px] font-bold text-teal-600 hover:text-teal-700 flex items-center gap-0.5"
                   >
-                    {cat.label}
-                  </button>
-                ))}
-              </div>
-
-              {recsLoading && recommendedPlaces.length === 0 ? (
-                <div className="flex flex-col gap-2 py-1">
-                  {[1, 2, 3].map((n) => (
-                    <div key={n} className="h-14 bg-slate-100 rounded-xl animate-pulse" />
-                  ))}
+                    All Trips <ChevronRight size={12} />
+                  </Link>
                 </div>
-              ) : (
-                (() => {
-                  const filtered = recommendedPlaces.filter((place) => {
-                    if (!recCategory || recCategory === "all") return true;
-                    if (recCategory === "transit") return place.category === "transit" || place.category === "metro_station";
-                    if (recCategory === "railway") return place.category === "railway";
-                    if (recCategory === "hospital") return place.category === "hospital";
-                    if (recCategory === "landmark") return place.category === "landmark";
-                    if (recCategory === "market") return place.category === "market" || place.category === "mall";
-                    if (recCategory === "education") return place.category === "education";
-                    return true;
-                  });
 
-                  if (filtered.length === 0) {
-                    return (
-                      <div className="p-4 text-center text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                        No destinations found for this filter. Try selecting &quot;All Spots&quot; or search above.
-                      </div>
-                    );
-                  }
+                <div className="flex flex-col divide-y divide-slate-100 max-h-64 overflow-y-auto pr-0.5">
+                  {(() => {
+                    const uniqueRides: IRideData[] = [];
+                    const seen = new Set<string>();
+                    for (const ride of recentRides) {
+                      const key = (ride.dropoff?.address || "").trim().toLowerCase();
+                      if (key && !seen.has(key)) {
+                        seen.add(key);
+                        uniqueRides.push(ride);
+                      }
+                      if (uniqueRides.length >= 4) break;
+                    }
 
-                  return (
-                    <div className="flex flex-col divide-y divide-slate-100 max-h-72 overflow-y-auto pr-0.5">
-                      {filtered.slice(0, 10).map((place, idx) => {
-                        const displayName = place.short_name || place.name || place.display_name.split(",")[0];
-                        return (
-                          <button
-                            key={place.id || place.place_id || `rec-${idx}`}
-                            type="button"
-                            onClick={() => {
-                              setDropoffAddress(displayName);
-                              setDropoffCoords([place.lat, place.lon]);
-                            }}
-                            className="w-full text-left py-2.5 px-1.5 flex items-center gap-3 transition-colors hover:bg-teal-50/60 rounded-xl cursor-pointer group active:scale-[0.99]"
-                          >
-                            <span className="w-8 h-8 rounded-xl bg-slate-100 group-hover:bg-teal-100 flex items-center justify-center text-base shrink-0 transition-colors">
-                              {place.glyph || "📍"}
+                    return uniqueRides.map((ride, idx) => {
+                      const dropoffTitle =
+                        ride.dropoff?.address?.split(",")[0] ||
+                        ride.dropoff?.address ||
+                        "Destination";
+                      const pickupSub =
+                        ride.pickup?.address?.split(",")[0] ||
+                        ride.pickup?.address ||
+                        "";
+                      const dateStr = ride.createdAt
+                        ? new Date(ride.createdAt).toLocaleDateString("en-IN", {
+                          month: "short",
+                          day: "numeric",
+                        })
+                        : "";
+
+                      return (
+                        <button
+                          key={ride._id || `recent-${idx}`}
+                          type="button"
+                          onClick={() => {
+                            if (!pickupAddress && ride.pickup?.address) {
+                              setPickupAddress(ride.pickup.address);
+                              if (ride.pickup.coordinates) {
+                                setPickupCoords(ride.pickup.coordinates);
+                              }
+                            }
+                            setDropoffAddress(ride.dropoff?.address || dropoffTitle);
+                            if (ride.dropoff?.coordinates) {
+                              setDropoffCoords(ride.dropoff.coordinates);
+                            }
+                          }}
+                          className="w-full text-left py-2.5 px-1.5 flex items-center justify-between transition-colors hover:bg-teal-50/60 rounded-xl cursor-pointer group active:scale-[0.99]"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
+                            <span className="w-8 h-8 rounded-full bg-slate-100 group-hover:bg-teal-100 flex items-center justify-center text-slate-600 group-hover:text-teal-700 shrink-0 transition-colors">
+                              <MapPin size={14} />
                             </span>
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <p className="text-[13px] font-bold text-slate-900 group-hover:text-teal-900 truncate">
-                                  {displayName}
-                                </p>
-                                {place.categoryLabel && (
-                                  <span className="text-[9.5px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded shrink-0">
-                                    {place.categoryLabel}
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-[11px] text-slate-500 truncate leading-tight mt-0.5">
-                                {place.subtext || place.display_name}
+                              <p className="text-[12.5px] font-bold text-slate-900 group-hover:text-teal-900 truncate">
+                                {dropoffTitle}
+                              </p>
+                              <p className="text-[10.5px] text-slate-400 truncate leading-tight mt-0.5">
+                                {pickupSub ? `From ${pickupSub}` : ""}{" "}
+                                {dateStr ? `• ${dateStr}` : ""}
                               </p>
                             </div>
-                            <div className="text-right shrink-0 flex flex-col items-end">
-                              {place.distanceKm !== undefined && (
-                                <span className="text-[10.5px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.2 rounded-md">
-                                  {place.distanceKm} km
-                                </span>
-                              )}
-                              {place.fareEstimateBike !== undefined && (
-                                <span className="text-[10px] text-slate-400 font-semibold mt-0.5">
-                                  Bike ~₹{place.fareEstimateBike}
-                                </span>
-                              )}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  );
-                })()
-              )}
+                          </div>
 
-              <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-medium">
-                <span>Tap any spot to set destination instantly</span>
-                <span className="text-teal-600 font-bold flex items-center gap-0.5">
-                  1-Tap Booking <ChevronRight size={12} />
-                </span>
+                          <div className="text-right shrink-0 flex items-center gap-1.5">
+                            {ride.vehicleType && (
+                              <span className="text-[9.5px] font-bold uppercase text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                                {ride.vehicleType}
+                              </span>
+                            )}
+                            <ChevronRight
+                              size={14}
+                              className="text-slate-300 group-hover:text-teal-600 transition-colors"
+                            />
+                          </div>
+                        </button>
+                      );
+                    });
+                  })()}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="p-4 rounded-2xl border border-slate-100 bg-white shadow-xs flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center shrink-0">
+                  <Navigation size={16} />
+                </div>
+                <div>
+                  <p className="text-[12px] font-bold text-slate-800">
+                    Where are you heading?
+                  </p>
+                  <p className="text-[10.5px] text-slate-400 mt-0.5">
+                    Enter your destination above to view live fares and nearby drivers.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex flex-col gap-2">
@@ -834,9 +818,8 @@ export default function MobileBookRide(props: MobileBookRideProps) {
                 <button
                   type="button"
                   onClick={() => setPetFriendly(!petFriendly)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border font-bold transition-colors cursor-pointer ${
-                    petFriendly ? "bg-teal-50 border-teal-400 text-teal-800" : "bg-slate-50 border-slate-200 text-slate-600"
-                  }`}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border font-bold transition-colors cursor-pointer ${petFriendly ? "bg-teal-50 border-teal-400 text-teal-800" : "bg-slate-50 border-slate-200 text-slate-600"
+                    }`}
                 >
                   <span>🐶 Pet Ride (+15%)</span>
                   {petFriendly && <Check size={11} className="text-teal-700" />}
@@ -845,9 +828,8 @@ export default function MobileBookRide(props: MobileBookRideProps) {
                 <button
                   type="button"
                   onClick={() => setPrefDriver(!prefDriver)}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border font-bold transition-colors cursor-pointer ${
-                    prefDriver ? "bg-teal-50 border-teal-400 text-teal-800" : "bg-slate-50 border-slate-200 text-slate-600"
-                  }`}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border font-bold transition-colors cursor-pointer ${prefDriver ? "bg-teal-50 border-teal-400 text-teal-800" : "bg-slate-50 border-slate-200 text-slate-600"
+                    }`}
                 >
                   <Star size={11} className={prefDriver ? "text-amber-500 fill-amber-500" : "text-slate-400"} />
                   <span>Top Pilots</span>

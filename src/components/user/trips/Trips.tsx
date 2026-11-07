@@ -130,7 +130,7 @@ export default function TripsPage() {
         amount: orderData.amountInPaise,
         currency: orderData.currency || "INR",
         name: "Bhavo Mobility",
-        description: `Ride Payment #${trip._id.slice(-6).toUpperCase()}`,
+        description: `Ride Payment #${String(trip._id || trip.id || "").slice(-6).toUpperCase() || "TRIP"}`,
         order_id: orderData.orderId,
         handler: async (response: RazorpayResponse) => {
           setPayingTripId(null);
@@ -542,7 +542,7 @@ export default function TripsPage() {
                             {dateStr}
                           </p>
                           <p className="text-[12px] font-medium mt-0.5 flex items-center gap-1 text-slate-500">
-                            <Clock size={11} className="text-teal-600" /> {timeStr} · ID: #{trip._id.slice(-6).toUpperCase()}
+                            <Clock size={11} className="text-teal-600" /> {timeStr} · ID: #{String(trip._id || trip.id || "").slice(-6).toUpperCase() || "TRIP"}
                           </p>
                         </div>
                         <span
